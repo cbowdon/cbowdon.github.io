@@ -1,40 +1,3 @@
-var Result = (function () {
-    function Result(value, errors) {
-        this.value = value;
-        this.errors = errors;
-        this.isSuccess = !!value;
-    }
-    Result.success = function (val) {
-        return new Result(val, []);
-    };
-    Result.fail = function (errs) {
-        return new Result(null, errs);
-    };
-    return Result;
-})();
-var ShortDate = (function () {
-    function ShortDate(date) {
-        if (date === void 0) { date = new Date(); }
-        this.year = date.getFullYear();
-        this.month = date.getMonth() + 1;
-        this.day = date.getDate();
-    }
-    ShortDate.prototype.toMillis = function () {
-        return new Date(this.year, this.month, this.day).getTime();
-    };
-    ShortDate.prototype.toISOString = function () {
-        var y, m, d;
-        y = this.year > 99 ? this.year.toString() : '20' + this.year;
-        m = this.month > 9 ? this.month.toString() : '0' + this.month;
-        d = this.day > 9 ? this.day.toString() : '0' + this.day;
-        return y + '-' + m + '-' + d;
-    };
-    ShortDate.parse = function (str) {
-        var d = new Date(str);
-        return d && d.getFullYear() && d.getMonth && d.getDate() ? Result.success(new ShortDate(d)) : Result.fail(['Could not parse date: ' + str]);
-    };
-    return ShortDate;
-})();
 var Dispatcher = (function () {
     function Dispatcher() {
         this.events = {};
@@ -97,29 +60,10 @@ var Publisher = (function () {
     };
     return Publisher;
 })();
-var Time = (function () {
-    function Time(hour, minute) {
-        this.hour = hour;
-        this.minute = minute;
-    }
-    Time.parse = function (str) {
-        var regex = /^([0-9]|[0-1][0-9]|2[0-3]):?([0-5][0-9])$/, match = regex.exec(str), hour, minute;
-        if (match) {
-            hour = parseInt(match[1], 10);
-            minute = parseInt(match[2], 10);
-            return Result.success(new Time(hour, minute));
-        }
-        return Result.fail(['Cannot parse time: ' + str]);
-    };
-    Time.prototype.toMillis = function () {
-        return this.hour * 3600 * 1000 + this.minute * 60 * 1000;
-    };
-    Time.prototype.toISOString = function () {
-        var hourStr = (this.hour < 10 ? '0' : '') + this.hour, minuteStr = (this.minute < 10 ? '0' : '') + this.minute;
-        return hourStr + ':' + minuteStr;
-    };
-    return Time;
-})();
+var VALID_TIME_FORMATS = ['HH:mm', 'HHmm', 'hh:mm a'];
+var VALID_DATE_FORMATS = ['YYYY-MM-DD'];
+var PREFERRED_TIME_FORMAT = 'HH:mm';
+var PREFERRED_DATE_FORMAT = 'YYYY-MM-DD';
 var Validated = (function () {
     function Validated(value, errors) {
         this.value = value;
@@ -142,12 +86,12 @@ var RawEntryValidator = (function () {
         if (!raw.project) {
             errs.push('Invalid project');
         }
-        time = Time.parse(raw.start);
-        if (!time.isSuccess) {
+        time = moment(raw.start, VALID_TIME_FORMATS, true);
+        if (!time.isValid()) {
             errs.push('Invalid time');
         }
-        date = ShortDate.parse(raw.date);
-        if (!date.isSuccess) {
+        date = moment(raw.date, VALID_DATE_FORMATS, true);
+        if (!date.isValid()) {
             errs.push('Invalid date');
         }
         if (errs.length > 0) {
@@ -156,8 +100,8 @@ var RawEntryValidator = (function () {
         return Validated.valid({
             project: raw.project,
             task: raw.task,
-            start: time.value.toISOString(),
-            date: date.value.toISOString()
+            start: time.format(PREFERRED_TIME_FORMAT),
+            date: date.format(PREFERRED_DATE_FORMAT)
         });
     };
     return RawEntryValidator;
@@ -207,26 +151,28 @@ var EntryCollection = (function (_super) {
     }
     EntryCollection.extractEntries = function (rawEntries) {
         var result = _.chain(rawEntries).map(function (r) {
-            var dateRes = ShortDate.parse(r.date), timeRes = Time.parse(r.start);
-            if (!dateRes || !timeRes) {
+            var dateRes = moment(r.date, PREFERRED_DATE_FORMAT, true), timeRes = moment(r.start, PREFERRED_TIME_FORMAT, true);
+            if (!dateRes.isValid() || !timeRes.isValid()) {
                 throw new Error('Invalid datetime.');
             }
+            timeRes.year(dateRes.year());
+            timeRes.month(dateRes.month());
+            timeRes.date(dateRes.date());
             return {
                 project: r.project,
                 task: r.task,
-                date: dateRes.value,
-                start: timeRes.value,
+                date: dateRes,
+                start: timeRes,
                 end: undefined,
-                startMillis: dateRes.value.toMillis() + timeRes.value.toMillis(),
                 minutes: undefined
             };
-        }).groupBy(function (r) { return r.date.toISOString(); }).values().map(function (day) {
-            return _.chain(day).sortBy(function (r) { return r.startMillis; }).reduce(function (acc, r, i) {
+        }).groupBy(function (r) { return r.date.format(PREFERRED_DATE_FORMAT); }).values().map(function (day) {
+            return _.chain(day).sortBy(function (r) { return r.start.format(); }).reduce(function (acc, r, i) {
                 if (i === 0) {
                     return [r];
                 }
                 acc[i - 1].end = r.start;
-                acc[i - 1].minutes = (acc[i - 1].end.toMillis() - acc[i - 1].start.toMillis()) / (60 * 1000);
+                acc[i - 1].minutes = acc[i - 1].end.diff(acc[i - 1].start) / (60 * 1000);
                 if (i !== rawEntries.length - 1) {
                     acc.push(r);
                 }
@@ -268,7 +214,7 @@ var ViewController;
         }
         UserInput.prototype.sync = function (evt) {
             var _this = this;
-            var container = $('#entry-container');
+            var numEvents = evt.validated.length, container = $('#entry-container');
             container.empty();
             _.each(evt.validated, function (v, i) {
                 _this.addBlankRow(i);
@@ -279,7 +225,10 @@ var ViewController;
             });
             container.find('.entry-row.has-error input:first').focus();
             if (_.every(evt.validated, function (v) { return v.isValid; })) {
-                this.addBlankRow(evt.validated.length);
+                this.addBlankRow(numEvents);
+                if (numEvents > 0) {
+                    this.autoFillDate(numEvents, evt.validated[numEvents - 1].value.date);
+                }
                 container.find('.entry-row input.date:last').focus();
             }
             else {
@@ -287,19 +236,24 @@ var ViewController;
             }
         };
         UserInput.prototype.addBlankRow = function (id) {
-            var entries = $('#entry-container'), newRow = this.templates.find('#entry').clone();
+            var entries = $('#entry-container'), newRow = this.templates.find('#entry').clone(), defDate = moment().format(PREFERRED_DATE_FORMAT);
             newRow.attr('id', 'entry-' + id);
+            newRow.find('input.date').val(defDate);
             entries.append(newRow);
         };
         UserInput.prototype.fillRow = function (id, values) {
             var row = $('#entry-' + id);
-            row.find('input.date').val(values['date']);
-            row.find('input.project').val(values['project']);
-            row.find('input.task').val(values['task']);
-            row.find('input.start').val(values['start']);
+            row.find('input.date').val(values.date);
+            row.find('input.project').val(values.project);
+            row.find('input.task').val(values.task);
+            row.find('input.start').val(values.start);
             row.addClass('has-success');
             row.find('hr').removeClass('hidden');
             row.find('button.clear-row').removeClass('hidden').removeAttr('disabled').click(function (evt) { return row.find('input').val(null); });
+        };
+        UserInput.prototype.autoFillDate = function (id, date) {
+            var row = $('#entry-' + id);
+            row.find('input.date').val(date);
         };
         UserInput.prototype.addErrors = function (id, messages) {
             var row = $('#entry-' + id), ul = row.find('#errors');
@@ -330,10 +284,10 @@ var ViewController;
             if (entries.length === 0) {
                 return;
             }
-            _.chain(entries).sortBy(function (e) { return e.task; }).sortBy(function (e) { return e.project; }).sortBy(function (e) { return e.date.toMillis(); }).each(function (e, i) {
+            _.chain(entries).sortBy(function (e) { return e.task; }).sortBy(function (e) { return e.project; }).sortBy(function (e) { return e.date.milliseconds(); }).each(function (e, i) {
                 var newRow = templ.clone();
                 newRow.attr('id', 'sum-' + i);
-                newRow.find('.date').html(e.date.toISOString());
+                newRow.find('.date').html(e.date.format('YYYY-MM-DD'));
                 newRow.find('.project').html(e.project);
                 newRow.find('.task').html(e.task);
                 newRow.find('.minutes').html(e.minutes.toString());
