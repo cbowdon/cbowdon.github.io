@@ -251,7 +251,7 @@ h2 {
   margin-bottom: 8px;
 } 
 
-h3 {
+dt, h3 {
   color: #d5000d;
   font-size: 18px;
   font-weight: bold;
