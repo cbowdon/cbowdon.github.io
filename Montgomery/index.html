@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" manifest="manifest.appcache">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Montgomery - time tracker</title>
+
+    <!-- Bootstrap -->
+    <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="montgomery.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+
+    <div id="templates" class="hidden">
+      <div id="entry" class="entry-row">
+        <form class="form-inline" role="form" action="#">
+          <div class="form-group">
+            <input type="date" class="date form-control" placeholder="Date" />
+          </div>
+          <div class="form-group">
+            <input type="text" class="project form-control" placeholder="Project" />
+          </div>
+          <div class="form-group">
+            <input type="text" class="task form-control" placeholder="Task" />
+          </div>
+          <div class="form-group">
+            <input type="time" class="start form-control" placeholder="Start" />
+          </div>
+          <button type="reset" class="btn btn-default hidden clear-row" disabled><span class="glyphicon glyphicon-remove"></span> Clear</button>
+        </form>
+        <ul id="errors" />
+        <hr class="hidden">
+      </div>
+      <table id="sum-container-template">
+        <tr id="sum" class="sum-row">
+          <td class="date"></td>
+          <td class="project"></td>
+          <td class="task"></td>
+          <td class="minutes"></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12 bg-info">
+          <a href="#" onclick="localStorage.clear()"><span class="glyphicon glyphicon-remove"></span> Clear task history</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="row page-header">
+        <h1>
+          <span>Montgomery</span>
+          <span class="small">time tracker</span>
+        </h1>
+      </div>
+    </div>
+
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-8">
+          <div id="input-container" class="panel panel-default">
+            <div class="panel-body">
+              <div id="entry-container"></div>
+            </div>
+            <div class="panel-footer">
+              <button id="update-entries" type="submit" class="add btn btn-default"><span class="glyphicon glyphicon-save"></span> Update</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div id="vis-container" class="panel panel-default">
+            <table id="sum-table" class="table table-striped table-condensed">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Project</th>
+                  <th>Task</th>
+                  <th>Minutes</th>
+                </tr>
+              </thead>
+              <tbody id="sum-container">
+              </tbody>
+            </table>
+          </div>
+          <div id="chart-container" />
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div id="page-footer" class="row">
+        <div class="col-md-12">
+          <hr>
+          <h5>
+            <span class="small pull-right">© Chris Bowdon 2014</span>
+          </h5>
+        </div>
+      </div>
+    </div>
+
+    <script src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="bower_components/underscore/underscore.js"></script>
+    <script src="bower_components/moment/moment.js"></script>
+    <script src="bower_components/d3/d3.min.js"></script>
+    <script src="montgomery.js"></script>
+  </body>
+</html>
