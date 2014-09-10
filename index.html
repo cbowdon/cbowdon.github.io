@@ -39,55 +39,38 @@
           <p><em>Disclaimer to disclaimer:</em> This will always be the case.</p>
           <p>I license all of the original work here under GPLv3 unless otherwise stated in the individual repos. This has all been done for fun and education, with no relationship to my employment.</p>
 
-          <h3><a name="computer-vision-theremin" href="https://github.com/cbowdon/Computer-Vision-Theremin">Computer-Vision Theremin</a></h3>
+          <dl>
+          
+            <dt>
+              <a name="computer-vision-theremin" href="https://github.com/cbowdon/Computer-Vision-Theremin">Computer-Vision Theremin</a>
+            </dt>
+            <dd>
+              <p><a name="computer-vision-theremin" href="https://github.com/cbowdon/Computer-Vision-Theremin">This</a> is an application that uses computer vision to track the user's hand and plays a tone according to the position. This is a simulation of a physical instrument that plays a tone according to the user's hands' distance from its antennae. If the simulation is anything to go by, the real thing is impossible to play.</p>
+              <p>From a technical point of view, the notable thing about this is the extension of the Lucas-Kanaarde algorithm to constantly prune and search for new points to track. It's written in C++11, for which I had to modify OpenCV somewhat to get it to build. If I recall correctly the modifications were a fairly straightforward working through of the compiler errors.</p>
+            </dd>
 
-          <p><a name="computer-vision-theremin" href="https://github.com/cbowdon/Computer-Vision-Theremin">This</a> is an application that uses computer vision to track the user's hand and plays a tone according to the position. This is a simulation of a physical instrument that plays a tone according to the user's hands' distance from its antennae. If the simulation is anything to go by, the real thing is impossible to play.</p>
-          <p>From a technical point of view, the notable thing about this is the extension of the Lucas-Kanaarde algorithm to constantly prune and search for new points to track. It's written in C++11, for which I had to modify OpenCV somewhat to get it to build. If I recall correctly the modifications were a fairly straightforward working through of the compiler errors.</p>
+            <dt>
+              <a name="ios-gif" href="https://github.com/cbowdon/DecomposeGIF">Decompose GIF (IOS)</a>
+            </dt>
+            <dt>
+              <a name="racket-gif" href="https://github.com/cbowdon/gif-image">gif-image (Racket)</a>
+            </dt>
+            <dd>
+              <p>These two ancient projects provide libraries for splitting animated GIFs into the still images. The IOS lib was intended for an iPhone app, a project I quickly abandoned once I realized how tedious submitting and marketing an app would be.</p>
+              <p>The Racket lib was mainly to improve my fluency in the language. If you want to learn a Lisp, learn Racket; it's pragmatic, elegant and batteries-included.</p>
+              <p>I recall spending a long time reading the GIF specification in order to figure out how to do the decomposition. For normal GIFs these libraries should work well. As a point of interest, during these projects I discovered that the inventor pronounces it 'jif'.</p>
+            </dd>          
+            
+            <dt>
+              <a name="montgomery" href="https://github.com/cbowdon/montgomery">Montgomery - time tracker</a>
+            </dt>
+            <dd>
+              <p><a name="montgomery" href="https://github.com/cbowdon/montgomery">This</a> web app is a simple time tracking application, written in an attempt to replace the pen and paper system I currently use at work. It's not notable for any technical reason, just quite useful. <a href="/Montgomery">You can try it here.</a></p>
+            </dd>
 
-          <h3>
-            <a name="ios-gif" href="https://github.com/cbowdon/DecomposeGIF">Decompose GIF (IOS)</a>
-              and
-            <a name="racket-gif" href="https://github.com/cbowdon/gif-image">gif-image (Racket)</a>
-          </h3>
-          <p>These two ancient projects provide libraries for splitting animated GIFs into the still images. The IOS lib was intended for an iPhone app, a project I quickly abandoned once I realized how tedious submitting and marketing an app would be.</p>
-          <p>The Racket lib was mainly to improve my fluency in the language. If you want to learn a Lisp, learn Racket; it's pragmatic, elegant and batteries-included.</p>
-          <p>I recall spending a long time reading the GIF specification in order to figure out how to do the decomposition. For normal GIFs these libraries should work well. As a point of interest, during these projects I discovered that the inventor pronounces it 'jif'.</p>
-
-          <h3><a name="montgomery" href="https://github.com/cbowdon/montgomery">Montgomery - time tracker</a></h3>
-          <p><a name="montgomery" href="https://github.com/cbowdon/montgomery">This</a> web app is a simple time tracking application, written in an attempt to replace the pen and paper system I currently use at work. It's not notable for any technical reason, just quite useful. <a href="/Montgomery">You can try it here.</a></p>
-
+          </dl>
           <hr>
           <h1>PAGE-IN-PROGRESS</h1>
-
-<!--
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
-
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
-
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
-        </section>
-        -->
 
         <footer>
           This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
