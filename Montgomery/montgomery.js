@@ -17,6 +17,9 @@ var Dispatcher = (function () {
     };
     return Dispatcher;
 })();
+function isEnter(evt) {
+    return evt.keyCode === 13 && !evt.shiftKey && !evt.ctrlKey && !evt.metaKey && !evt.altKey;
+}
 var Actions = (function () {
     function Actions(dispatcher) {
         this.dispatcher = dispatcher;
@@ -25,13 +28,15 @@ var Actions = (function () {
         $('#entry-container').keyup(function (evt) {
             evt.stopPropagation();
             evt.preventDefault();
-            if (Actions.isEnter(evt)) {
+            if (isEnter(evt)) {
                 _this.updateEntries();
             }
         });
+        $('#clear-tasks').click(function (evt) { return _this.clearTasks(); });
     }
-    Actions.isEnter = function (evt) {
-        return evt.keyCode === 13 && !evt.shiftKey && !evt.ctrlKey && !evt.metaKey && !evt.altKey;
+    Actions.prototype.clearTasks = function () {
+        localStorage.clear();
+        location.reload(false);
     };
     Actions.prototype.updateEntries = function () {
         var _this = this;
@@ -142,6 +147,54 @@ var Store = (function (_super) {
     };
     return Store;
 })(Publisher);
+function toTimeEntry(r) {
+    var dateRes = moment(r.date, PREFERRED_DATE_FORMAT, true), timeRes = moment(r.start, PREFERRED_TIME_FORMAT, true);
+    if (!dateRes.isValid() || !timeRes.isValid()) {
+        throw new Error('Invalid datetime.');
+    }
+    timeRes.year(dateRes.year());
+    timeRes.month(dateRes.month());
+    timeRes.date(dateRes.date());
+    return {
+        project: r.project,
+        task: r.task,
+        date: dateRes,
+        start: timeRes,
+        end: undefined,
+        minutes: undefined
+    };
+}
+function calculateMinutes(day) {
+    if (day.length < 2) {
+        return [];
+    }
+    return _.chain(day).sortBy(function (r) { return r.start.format(); }).reduce(function (acc, r, i) {
+        if (i === 0) {
+            return [r];
+        }
+        acc[i - 1].end = r.start;
+        acc[i - 1].minutes = acc[i - 1].end.diff(acc[i - 1].start) / (60 * 1000);
+        if (i !== day.length - 1) {
+            acc.push(r);
+        }
+        return acc;
+    }, []).value();
+}
+function sumMinutes(day) {
+    return _.reduce(day, function (acc, r) {
+        var existing;
+        if (r.project.toLowerCase() === 'home' || r.project.toLowerCase() === 'lunch') {
+            return acc;
+        }
+        existing = _.find(acc, function (a) { return a.project === r.project && a.task === r.task; });
+        if (!existing) {
+            acc.push({ project: r.project, task: r.task, minutes: r.minutes, date: r.date });
+            return acc;
+        }
+        existing.minutes += r.minutes;
+        return acc;
+    }, []);
+}
 var EntryCollection = (function (_super) {
     __extends(EntryCollection, _super);
     function EntryCollection(store) {
@@ -150,48 +203,14 @@ var EntryCollection = (function (_super) {
         store.subscribe(function (su) { return _this.update(su.validated); });
     }
     EntryCollection.extractEntries = function (rawEntries) {
-        var result = _.chain(rawEntries).map(function (r) {
-            var dateRes = moment(r.date, PREFERRED_DATE_FORMAT, true), timeRes = moment(r.start, PREFERRED_TIME_FORMAT, true);
-            if (!dateRes.isValid() || !timeRes.isValid()) {
-                throw new Error('Invalid datetime.');
-            }
-            timeRes.year(dateRes.year());
-            timeRes.month(dateRes.month());
-            timeRes.date(dateRes.date());
-            return {
-                project: r.project,
-                task: r.task,
-                date: dateRes,
-                start: timeRes,
-                end: undefined,
-                minutes: undefined
-            };
-        }).groupBy(function (r) { return r.date.format(PREFERRED_DATE_FORMAT); }).values().map(function (day) {
-            return _.chain(day).sortBy(function (r) { return r.start.format(); }).reduce(function (acc, r, i) {
-                if (i === 0) {
-                    return [r];
-                }
-                acc[i - 1].end = r.start;
-                acc[i - 1].minutes = acc[i - 1].end.diff(acc[i - 1].start) / (60 * 1000);
-                if (i !== rawEntries.length - 1) {
-                    acc.push(r);
-                }
-                return acc;
-            }, []).reduce(function (acc, r) {
-                var existing;
-                if (r.project.toLowerCase() === 'home' || r.project.toLowerCase() === 'lunch') {
-                    return acc;
-                }
-                existing = _.find(acc, function (a) { return a.project === r.project && a.task === r.task; });
-                if (!existing) {
-                    acc.push({ project: r.project, task: r.task, minutes: r.minutes, date: r.date });
-                    return acc;
-                }
-                existing.minutes += r.minutes;
-                return acc;
-            }, []).value();
-        }).flatten();
-        return result.value();
+        var timeEntries = _.map(rawEntries, toTimeEntry);
+        var days = _.groupBy(timeEntries, function (r) { return r.date.format(PREFERRED_DATE_FORMAT); });
+        console.log(days);
+        var daysArray = _.values(days);
+        var populated = _.map(daysArray, calculateMinutes);
+        console.log('pop', populated);
+        var summed = _.map(populated, sumMinutes);
+        return _.flatten(summed);
     };
     EntryCollection.prototype.update = function (rawEntries) {
         if (rawEntries.length < 2 || !_.every(rawEntries, function (r) { return r.isValid; })) {
@@ -227,7 +246,7 @@ var ViewController;
             if (_.every(evt.validated, function (v) { return v.isValid; })) {
                 this.addBlankRow(numEvents);
                 if (numEvents > 0) {
-                    this.autoFillDate(numEvents, evt.validated[numEvents - 1].value.date);
+                    this.autoFillDate(numEvents, moment().format(PREFERRED_DATE_FORMAT));
                 }
                 container.find('.entry-row input.date:last').focus();
             }
@@ -343,6 +362,7 @@ var actions = new Actions(dispatcher);
 var store = new Store(dispatcher);
 var ec = new EntryCollection(store);
 var userInput = new ViewController.UserInput(store);
-var projectChart = new ViewController.ProjectChart(ec);
 var sumTable = new ViewController.SumTable(ec);
+var projectChart = new ViewController.ProjectChart(ec);
 store.load();
+//# sourceMappingURL=montgomery.js.map

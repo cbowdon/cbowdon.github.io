@@ -27,13 +27,13 @@
             <input type="date" class="date form-control" placeholder="Date" />
           </div>
           <div class="form-group">
+            <input type="time" class="start form-control" placeholder="Start" />
+          </div>
+          <div class="form-group">
             <input type="text" class="project form-control" placeholder="Project" />
           </div>
           <div class="form-group">
             <input type="text" class="task form-control" placeholder="Task" />
-          </div>
-          <div class="form-group">
-            <input type="time" class="start form-control" placeholder="Start" />
           </div>
           <button type="reset" class="btn btn-default hidden clear-row" disabled><span class="glyphicon glyphicon-remove"></span> Clear</button>
         </form>
@@ -53,7 +53,7 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-md-12 bg-info">
-          <a href="#" onclick="localStorage.clear()"><span class="glyphicon glyphicon-remove"></span> Clear task history</a>
+          <a id="clear-tasks" href="#"><span class="glyphicon glyphicon-remove"></span> Clear task history</a>
         </div>
       </div>
     </div>
