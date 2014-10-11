@@ -1,5 +1,9 @@
+/// <reference path="../typings/tsd.d.ts" />
 var Dispatcher = (function () {
     function Dispatcher() {
+        // TODO not super happy about this Dictionary<magic string, any action>
+        // doesn't seem to be taking advantage of static types at all
+        // (and even less happy with the giant switch statement approach in the Flux demo)
         this.events = {};
     }
     Dispatcher.prototype.register = function (name, callback) {
@@ -17,13 +21,15 @@ var Dispatcher = (function () {
     };
     return Dispatcher;
 })();
+/// <reference path="../typings/tsd.d.ts" />
+/// <reference path="dispatcher.ts" />
 function isEnter(evt) {
     return evt.keyCode === 13 && !evt.shiftKey && !evt.ctrlKey && !evt.metaKey && !evt.altKey;
 }
 var Actions = (function () {
     function Actions(dispatcher) {
-        this.dispatcher = dispatcher;
         var _this = this;
+        this.dispatcher = dispatcher;
         $('#update-entries').click(function (evt) { return _this.updateEntries(); });
         $('#entry-container').keyup(function (evt) {
             evt.stopPropagation();
@@ -48,7 +54,7 @@ var Actions = (function () {
             date: entry.find('input.date').val(),
             project: entry.find('input.project').val(),
             task: entry.find('input.task').val(),
-            start: entry.find('input.start').val(),
+            start: entry.find('input.start').val()
         };
     };
     return Actions;
@@ -65,6 +71,7 @@ var Publisher = (function () {
     };
     return Publisher;
 })();
+/// <reference path="../typings/tsd.d.ts" />
 var VALID_TIME_FORMATS = ['HH:mm', 'HHmm', 'hh:mm a'];
 var VALID_DATE_FORMATS = ['YYYY-MM-DD'];
 var PREFERRED_TIME_FORMAT = 'HH:mm';
@@ -111,6 +118,10 @@ var RawEntryValidator = (function () {
     };
     return RawEntryValidator;
 })();
+/// <reference path="../typings/tsd.d.ts" />
+/// <reference path="publisher.ts" />
+/// <reference path="validator.ts" />
+/// <reference path="dispatcher.ts" />
 var __extends = this.__extends || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -120,9 +131,9 @@ var __extends = this.__extends || function (d, b) {
 var Store = (function (_super) {
     __extends(Store, _super);
     function Store(dispatcher) {
+        var _this = this;
         _super.call(this);
         this.dispatcher = dispatcher;
-        var _this = this;
         this.key = 'Montgomery';
         this.validator = new RawEntryValidator();
         dispatcher.register('entry', function (data) { return _this.update(data); });
@@ -147,6 +158,8 @@ var Store = (function (_super) {
     };
     return Store;
 })(Publisher);
+/// <reference path="../typings/tsd.d.ts" />
+/// <reference path="store.ts" />
 function toTimeEntry(r) {
     var dateRes = moment(r.date, PREFERRED_DATE_FORMAT, true), timeRes = moment(r.start, PREFERRED_TIME_FORMAT, true);
     if (!dateRes.isValid() || !timeRes.isValid()) {
@@ -195,38 +208,40 @@ function sumMinutes(day) {
         return acc;
     }, []);
 }
+function extractEntries(rawEntries) {
+    var timeEntries = _.map(rawEntries, toTimeEntry);
+    var days = _.groupBy(timeEntries, function (r) { return r.date.format(PREFERRED_DATE_FORMAT); });
+    var daysArray = _.values(days);
+    // tsc was inferring wrong types here, hence no chain
+    // it could be that underscore.d.ts is not right
+    var populated = _.map(daysArray, calculateMinutes);
+    var summed = _.map(populated, sumMinutes);
+    return _.flatten(summed);
+}
 var EntryCollection = (function (_super) {
     __extends(EntryCollection, _super);
     function EntryCollection(store) {
-        _super.call(this);
         var _this = this;
+        _super.call(this);
         store.subscribe(function (su) { return _this.update(su.validated); });
     }
-    EntryCollection.extractEntries = function (rawEntries) {
-        var timeEntries = _.map(rawEntries, toTimeEntry);
-        var days = _.groupBy(timeEntries, function (r) { return r.date.format(PREFERRED_DATE_FORMAT); });
-        console.log(days);
-        var daysArray = _.values(days);
-        var populated = _.map(daysArray, calculateMinutes);
-        console.log('pop', populated);
-        var summed = _.map(populated, sumMinutes);
-        return _.flatten(summed);
-    };
     EntryCollection.prototype.update = function (rawEntries) {
         if (rawEntries.length < 2 || !_.every(rawEntries, function (r) { return r.isValid; })) {
             return;
         }
-        var entries = EntryCollection.extractEntries(_.map(rawEntries, function (r) { return r.value; }));
+        var entries = extractEntries(_.map(rawEntries, function (r) { return r.value; }));
         this.publish({ entries: entries });
     };
     return EntryCollection;
 })(Publisher);
+/// <reference path="../../typings/tsd.d.ts" />
+/// <reference path="../store.ts" />
 var ViewController;
 (function (ViewController) {
     var UserInput = (function () {
         function UserInput(store) {
-            this.store = store;
             var _this = this;
+            this.store = store;
             this.templates = $('#templates');
             this.addBlankRow(0);
             store.subscribe(function (evt) { return _this.sync(evt); });
@@ -242,15 +257,18 @@ var ViewController;
                     _this.addErrors(i, v.errors);
                 }
             });
+            // put focus on first row with errors
             container.find('.entry-row.has-error input:first').focus();
             if (_.every(evt.validated, function (v) { return v.isValid; })) {
                 this.addBlankRow(numEvents);
                 if (numEvents > 0) {
                     this.autoFillDate(numEvents, moment().format(PREFERRED_DATE_FORMAT));
                 }
+                // put focus on the first input in the new blank row
                 container.find('.entry-row input.date:last').focus();
             }
             else {
+                // put focus on first row with errors
                 container.find('.entry-row.has-error input:first').focus();
             }
         };
@@ -289,8 +307,15 @@ var ViewController;
     })();
     ViewController.UserInput = UserInput;
 })(ViewController || (ViewController = {}));
+/// <reference path="../../typings/tsd.d.ts" />
+/// <reference path="../entry.ts" />
 var ViewController;
 (function (ViewController) {
+    function displayHours(minutes) {
+        var hrs = (minutes / 60.0).toString(), ptIdx = hrs.indexOf('.');
+        // sub-minute rounding errors are tolerable
+        return ptIdx === -1 ? hrs : hrs.substring(0, ptIdx + 3);
+    }
     var SumTable = (function () {
         function SumTable(ec) {
             var _this = this;
@@ -303,13 +328,13 @@ var ViewController;
             if (entries.length === 0) {
                 return;
             }
-            _.chain(entries).sortBy(function (e) { return e.task; }).sortBy(function (e) { return e.project; }).sortBy(function (e) { return e.date.milliseconds(); }).each(function (e, i) {
+            _.chain(entries).sortBy(function (e) { return e.task; }).sortBy(function (e) { return e.project; }).sortBy(function (e) { return e.date.format(PREFERRED_DATE_FORMAT); }).each(function (e, i) {
                 var newRow = templ.clone();
                 newRow.attr('id', 'sum-' + i);
-                newRow.find('.date').html(e.date.format('YYYY-MM-DD'));
+                newRow.find('.date').html(e.date.format(PREFERRED_DATE_FORMAT));
                 newRow.find('.project').html(e.project);
                 newRow.find('.task').html(e.task);
-                newRow.find('.minutes').html(e.minutes.toString());
+                newRow.find('.hours').html(displayHours(e.minutes));
                 container.append(newRow);
             });
         };
@@ -317,6 +342,8 @@ var ViewController;
     })();
     ViewController.SumTable = SumTable;
 })(ViewController || (ViewController = {}));
+/// <reference path="../../typings/tsd.d.ts" />
+/// <reference path="../entry.ts" />
 var ViewController;
 (function (ViewController) {
     var ProjectChart = (function () {
@@ -337,6 +364,7 @@ var ViewController;
         };
         ProjectChart.prototype.update = function (entries) {
             var rad = 100, len = 300, data = this.sumByProject(entries), vis, arc, pie, color, arcs;
+            // TODO use d3's enter/exit/update functionality rather than redrawing
             $('#chart-container').empty();
             if (entries.length === 0) {
                 return;
@@ -356,7 +384,15 @@ var ViewController;
         return ProjectChart;
     })();
     ViewController.ProjectChart = ProjectChart;
-})(ViewController || (ViewController = {}));'use strict';
+})(ViewController || (ViewController = {}));
+/// <reference path="actions.ts" />
+/// <reference path="dispatcher.ts" />
+/// <reference path="store.ts" />
+/// <reference path="entry.ts" />
+/// <reference path="view-controllers/user-input.ts" />
+/// <reference path="view-controllers/sum-table.ts" />
+/// <reference path="view-controllers/project-chart.ts" />
+'use strict';
 var dispatcher = new Dispatcher();
 var actions = new Actions(dispatcher);
 var store = new Store(dispatcher);
