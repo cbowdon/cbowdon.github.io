@@ -349,6 +349,8 @@ var ViewController;
     var ProjectChart = (function () {
         function ProjectChart(ec) {
             var _this = this;
+            this.canvas = document.getElementById('chart-container');
+            this.ctx = this.canvas.getContext('2d');
             ec.subscribe(function (e) { return _this.update(e.entries); });
         }
         ProjectChart.prototype.sumByProject = function (entries) {
@@ -360,30 +362,62 @@ var ViewController;
                 }
                 existing.minutes += e.minutes;
                 return acc;
-            }, []).value();
+            }, []);
         };
         ProjectChart.prototype.update = function (entries) {
-            var rad = 100, len = 300, data = this.sumByProject(entries), vis, arc, pie, color, arcs;
-            // TODO use d3's enter/exit/update functionality rather than redrawing
-            $('#chart-container').empty();
-            if (entries.length === 0) {
-                return;
-            }
-            vis = d3.select('#chart-container').append('svg:svg').data([data]).attr('width', len).attr('height', len).append('svg:g').attr('transform', 'translate(' + rad + ', ' + rad + ')');
-            arc = d3.svg.arc().outerRadius(rad);
-            pie = d3.layout.pie().value(function (e) { return e.minutes; });
-            color = d3.scale.category20();
-            arcs = vis.selectAll('g.slice').data(pie).enter().append('svg:g').attr('class', 'slice');
-            arcs.append('svg:path').attr('fill', function (d, i) { return color(i); }).attr('d', arc);
-            arcs.append('svg:text').attr('transform', function (d) {
-                d.innerRadius = 0;
-                d.outerRadius = rad;
-                return 'translate(' + arc.centroid(d) + ')';
-            }).attr('text-anchor', 'middle').text(function (d, i) { return data[i].project + ': ' + data[i].minutes; });
+            var data, options, colGen;
+            colGen = new ColorGenerator();
+            data = this.sumByProject(entries).map(function (s) {
+                var col = colGen.next();
+                return {
+                    color: col.toString(),
+                    highlight: col.highlight().toString(),
+                    label: s.project,
+                    value: s.minutes
+                };
+            }).value();
+            options = {
+                showToolTips: true
+            };
+            new Chart(this.ctx).Pie(data, options);
         };
         return ProjectChart;
     })();
     ViewController.ProjectChart = ProjectChart;
+    var Color = (function () {
+        function Color(red, green, blue) {
+            this.red = red;
+            this.green = green;
+            this.blue = blue;
+        }
+        Color.prototype.highlight = function () {
+            return new Color(this.red + 50, this.green + 50, this.blue + 50);
+        };
+        Color.prototype.toString = function () {
+            return 'rgb(' + this.red + ', ' + this.green + ', ' + this.blue + ')';
+        };
+        return Color;
+    })();
+    var ColorGenerator = (function () {
+        function ColorGenerator() {
+            this.colors = [
+                new Color(0x66, 0, 0),
+                new Color(0x44, 0x44, 0),
+                new Color(0, 0x66, 0),
+                new Color(0, 0x44, 0x44),
+                new Color(0, 0, 0x66)
+            ];
+            this.idx = 0;
+        }
+        ColorGenerator.prototype.next = function () {
+            this.idx += 1;
+            if (this.idx >= this.colors.length) {
+                this.idx = 0;
+            }
+            return this.colors[this.idx];
+        };
+        return ColorGenerator;
+    })();
 })(ViewController || (ViewController = {}));
 /// <reference path="actions.ts" />
 /// <reference path="dispatcher.ts" />
