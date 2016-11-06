@@ -1,0 +1,13 @@
+#+SETUPFILE: setup.org
+#+TITLE: cbowdon.github.io
+#+AUTHOR: Chris Bowdon
+
+Welcome to my "oh it's about time I had a decent Internet presence" page.
+
+* Articles
+- [[https://medium.com/@cbowdon][Medium posts]]
+- [[./proxy.org][Working with (around) proxies]]
+
+* FAQ
+- How can I contact you? :: @cbowdon on Twitter
+- What's on your [[https://github.com/cbowdon][GitHub]]? :: Many of my side projects and experiments go there. The more notable repos are probably [[https://github.com/cbowdon/tsmonad][TsMonad, a little monad library for TypeScript]] and my contributions to other open source projects. I apologize in advance for not being a responsive maintainer; this all has to fit in around my three full time jobs (parenting, parenting and employment).

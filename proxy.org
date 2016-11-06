@@ -1,0 +1,130 @@
+#+SETUPFILE: setup.org
+#+TITLE: Working with (around) proxies
+#+AUTHOR: Chris Bowdon
+
+This is something that I seem to have to do on a monthly basis on various projects: a throwaway script that includes getting some resource from the Internet. This means I have to spar with my old nemesis the corporate proxy and her minions, the 407 and the SSL verification error.
+
+$DAYJOB uses an authenticated proxy and their own root certificate. It's seamless for Office and IE users because their system is pre-configured. But not for those of us who are spinning up VMs and installing packages and come to think of it almost everything you need to do as a software engineer. (It also can /weaken/ rather than enhance security, the stated aim, but that's an article for another day.)
+
+This is a quick guide-by-example for how to authenticated against a proxy and ignore any SSL verification errors in a variety of scripting languages. The examples use only the standard library for a widely available (read: old) version of each language. The assumption is that if you can't reach the Internet, you don't have better packages or newer versions.
+
+It is *not* an example of how to write good production software. It is a catalogue of dirty workarounds. You have been warned.
+
+** Bash
+
+Many applications respect the =$http_proxy= environmental argument, so it's worth setting this in your =.bash_profile=. Those that don't often take command line flags for a proxy and to ignore SSL verification.
+
+#+BEGIN_SRC sh
+  http_proxy=http://username:password@host:port
+  export $http_proxy
+
+  curl --proxy $http_proxy --insecure --url ... 
+
+  git -c http.proxy=$http_proxy -c http.sslVerify=false clone ...
+#+END_SRC
+
+** Python 2
+
+This works in Python 2.6 and 2.7. In Python 3 the principles are the same but =urllib= has been reorganized.
+
+#+BEGIN_SRC python
+  import logging
+  import ssl
+  import urllib2
+
+  logger = logging.getLogger('demo')
+   
+  def proxy_opener(http_proxy):
+      """Return an opener that uses the given proxy and ignores SSL certs(!).
+      Proxy is of the form: http(s)://username:password@host:port"""
+      logger.warn('Ignoring SSL certificates')
+      try:
+          ctx = ssl.create_default_context()
+          ctx.check_hostname = False
+          ctx.verify_mode = ssl.CERT_NONE
+   
+          https = urllib2.HTTPSHandler(context=ctx)
+   
+      except AttributeError:
+          logger.debug('Python 2.6 does not support cert verification anyway')
+          https = urllib2.HTTPSHandler()
+
+          proxy = urllib2.ProxyHandler({'http': http_proxy,
+                                        'https': http_proxy})
+   
+      opener = urllib2.build_opener(proxy, https)
+   
+      return opener
+#+END_SRC 
+ 
+** Ruby
+
+This is basically a wrapper over =Net::HTTP.start= that pulls the proxy from the usual environment variable and disables SSL validation.
+
+Make sure that your Ruby is compiled with OpenSSL support. This definitely works in Ruby 2.3; as far as I can see it will work back to 1.8 but this hasn't been tested.
+
+#+BEGIN_SRC ruby
+  require 'net/http'
+  require 'openssl'
+   
+  class CorporateProxy
+   
+    @@rgx = %r{
+              https?://  # scheme
+              (\w.+)     # user
+              :(.+)      # pass
+              @([\w.-]+) # host
+              :(\d+)?    # port
+            }x
+   
+    def self.start(uri, opt, &block)
+      if not ENV.key?('http_proxy')
+        raise "You'll need to define a proxy environment variable to continue."
+      end
+   
+      proxy = @@rgx.match(ENV['http_proxy']) do |match|
+        OpenStruct.new(:user => match[1],
+                       :pass => match[2],
+                       :addr => match[3],
+                       :port => match[4])
+      end
+   
+      Net::HTTP.start(uri.host, uri.port,
+                      proxy.addr, proxy.port,
+                      proxy.user, proxy.pass,
+                      opt.update(:verify_mode => OpenSSL::SSL::VERIFY_NONE),
+                      &block)
+    end
+  end
+#+END_SRC
+
+** Emacs Lisp
+
+This works in Emacs 24.5 or newer. I've included an interactive function for setting the proxy password, which I've found to be quite convenient.
+
+#+BEGIN_SRC emacs-lisp
+  (defconst proxy-host "example.com")
+  (defconst proxy-port 1234)
+   
+  (defun make-proxy-url (host port &optional username password)
+    (concat
+     (when (or username password)
+       (format "%s:%s@"
+               (if (not username) "" username)
+               (if (not password) "" password)))
+     (format "%s:%s" host port)))
+   
+  (defun set-proxy (http-proxy)
+    "Set proxy variables that Emacs uses from the provided HTTP-PROXY string."
+    (setenv "HTTP_PROXY" (format "https://%s" http-proxy))
+    (setq url-proxy-services (list (cons "http" http-proxy)
+                                   (cons "https" http-proxy))))
+   
+  (defun set-user-proxy ()
+    "Set proxy using current user login name and asking for password."
+    (interactive)
+    (set-proxy (make-proxy-url proxy-host
+                               proxy-port
+                               (user-login-name)
+                               (read-passwd "Password: "))))
+#+END_SRC
