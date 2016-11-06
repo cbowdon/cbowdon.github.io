@@ -2,7 +2,7 @@
 #+TITLE: cbowdon.github.io
 #+AUTHOR: Chris Bowdon
 
-Welcome to my "oh it's about time I had a decent Internet presence" page.
+Welcome to my "oh it's about time I had a +decent+ Internet presence" page.
 
 * Articles
 - [[https://medium.com/@cbowdon][Medium posts]]
