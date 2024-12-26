@@ -4,20 +4,22 @@ project:
 
 website:
   title: "Chris Bowdon"
-  sidebar:
-    style: docked
+  navbar:
     search: true
-    contents:
+    right:
+      - icon: github
+        href: https://github.com/cbowdon
+    left:
       - text: Index
         href: index.qmd
-      - section: "Open Source Software"
-        contents:
+      - text: "Open Source Software"
+        menu:
           - text: "TsMonad"
             href: https://github.com/cbowdon/TsMonad
           - text: daemons.el
             href: https://github.com/cbowdon/daemons.el
-      - section: Very Old Posts
-        contents:
+      - text: Very Old Posts
+        menu:
           - text: Medium posts
             href: https://medium.com/@cbowdon
           - text: Working with (around) proxies

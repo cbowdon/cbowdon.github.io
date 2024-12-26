@@ -5,7 +5,8 @@ date: "2024-12-23"
 categories: [bayesian, r]
 ---
 
-```{r, message=FALSE, warning=FALSE}
+```{r}
+#| warning: false
 library(tidyverse)
 set.seed(42)
 ```
