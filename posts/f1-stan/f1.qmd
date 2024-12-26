@@ -1,0 +1,163 @@
+---
+title: "Latent skill of F1 drivers: fun with Bayesian models"
+author: "Chris Bowdon"
+date: "2024-12-26"
+categories: [bayesian, r, f1]
+draft: true
+---
+
+For a bit of fun, let's try and model the performance of F1 drivers and constructors using Bayesian models. This is of course using data from the fantastic [Ergast](https://ergast.com/mrd/).
+
+```{r}
+#| warning: false
+library(tidyverse)
+
+qualifying <- read_csv("posts/f1-stan/data/qualifying.csv") |> rename(quali_position = position)
+races <- read_csv("posts/f1-stan/data/races.csv") |> select(raceId, year, round, circuitId)
+results <- read_csv("posts/f1-stan/data/results.csv") |> select(resultId, raceId, driverId, constructorId, grid, position, points, milliseconds)
+constructors <- read_csv("posts/f1-stan/data/constructors.csv") |> select(constructorId, constructorRef)
+drivers <- read_csv("posts/f1-stan/data/drivers.csv") |> select(driverId, driverRef)
+
+f1data <- races |>
+  merge(results) |>
+  merge(qualifying) |>
+  merge(constructors) |>
+  merge(drivers) |>
+  select(raceId, circuitId, year, round, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) |>
+  mutate(position = ifelse(position == "\\N", NA, as.numeric(position)))
+```
+
+My model is an imitation of the f1-metrics model. We have latent variables of driver skill and car quality, which predict points. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/).
+
+```{r}
+f2024 <- f1data |> filter(year == 2024)
+
+ggplot(f2024) +
+  aes(x = position) +
+  facet_wrap(vars(driverRef)) +
+  geom_histogram()
+
+ggplot(f2024) +
+  aes(x = position) +
+  facet_wrap(vars(constructorRef)) +
+  geom_histogram()
+```
+
+Points is simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.
+
+$$
+\text{points} \sim \text{Poisson}(\text{perf}_{\text{drv}} + \text{perf}_{\text{ctr}})
+$$
+
+Driver performance is simulated as a draw from a normal distribution.
+
+$$
+\text{perf}_{\text{drv}} \sim \text{Normal}(\mu_{\text{drv}}, \sigma_{\text{drv}}^2)
+$$
+
+Likewise constructor performance is simulated as a draw from a normal distribution.
+
+$$
+\text{perf}_{\text{ctr}} \sim \text{Normal}(\mu_{\text{ctr}}, \sigma_{\text{ctr}}^2)
+$$
+
+We will therefore have a likelihood function that is the product of the Poisson density of the points for each driver for each race. The number of parameters is very high, as a performance score for each driver and for each constructor.
+
+```{r}
+log_likelihood <- function(drv_race_pts, drv_perf, ctr_perf) {
+  ... # whew
+}
+```
+
+# Car performance
+
+Let's start simpler, with a view of the car performance. Assume that at least one driver for every constructor maximised the car's performance each weekend. THIS ISN'T TRUE. If Albon had a poor weekend, Sargeant wasn't going to step up, as one of many examples on the grid in 2024. However it is a useful approximation.
+
+
+```{r}
+ctr_positions <- f2024 |>
+  group_by(round, constructorRef) |>
+  summarise(quali_position = max(quali_position), position = min(position)) |>
+  mutate(
+    # re-rank
+    quali_position = rank(quali_position),
+    position = rank(position)
+  ) |>
+  arrange(round, position)
+
+ggplot(ctr_positions) +
+  aes(x = position) +
+  facet_wrap(vars(constructorRef)) +
+  geom_histogram()
+```
+
+Again we simulate the points $p$ as a draw from a Poisson distribution, this time where $\lambda_\text{ctr}$ is the performance of the constructor only.
+
+$$
+p \sim \text{Poisson}(\lambda_{\text{ctr}})
+$$
+
+Again we assume a normal distribution for the performance of the constructors.
+
+$$
+\lambda_{ctr} \sim \text{Normal}(\mu_{\text{ctr}}, \sigma_{\text{ctr}}^2)
+$$
+
+Then our likelihood function is much simpler. (We won't actually need this, but I find it useful to write out for the sake of understanding.)
+
+```{r}
+log_lik_ctr <- function(ctr_positions, ctr_perfs) {
+  ctrs <- sort(unique(ctr_positions$constructorRef))
+  log_lik <- 1.0
+  for (i in 1:length(ctrs)) {
+    race_posns <- filter(ctr_positions, constructorRef == ctrs[i])$position
+    log_lik <- log_lik + sum(dpois(race_posns, lambda = ctr_perfs[i], log = TRUE))
+  }
+  log_lik
+}
+```
+
+Let's throw Stan at this now.
+
+```{r}
+library(cmdstanr)
+library(bayesplot)
+check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
+
+ctrs <- sort(unique(ctr_positions$constructorRef))
+ctr_index <- tibble(
+  constructorId = 1:length(ctrs),
+  constructorRef = ctrs,
+)
+
+tidy_ctr_posns <- ctr_positions |> merge(ctr_index)
+
+data_list <- list(
+  n_ctrs = n_distinct(tidy_ctr_posns$constructorId),
+  n_obs = nrow(tidy_ctr_posns),
+  ctrs = tidy_ctr_posns$constructorId,
+  positions = tidy_ctr_posns$position
+)
+
+do.stan <- function() {
+  mod <- cmdstan_model("posts/f1-stan/f1.stan", exe_file = "posts/f1-stan/f1.bin")
+  mod$sample(data_list)
+}
+fit <- do.stan()
+
+mcmc_hist(fit$draws("lambda"))
+```
+
+Let's tidy that up though, mapping parameters back to constructor names.
+
+```{r}
+df <- fit$draws("lambda", format="draws_matrix") |> as_tibble()
+colnames(df) <- ctrs
+
+ggplot(pivot_longer(df, ctrs)) +
+  aes(x=value) +
+  facet_wrap(vars(name)) +
+  geom_histogram(fill="dodgerblue4", alpha=0.5, colour="black", linewidth=0.1)
+```
+
+The interesting thing is that this suggests the Red Bull was clearly the third-fastest car. I'm a little suspicious of that, because it claimed a sequence of 1-2s in the first third of the season. Let's take a closer look at that.
