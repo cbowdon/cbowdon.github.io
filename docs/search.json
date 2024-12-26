@@ -39,6 +39,9 @@
     "href": "index.html",
     "title": "Index",
     "section": "",
-    "text": "Posts\nThey will certainly appear in this space when I publish them. I make no guarantees about quality or timeliness.\n\n\nOpen Source Software Packages\n\nTsMonad - Haskell-inspired monad library for TypeScript.\ndaemons.el - Emacs interface for managing system services\n\n\n\nOld Posts\nFrom 2010-2020ish I wrote several posts on software engineering, DevOps, and data science. I was particularly keen on functional programming and Lisps.\n\nMedium posts\nWorking with (around) proxies"
+    "text": "Posts\nThey will certainly appear in this space when I publish them. I make no guarantees about quality or timeliness.\n\n\nOpen Source Software Packages\n\nTsMonad - Haskell-inspired monad library for TypeScript.\ndaemons.el - Emacs interface for managing system services\n\n\n\nOld Posts\nFrom 2010-2020ish I wrote several posts on software engineering, DevOps, and data science. I was particularly keen on functional programming and Lisps.\n\nMedium posts\nWorking with (around) proxies",
+    "crumbs": [
+      "Index"
+    ]
   }
 ]
