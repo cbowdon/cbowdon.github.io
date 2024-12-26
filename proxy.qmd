@@ -1,6 +1,11 @@
-#+SETUPFILE: setup.org
-#+TITLE: Working with (around) proxies
-#+AUTHOR: Chris Bowdon
+---
+title: "Working with (around) proxies"
+format: html
+execute:
+  enabled: false
+---
+
+N.B. This article is ten years old and certainly does not represent best practices in the 2020s.
 
 This is something that I seem to have to do on a monthly basis on various projects: a throwaway script that includes getting some resource from the Internet. This means I have to spar with my old nemesis the corporate proxy and her minions, the 407 and the SSL verification error.
 
@@ -10,24 +15,24 @@ This is a quick guide-by-example for how to authenticated against a proxy and ig
 
 It is *not* an example of how to write good production software. It is a catalogue of dirty workarounds. You have been warned.
 
-** Bash
+## Bash
 
 Many applications respect the =$http_proxy= environmental argument, so it's worth setting this in your =.bash_profile=. Those that don't often take command line flags for a proxy and to ignore SSL verification.
 
-#+BEGIN_SRC sh
+```{sh}
   http_proxy=http://username:password@host:port
   export $http_proxy
 
   curl --proxy $http_proxy --insecure --url ... 
 
   git -c http.proxy=$http_proxy -c http.sslVerify=false clone ...
-#+END_SRC
+```
 
-** Python 2
+## Python 2
 
-This works in Python 2.6 and 2.7. In Python 3 the principles are the same but =urllib= has been reorganized.
+This works in Python 2.6 and 2.7. In Python 3 the principles are the same but `urllib` has been reorganized.
 
-#+BEGIN_SRC python
+```{python}
   import logging
   import ssl
   import urllib2
@@ -55,15 +60,15 @@ This works in Python 2.6 and 2.7. In Python 3 the principles are the same but =u
       opener = urllib2.build_opener(proxy, https)
    
       return opener
-#+END_SRC 
+```
  
-** Ruby
+## Ruby
 
-This is basically a wrapper over =Net::HTTP.start= that pulls the proxy from the usual environment variable and disables SSL validation.
+This is basically a wrapper over `Net::HTTP.start` that pulls the proxy from the usual environment variable and disables SSL validation.
 
 Make sure that your Ruby is compiled with OpenSSL support. This definitely works in Ruby 2.3; as far as I can see it will work back to 1.8 but this hasn't been tested.
 
-#+BEGIN_SRC ruby
+```{ruby}
   require 'net/http'
   require 'openssl'
    
@@ -96,13 +101,13 @@ Make sure that your Ruby is compiled with OpenSSL support. This definitely works
                       &block)
     end
   end
-#+END_SRC
+```
 
-** Emacs Lisp
+## Emacs Lisp
 
 This works in Emacs 24.5 or newer. I've included an interactive function for setting the proxy password, which I've found to be quite convenient.
 
-#+BEGIN_SRC emacs-lisp
+```{emacs-lisp}
   (defconst proxy-host "example.com")
   (defconst proxy-port 1234)
    
@@ -127,4 +132,4 @@ This works in Emacs 24.5 or newer. I've included an interactive function for set
                                proxy-port
                                (user-login-name)
                                (read-passwd "Password: "))))
-#+END_SRC
+```

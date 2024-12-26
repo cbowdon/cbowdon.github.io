@@ -1,0 +1,20 @@
+---
+title: "Index"
+format: html
+---
+
+# Posts
+
+They will certainly appear in this space when I publish them. I make no guarantees about quality or timeliness.
+
+# Open Source Software Packages
+
+- [TsMonad - Haskell-inspired monad library for TypeScript](https://github.com/cbowdon/TsMonad).
+- [daemons.el - Emacs interface for managing system services](https://github.com/cbowdon/daemons.el)
+
+# Old Posts
+
+From 2010-2020ish I wrote several posts on software engineering, DevOps, and data science. I was particularly keen on functional programming and Lisps.
+
+- [Medium posts](https://medium.com/@cbowdon)
+- [Working with (around) proxies](./proxy.html)
