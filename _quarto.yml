@@ -3,9 +3,28 @@ project:
   output-dir: docs
 
 website:
+  title: "Chris Bowdon"
   sidebar:
     style: docked
     search: true
     contents:
       - text: Index
         href: index.qmd
+      - section: "Open Source Software"
+        contents:
+          - text: "TsMonad"
+            href: https://github.com/cbowdon/TsMonad
+          - text: daemons.el
+            href: https://github.com/cbowdon/daemons.el
+      - section: Very Old Posts
+        contents:
+          - text: Medium posts
+            href: https://medium.com/@cbowdon
+          - text: Working with (around) proxies
+            href: proxy.qmd
+        
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+

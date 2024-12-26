@@ -4,42 +4,76 @@
     "href": "proxy.html",
     "title": "Working with (around) proxies",
     "section": "",
-    "text": "N.B. This article is ten years old and certainly does not represent best practices in the 2020s.\nThis is something that I seem to have to do on a monthly basis on various projects: a throwaway script that includes getting some resource from the Internet. This means I have to spar with my old nemesis the corporate proxy and her minions, the 407 and the SSL verification error.\n$DAYJOB uses an authenticated proxy and their own root certificate. It’s seamless for Office and IE users because their system is pre-configured. But not for those of us who are spinning up VMs and installing packages and come to think of it almost everything you need to do as a software engineer. (It also can /weaken/ rather than enhance security, the stated aim, but that’s an article for another day.)\nThis is a quick guide-by-example for how to authenticated against a proxy and ignore any SSL verification errors in a variety of scripting languages. The examples use only the standard library for a widely available (read: old) version of each language. The assumption is that if you can’t reach the Internet, you don’t have better packages or newer versions.\nIt is not an example of how to write good production software. It is a catalogue of dirty workarounds. You have been warned."
+    "text": "N.B. This article is ten years old and certainly does not represent best practices in the 2020s.\nThis is something that I seem to have to do on a monthly basis on various projects: a throwaway script that includes getting some resource from the Internet. This means I have to spar with my old nemesis the corporate proxy and her minions, the 407 and the SSL verification error.\n$DAYJOB uses an authenticated proxy and their own root certificate. It’s seamless for Office and IE users because their system is pre-configured. But not for those of us who are spinning up VMs and installing packages and come to think of it almost everything you need to do as a software engineer. (It also can /weaken/ rather than enhance security, the stated aim, but that’s an article for another day.)\nThis is a quick guide-by-example for how to authenticated against a proxy and ignore any SSL verification errors in a variety of scripting languages. The examples use only the standard library for a widely available (read: old) version of each language. The assumption is that if you can’t reach the Internet, you don’t have better packages or newer versions.\nIt is not an example of how to write good production software. It is a catalogue of dirty workarounds. You have been warned.",
+    "crumbs": [
+      "Very Old Posts",
+      "Working with (around) proxies"
+    ]
   },
   {
     "objectID": "proxy.html#bash",
     "href": "proxy.html#bash",
     "title": "Working with (around) proxies",
     "section": "Bash",
-    "text": "Bash\nMany applications respect the =$http_proxy= environmental argument, so it’s worth setting this in your =.bash_profile=. Those that don’t often take command line flags for a proxy and to ignore SSL verification.\n  http_proxy=http://username:password@host:port\n  export $http_proxy\n\n  curl --proxy $http_proxy --insecure --url ... \n\n  git -c http.proxy=$http_proxy -c http.sslVerify=false clone ..."
+    "text": "Bash\nMany applications respect the =$http_proxy= environmental argument, so it’s worth setting this in your =.bash_profile=. Those that don’t often take command line flags for a proxy and to ignore SSL verification.\n  http_proxy=http://username:password@host:port\n  export $http_proxy\n\n  curl --proxy $http_proxy --insecure --url ... \n\n  git -c http.proxy=$http_proxy -c http.sslVerify=false clone ...",
+    "crumbs": [
+      "Very Old Posts",
+      "Working with (around) proxies"
+    ]
   },
   {
     "objectID": "proxy.html#python-2",
     "href": "proxy.html#python-2",
     "title": "Working with (around) proxies",
     "section": "Python 2",
-    "text": "Python 2\nThis works in Python 2.6 and 2.7. In Python 3 the principles are the same but urllib has been reorganized.\n\n  import logging\n  import ssl\n  import urllib2\n\n  logger = logging.getLogger('demo')\n   \n  def proxy_opener(http_proxy):\n      \"\"\"Return an opener that uses the given proxy and ignores SSL certs(!).\n      Proxy is of the form: http(s)://username:password@host:port\"\"\"\n      logger.warn('Ignoring SSL certificates')\n      try:\n          ctx = ssl.create_default_context()\n          ctx.check_hostname = False\n          ctx.verify_mode = ssl.CERT_NONE\n   \n          https = urllib2.HTTPSHandler(context=ctx)\n   \n      except AttributeError:\n          logger.debug('Python 2.6 does not support cert verification anyway')\n          https = urllib2.HTTPSHandler()\n\n          proxy = urllib2.ProxyHandler({'http': http_proxy,\n                                        'https': http_proxy})\n   \n      opener = urllib2.build_opener(proxy, https)\n   \n      return opener"
+    "text": "Python 2\nThis works in Python 2.6 and 2.7. In Python 3 the principles are the same but urllib has been reorganized.\n\n  import logging\n  import ssl\n  import urllib2\n\n  logger = logging.getLogger('demo')\n   \n  def proxy_opener(http_proxy):\n      \"\"\"Return an opener that uses the given proxy and ignores SSL certs(!).\n      Proxy is of the form: http(s)://username:password@host:port\"\"\"\n      logger.warn('Ignoring SSL certificates')\n      try:\n          ctx = ssl.create_default_context()\n          ctx.check_hostname = False\n          ctx.verify_mode = ssl.CERT_NONE\n   \n          https = urllib2.HTTPSHandler(context=ctx)\n   \n      except AttributeError:\n          logger.debug('Python 2.6 does not support cert verification anyway')\n          https = urllib2.HTTPSHandler()\n\n          proxy = urllib2.ProxyHandler({'http': http_proxy,\n                                        'https': http_proxy})\n   \n      opener = urllib2.build_opener(proxy, https)\n   \n      return opener",
+    "crumbs": [
+      "Very Old Posts",
+      "Working with (around) proxies"
+    ]
   },
   {
     "objectID": "proxy.html#ruby",
     "href": "proxy.html#ruby",
     "title": "Working with (around) proxies",
     "section": "Ruby",
-    "text": "Ruby\nThis is basically a wrapper over Net::HTTP.start that pulls the proxy from the usual environment variable and disables SSL validation.\nMake sure that your Ruby is compiled with OpenSSL support. This definitely works in Ruby 2.3; as far as I can see it will work back to 1.8 but this hasn’t been tested.\n  require 'net/http'\n  require 'openssl'\n   \n  class CorporateProxy\n   \n    @@rgx = %r{\n              https?://  # scheme\n              (\\w.+)     # user\n              :(.+)      # pass\n              @([\\w.-]+) # host\n              :(\\d+)?    # port\n            }x\n   \n    def self.start(uri, opt, &block)\n      if not ENV.key?('http_proxy')\n        raise \"You'll need to define a proxy environment variable to continue.\"\n      end\n   \n      proxy = @@rgx.match(ENV['http_proxy']) do |match|\n        OpenStruct.new(:user =&gt; match[1],\n                       :pass =&gt; match[2],\n                       :addr =&gt; match[3],\n                       :port =&gt; match[4])\n      end\n   \n      Net::HTTP.start(uri.host, uri.port,\n                      proxy.addr, proxy.port,\n                      proxy.user, proxy.pass,\n                      opt.update(:verify_mode =&gt; OpenSSL::SSL::VERIFY_NONE),\n                      &block)\n    end\n  end"
+    "text": "Ruby\nThis is basically a wrapper over Net::HTTP.start that pulls the proxy from the usual environment variable and disables SSL validation.\nMake sure that your Ruby is compiled with OpenSSL support. This definitely works in Ruby 2.3; as far as I can see it will work back to 1.8 but this hasn’t been tested.\n  require 'net/http'\n  require 'openssl'\n   \n  class CorporateProxy\n   \n    @@rgx = %r{\n              https?://  # scheme\n              (\\w.+)     # user\n              :(.+)      # pass\n              @([\\w.-]+) # host\n              :(\\d+)?    # port\n            }x\n   \n    def self.start(uri, opt, &block)\n      if not ENV.key?('http_proxy')\n        raise \"You'll need to define a proxy environment variable to continue.\"\n      end\n   \n      proxy = @@rgx.match(ENV['http_proxy']) do |match|\n        OpenStruct.new(:user =&gt; match[1],\n                       :pass =&gt; match[2],\n                       :addr =&gt; match[3],\n                       :port =&gt; match[4])\n      end\n   \n      Net::HTTP.start(uri.host, uri.port,\n                      proxy.addr, proxy.port,\n                      proxy.user, proxy.pass,\n                      opt.update(:verify_mode =&gt; OpenSSL::SSL::VERIFY_NONE),\n                      &block)\n    end\n  end",
+    "crumbs": [
+      "Very Old Posts",
+      "Working with (around) proxies"
+    ]
   },
   {
     "objectID": "proxy.html#emacs-lisp",
     "href": "proxy.html#emacs-lisp",
     "title": "Working with (around) proxies",
     "section": "Emacs Lisp",
-    "text": "Emacs Lisp\nThis works in Emacs 24.5 or newer. I’ve included an interactive function for setting the proxy password, which I’ve found to be quite convenient.\n  (defconst proxy-host \"example.com\")\n  (defconst proxy-port 1234)\n   \n  (defun make-proxy-url (host port &optional username password)\n    (concat\n     (when (or username password)\n       (format \"%s:%s@\"\n               (if (not username) \"\" username)\n               (if (not password) \"\" password)))\n     (format \"%s:%s\" host port)))\n   \n  (defun set-proxy (http-proxy)\n    \"Set proxy variables that Emacs uses from the provided HTTP-PROXY string.\"\n    (setenv \"HTTP_PROXY\" (format \"https://%s\" http-proxy))\n    (setq url-proxy-services (list (cons \"http\" http-proxy)\n                                   (cons \"https\" http-proxy))))\n   \n  (defun set-user-proxy ()\n    \"Set proxy using current user login name and asking for password.\"\n    (interactive)\n    (set-proxy (make-proxy-url proxy-host\n                               proxy-port\n                               (user-login-name)\n                               (read-passwd \"Password: \"))))"
+    "text": "Emacs Lisp\nThis works in Emacs 24.5 or newer. I’ve included an interactive function for setting the proxy password, which I’ve found to be quite convenient.\n  (defconst proxy-host \"example.com\")\n  (defconst proxy-port 1234)\n   \n  (defun make-proxy-url (host port &optional username password)\n    (concat\n     (when (or username password)\n       (format \"%s:%s@\"\n               (if (not username) \"\" username)\n               (if (not password) \"\" password)))\n     (format \"%s:%s\" host port)))\n   \n  (defun set-proxy (http-proxy)\n    \"Set proxy variables that Emacs uses from the provided HTTP-PROXY string.\"\n    (setenv \"HTTP_PROXY\" (format \"https://%s\" http-proxy))\n    (setq url-proxy-services (list (cons \"http\" http-proxy)\n                                   (cons \"https\" http-proxy))))\n   \n  (defun set-user-proxy ()\n    \"Set proxy using current user login name and asking for password.\"\n    (interactive)\n    (set-proxy (make-proxy-url proxy-host\n                               proxy-port\n                               (user-login-name)\n                               (read-passwd \"Password: \"))))",
+    "crumbs": [
+      "Very Old Posts",
+      "Working with (around) proxies"
+    ]
+  },
+  {
+    "objectID": "posts/welcome/index.html",
+    "href": "posts/welcome/index.html",
+    "title": "Welcome To My Blog",
+    "section": "",
+    "text": "This is the first post in a Quarto blog. Welcome!\n\nSince this post doesn’t specify an explicit image, the first image in the post will be used in the listing page of posts."
+  },
+  {
+    "objectID": "posts/post-with-code/index.html",
+    "href": "posts/post-with-code/index.html",
+    "title": "Post With Code",
+    "section": "",
+    "text": "This is a post with executable code."
   },
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "Index",
+    "title": "Chris Bowdon",
     "section": "",
-    "text": "Posts\nThey will certainly appear in this space when I publish them. I make no guarantees about quality or timeliness.\n\n\nOpen Source Software Packages\n\nTsMonad - Haskell-inspired monad library for TypeScript.\ndaemons.el - Emacs interface for managing system services\n\n\n\nOld Posts\nFrom 2010-2020ish I wrote several posts on software engineering, DevOps, and data science. I was particularly keen on functional programming and Lisps.\n\nMedium posts\nWorking with (around) proxies",
+    "text": "Post With Code\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\nDec 26, 2024\n\n\nHarlow Malloc\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome To My Blog\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\nDec 23, 2024\n\n\nTristan O’Malley\n\n\n\n\n\n\nNo matching items",
     "crumbs": [
       "Index"
     ]
