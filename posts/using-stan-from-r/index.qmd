@@ -1,0 +1,39 @@
+---
+title: "Using Stan from R"
+author: "Chris Bowdon"
+date: "2024-12-26"
+categories: [bayesian, r, stan]
+---
+
+I've been trying to get the hang of Bayesian models with Stan. One of the hurdles has been using Stan from R, so in this post I'm jotting down what I've learned (mostly the hard way).
+
+# RStan or CmdStanR?
+
+On the whole I had a much better time using `CmdStanR` than `RStan`. When I made a mistake that led to a runtime exception, RStan would simply die with this kind of error:
+
+```
+Error in `unserialize()`:
+! error reading from connection
+     ▆
+  1. └─rstan::stan(...)
+  2.   ├─rstan::sampling(...)
+  3.   └─rstan::sampling(...)
+  4.     └─rstan (local) .local(object, ...)
+  5.       └─parallel::parLapplyLB(cl, X = 1:chains, fun = callFun)
+  6.         ├─base::do.call(...)
+  7.         └─parallel::clusterApplyLB(...)
+  8.           └─parallel:::dynamicClusterApply(cl, fun, length(x), argfun)
+  9.             └─parallel:::recvOneResult(cl)
+ 10.               ├─parallel::recvOneData(cl)
+ 11.               └─parallel:::recvOneData.SOCKcluster(cl)
+ 12.                 └─base::unserialize(socklist[[n]])
+ ```
+
+CmdStanR on the other hand would print something useful. Other aspects of the development experience were also nicer:
+
+- better status updates (e.g. showing when compiling)
+- editor support for stan files e.g. linting
+
+# Common Errors
+
+- I got "Rejecting initial value" a lot: "log probability evaluates to log(0), i.e. negative infinity". This is trying to tell you that the default initial value chosen by Stan has a probability of zero in your prior. You need to set constraints in the parameters block that match the prior distribution you choose. For example if you chose a uniform(1, 10) prior, you should add the constraint `<lower=1, upper=10>` to your parameter declaration.

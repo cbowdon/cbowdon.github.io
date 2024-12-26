@@ -6,10 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Tristan O’Malley">
-<meta name="dcterms.date" content="2024-12-23">
+<meta name="author" content="Chris Bowdon">
+<meta name="dcterms.date" content="2024-12-26">
 
-<title>Welcome To My Blog – Chris Bowdon</title>
+<title>Using Stan from R – Chris Bowdon</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -97,9 +97,11 @@ ul.task-list li input[type="checkbox"] {
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Welcome To My Blog</h1>
+      <h1 class="title">Using Stan from R</h1>
                                 <div class="quarto-categories">
-                <div class="quarto-category">news</div>
+                <div class="quarto-category">bayesian</div>
+                <div class="quarto-category">r</div>
+                <div class="quarto-category">stan</div>
               </div>
                   </div>
   </div>
@@ -110,14 +112,14 @@ ul.task-list li input[type="checkbox"] {
       <div>
       <div class="quarto-title-meta-heading">Author</div>
       <div class="quarto-title-meta-contents">
-               <p>Tristan O’Malley </p>
+               <p>Chris Bowdon </p>
             </div>
     </div>
       
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">December 23, 2024</p>
+        <p class="date">December 26, 2024</p>
       </div>
     </div>
     
@@ -205,11 +207,39 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<p>This is the first post in a Quarto blog. Welcome!</p>
-<p><img src="thumbnail.jpg" class="img-fluid"></p>
-<p>Since this post doesn’t specify an explicit <code>image</code>, the first image in the post will be used in the listing page of posts.</p>
+<p>I’ve been trying to get the hang of Bayesian models with Stan. One of the hurdles has been using Stan from R, so in this post I’m jotting down what I’ve learned (mostly the hard way).</p>
+<section id="rstan-or-cmdstanr" class="level1">
+<h1>RStan or CmdStanR?</h1>
+<p>On the whole I had a much better time using <code>CmdStanR</code> than <code>RStan</code>. When I made a mistake that led to a runtime exception, RStan would simply die with this kind of error:</p>
+<pre><code>Error in `unserialize()`:
+! error reading from connection
+     ▆
+  1. └─rstan::stan(...)
+  2.   ├─rstan::sampling(...)
+  3.   └─rstan::sampling(...)
+  4.     └─rstan (local) .local(object, ...)
+  5.       └─parallel::parLapplyLB(cl, X = 1:chains, fun = callFun)
+  6.         ├─base::do.call(...)
+  7.         └─parallel::clusterApplyLB(...)
+  8.           └─parallel:::dynamicClusterApply(cl, fun, length(x), argfun)
+  9.             └─parallel:::recvOneResult(cl)
+ 10.               ├─parallel::recvOneData(cl)
+ 11.               └─parallel:::recvOneData.SOCKcluster(cl)
+ 12.                 └─base::unserialize(socklist[[n]])</code></pre>
+<p>CmdStanR on the other hand would print something useful. Other aspects of the development experience were also nicer:</p>
+<ul>
+<li>better status updates (e.g.&nbsp;showing when compiling)</li>
+<li>editor support for stan files e.g.&nbsp;linting</li>
+</ul>
+</section>
+<section id="common-errors" class="level1">
+<h1>Common Errors</h1>
+<ul>
+<li>I got “Rejecting initial value” a lot: “log probability evaluates to log(0), i.e.&nbsp;negative infinity”. This is trying to tell you that the default initial value chosen by Stan has a probability of zero in your prior. You need to set constraints in the parameters block that match the prior distribution you choose. For example if you chose a uniform(1, 10) prior, you should add the constraint <code>&lt;lower=1, upper=10&gt;</code> to your parameter declaration.</li>
+</ul>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
