@@ -24,6 +24,8 @@ website:
             href: https://medium.com/@cbowdon
           - text: Working with (around) proxies
             href: proxy.qmd
+  google-analytics: GTM-NFSVG5KL
+  open-graph: true
         
 format:
   html:
