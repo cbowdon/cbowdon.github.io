@@ -4,6 +4,7 @@ author: "Chris Bowdon"
 date: "2024-12-27"
 categories: [bayesian, r, f1]
 warning: false
+freeze: false
 ---
 
 For a bit of fun, let's try and model the performance of F1 drivers and constructors using Bayesian models. This is of course using data from the fantastic [Ergast](https://ergast.com/mrd/).
@@ -42,12 +43,12 @@ f2024 <- f1data |> filter(year == 2024)
 ggplot(f2024) +
   aes(x = position) +
   facet_wrap(vars(driverRef)) +
-  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1)
+  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 
 ggplot(f2024) +
   aes(x = position) +
   facet_wrap(vars(constructorRef)) +
-  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1)
+  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 ```
 
 Points is simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.
@@ -97,7 +98,7 @@ ctr_positions <- f2024 |>
 ggplot(ctr_positions) +
   aes(x = position) +
   facet_wrap(vars(constructorRef)) +
-  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1)
+  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 ```
 
 A key point here is that we've recalculated positions using only the max driver's position for each constructor, i.e. there are now only 10 finishing positions.
@@ -159,7 +160,7 @@ do.stan <- function(ctr_positions) {
     positions = tidy_ctr_posns$position
   )
   mod <- cmdstan_model("f1.stan", exe_file = "f1.bin")
-  mod$sample(data_list)
+  mod$sample(data_list, seed = 42, show_messages = FALSE)
 }
 
 fit <- do.stan(ctr_positions)
@@ -178,7 +179,7 @@ plot_fit <- function(fit) {
   ggplot(pivot_longer(df, all_of(ctrs))) +
     aes(x = value) +
     facet_wrap(vars(name)) +
-    geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth=0.2)
+    geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 0.2)
 }
 
 plot_fit(fit)
@@ -199,7 +200,8 @@ f2024 |>
   arrange(round) |>
   merge(
     ctr_positions |> filter(constructorRef == "red_bull") |> select(round, position)
-  )
+  ) |>
+  knitr::kable()
 ```
 
 Round three is clearly a balls-up: how can Pere'z 5th place become the 10th constructor position? Let's work through it again.
@@ -209,7 +211,8 @@ f2024 |>
   group_by(round, constructorRef) |>
   summarise(position = min(position)) |>
   mutate(reranked = rank(position)) |>
-  filter(round == 3)
+  filter(round == 3) |>
+  knitr::kable()
 ```
 
 `NA` strikes again! Forgot to add the crucial `na.rm` parameter to the min. Right, a do-over.
@@ -235,7 +238,7 @@ ctr_positions <- f2024 |>
 ggplot(ctr_positions) +
   aes(x = position) +
   facet_wrap(vars(constructorRef)) +
-  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1)
+  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 ```
 
 That looks more like I'd expect. Let's try Stan again.

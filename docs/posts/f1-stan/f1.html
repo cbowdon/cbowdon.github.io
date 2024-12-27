@@ -274,12 +274,12 @@ window.Quarto = {
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(f2024) <span class="sc">+</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(driverRef)) <span class="sc">+</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(f2024) <span class="sc">+</span></span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
 <span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-data-2024-1" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -340,11 +340,16 @@ Figure&nbsp;2: Histograms of driver and constructor performance in F1 2024.
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ctr_positions) <span class="sc">+</span></span>
 <span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
 <span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="f1_files/figure-html/simpler-model-1.png" class="img-fluid figure-img" width="672"></p>
+<div id="fig-simpler-model" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-simpler-model-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="f1_files/figure-html/fig-simpler-model-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-simpler-model-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Histogram of re-ranked constructor results in F1 2024.
+</figcaption>
 </figure>
 </div>
 </div>
@@ -410,140 +415,40 @@ model {
 <span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">positions =</span> tidy_ctr_posns<span class="sc">$</span>position</span>
 <span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  mod <span class="ot">&lt;-</span> <span class="fu">cmdstan_model</span>(<span class="st">"f1.stan"</span>, <span class="at">exe_file =</span> <span class="st">"f1.bin"</span>)</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  mod<span class="sc">$</span><span class="fu">sample</span>(data_list)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  mod<span class="sc">$</span><span class="fu">sample</span>(data_list, <span class="at">seed =</span> <span class="dv">42</span>, <span class="at">show_messages =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">do.stan</span>(ctr_positions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Running MCMC with 4 sequential chains...
-
-Chain 1 Iteration:    1 / 2000 [  0%]  (Warmup) 
-Chain 1 Iteration:  100 / 2000 [  5%]  (Warmup) 
-Chain 1 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-Chain 1 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-Chain 1 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-Chain 1 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-Chain 1 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-Chain 1 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-Chain 1 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-Chain 1 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-Chain 1 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-Chain 1 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-Chain 1 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-Chain 1 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-Chain 1 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-Chain 1 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-Chain 1 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-Chain 1 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-Chain 1 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-Chain 1 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-Chain 1 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
-Chain 1 finished in 1.1 seconds.
-Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
-Chain 2 Iteration:  100 / 2000 [  5%]  (Warmup) 
-Chain 2 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-Chain 2 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-Chain 2 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-Chain 2 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-Chain 2 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-Chain 2 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-Chain 2 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-Chain 2 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-Chain 2 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-Chain 2 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-Chain 2 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-Chain 2 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-Chain 2 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-Chain 2 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-Chain 2 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-Chain 2 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-Chain 2 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-Chain 2 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-Chain 2 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-Chain 2 Iteration: 2000 / 2000 [100%]  (Sampling) 
-Chain 2 finished in 1.4 seconds.
-Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) 
-Chain 3 Iteration:  100 / 2000 [  5%]  (Warmup) 
-Chain 3 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-Chain 3 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-Chain 3 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-Chain 3 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-Chain 3 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-Chain 3 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-Chain 3 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-Chain 3 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-Chain 3 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-Chain 3 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-Chain 3 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-Chain 3 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-Chain 3 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-Chain 3 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-Chain 3 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-Chain 3 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-Chain 3 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-Chain 3 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
-Chain 3 finished in 1.3 seconds.
-Chain 4 Iteration:    1 / 2000 [  0%]  (Warmup) 
-Chain 4 Iteration:  100 / 2000 [  5%]  (Warmup) 
-Chain 4 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-Chain 4 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-Chain 4 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-Chain 4 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-Chain 4 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-Chain 4 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-Chain 4 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-Chain 4 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-Chain 4 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-Chain 4 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-Chain 4 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-Chain 4 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-Chain 4 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-Chain 4 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-Chain 4 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-Chain 4 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-Chain 4 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
-Chain 4 finished in 1.3 seconds.
-
-All 4 chains finished successfully.
-Mean chain execution time: 1.3 seconds.
-Total execution time: 5.3 seconds.</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fit</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">do.stan</span>(ctr_positions)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>fit</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  variable    mean  median   sd  mad      q5     q95 rhat ess_bulk ess_tail
- lp__      -442.53 -442.13 2.46 2.26 -447.08 -439.25 1.00     1739     2298
- lambda[1]    6.96    6.96 0.21 0.21    6.63    7.30 1.00     4962     3071
- lambda[2]    5.96    5.96 0.21 0.21    5.61    6.30 1.00     4470     2732
- lambda[3]    2.58    2.59 0.23 0.22    2.21    2.95 1.00     4271     2157
- lambda[4]    6.29    6.29 0.21 0.20    5.96    6.64 1.00     4504     2586
- lambda[5]    1.56    1.56 0.26 0.28    1.14    2.01 1.00     2822     1546
- lambda[6]    4.12    4.12 0.21 0.21    3.77    4.46 1.00     4524     2638
- lambda[7]    6.67    6.68 0.21 0.21    6.33    7.02 1.00     4665     3164
- lambda[8]    3.65    3.65 0.21 0.22    3.30    3.99 1.00     4608     2405
- lambda[9]    8.37    8.36 0.23 0.23    7.99    8.76 1.00     4232     2670
+ lp__      -442.52 -442.14 2.49 2.36 -446.98 -439.30 1.00     1479     1643
+ lambda[1]    6.96    6.96 0.21 0.21    6.62    7.31 1.00     5324     2569
+ lambda[2]    5.96    5.96 0.21 0.20    5.62    6.30 1.00     5057     3034
+ lambda[3]    2.58    2.58 0.23 0.22    2.19    2.95 1.00     5412     2691
+ lambda[4]    6.30    6.30 0.20 0.21    5.96    6.63 1.00     5415     3023
+ lambda[5]    1.56    1.56 0.26 0.27    1.12    2.00 1.00     2065      881
+ lambda[6]    4.12    4.12 0.21 0.21    3.78    4.46 1.00     4308     2376
+ lambda[7]    6.67    6.67 0.21 0.21    6.33    7.00 1.00     5155     2869
+ lambda[8]    3.66    3.66 0.21 0.22    3.31    4.01 1.00     5749     2972
+ lambda[9]    8.37    8.37 0.23 0.23    8.00    8.75 1.00     5142     2577
 
  # showing 10 of 11 rows (change via 'max_rows' argument or 'cmdstanr_max_rows' option)</code></pre>
 </div>
 </div>
 <p>Let’s tidy that up though, mapping parameters back to constructor names.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>plot_fit <span class="ot">&lt;-</span> <span class="cf">function</span>(fit) {</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">draws</span>(<span class="st">"lambda"</span>, <span class="at">format =</span> <span class="st">"draws_matrix"</span>) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>()</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(df) <span class="ot">&lt;-</span> ctrs</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">pivot_longer</span>(df, <span class="fu">all_of</span>(ctrs))) <span class="sc">+</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> value) <span class="sc">+</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(name)) <span class="sc">+</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth=</span><span class="fl">0.2</span>)</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fit</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>plot_fit <span class="ot">&lt;-</span> <span class="cf">function</span>(fit) {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">draws</span>(<span class="st">"lambda"</span>, <span class="at">format =</span> <span class="st">"draws_matrix"</span>) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>()</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(df) <span class="ot">&lt;-</span> ctrs</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">pivot_longer</span>(df, <span class="fu">all_of</span>(ctrs))) <span class="sc">+</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> value) <span class="sc">+</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(name)) <span class="sc">+</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="fl">0.2</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fit</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-ctr-lambda-posteriors" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -551,7 +456,7 @@ Total execution time: 5.3 seconds.</code></pre>
 <img src="f1_files/figure-html/fig-ctr-lambda-posteriors-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ctr-lambda-posteriors-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: Posterior samples for constructor performance
+Figure&nbsp;4: Posterior samples for constructor performance
 </figcaption>
 </figure>
 </div>
@@ -559,94 +464,312 @@ Figure&nbsp;3: Posterior samples for constructor performance
 </div>
 <p>The interesting thing is that this suggests the Red Bull was clearly the third-fastest car. I’m a little suspicious of that, because it claimed a sequence of 1-2s in the first third of the season. Let’s take a closer look at that.</p>
 <p>The first thing to check is whether my dumb “max driver, 10 positions” model is problematic. Let’s look at Red Bull’s results.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="sc">|&gt;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(constructorRef <span class="sc">==</span> <span class="st">"red_bull"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gp, round, driverRef, position) <span class="sc">|&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> <span class="st">"driverRef"</span>, <span class="at">values_from =</span> <span class="st">"position"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(round) <span class="sc">|&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    ctr_positions <span class="sc">|&gt;</span> <span class="fu">filter</span>(constructorRef <span class="sc">==</span> <span class="st">"red_bull"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(round, position)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div id="tbl-red-bull-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-red-bull-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;1: Red Bull’s results in F1 2024
 </figcaption>
 <div aria-describedby="tbl-red-bull-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="sc">|&gt;</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(constructorRef <span class="sc">==</span> <span class="st">"red_bull"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gp, round, driverRef, position) <span class="sc">|&gt;</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> <span class="st">"driverRef"</span>, <span class="at">values_from =</span> <span class="st">"position"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(round) <span class="sc">|&gt;</span></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    ctr_positions <span class="sc">|&gt;</span> <span class="fu">filter</span>(constructorRef <span class="sc">==</span> <span class="st">"red_bull"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(round, position)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>   round                        gp perez max_verstappen position
-1      1        Bahrain Grand Prix     2              1        1
-2      2  Saudi Arabian Grand Prix     2              1        1
-3      3     Australian Grand Prix     5             NA       10
-4      4       Japanese Grand Prix     2              1        1
-5      5        Chinese Grand Prix     3              1        1
-6      6          Miami Grand Prix     4              2        2
-7      7 Emilia Romagna Grand Prix     8              1        1
-8      8         Monaco Grand Prix    NA              6       10
-9      9       Canadian Grand Prix    NA              1        9
-10    10        Spanish Grand Prix     8              1        1
-11    11       Austrian Grand Prix     7              5        4
-12    12        British Grand Prix    17              2        1
-13    13      Hungarian Grand Prix     7              5        4
-14    14        Belgian Grand Prix     7              4        3
-15    15          Dutch Grand Prix     6              2        2
-16    16        Italian Grand Prix     8              6        4
-17    17     Azerbaijan Grand Prix    17              5        4
-18    18      Singapore Grand Prix    10              2        2
-19    19  United States Grand Prix     7              3        2
-20    20    Mexico City Grand Prix    17              6        4
-21    21      São Paulo Grand Prix    11              1        1
-22    22      Las Vegas Grand Prix    10              5        3
-23    23          Qatar Grand Prix    NA              1        9
-24    24      Abu Dhabi Grand Prix    NA              6        8</code></pre>
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">round</th>
+<th style="text-align: left;">gp</th>
+<th style="text-align: right;">perez</th>
+<th style="text-align: right;">max_verstappen</th>
+<th style="text-align: right;">position</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">Bahrain Grand Prix</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">Saudi Arabian Grand Prix</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">Australian Grand Prix</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">Japanese Grand Prix</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">5</td>
+<td style="text-align: left;">Chinese Grand Prix</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">Miami Grand Prix</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">7</td>
+<td style="text-align: left;">Emilia Romagna Grand Prix</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">8</td>
+<td style="text-align: left;">Monaco Grand Prix</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">Canadian Grand Prix</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">Spanish Grand Prix</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">11</td>
+<td style="text-align: left;">Austrian Grand Prix</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">12</td>
+<td style="text-align: left;">British Grand Prix</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">13</td>
+<td style="text-align: left;">Hungarian Grand Prix</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">14</td>
+<td style="text-align: left;">Belgian Grand Prix</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">15</td>
+<td style="text-align: left;">Dutch Grand Prix</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">Italian Grand Prix</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">17</td>
+<td style="text-align: left;">Azerbaijan Grand Prix</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">18</td>
+<td style="text-align: left;">Singapore Grand Prix</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">19</td>
+<td style="text-align: left;">United States Grand Prix</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">20</td>
+<td style="text-align: left;">Mexico City Grand Prix</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">21</td>
+<td style="text-align: left;">São Paulo Grand Prix</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">22</td>
+<td style="text-align: left;">Las Vegas Grand Prix</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">23</td>
+<td style="text-align: left;">Qatar Grand Prix</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">24</td>
+<td style="text-align: left;">Abu Dhabi Grand Prix</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">8</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 </figure>
 </div>
+</div>
 <p>Round three is clearly a balls-up: how can Pere’z 5th place become the 10th constructor position? Let’s work through it again.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="sc">|&gt;</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(round, constructorRef) <span class="sc">|&gt;</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">position =</span> <span class="fu">min</span>(position)) <span class="sc">|&gt;</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">reranked =</span> <span class="fu">rank</span>(position)) <span class="sc">|&gt;</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(round <span class="sc">==</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 10 × 4
-# Groups:   round [1]
-   round constructorRef position reranked
-   &lt;dbl&gt; &lt;chr&gt;             &lt;dbl&gt;    &lt;dbl&gt;
- 1     3 alpine               13        7
- 2     3 aston_martin          6        3
- 3     3 ferrari               1        1
- 4     3 haas                  9        5
- 5     3 mclaren               3        2
- 6     3 mercedes             NA        9
- 7     3 rb                    7        4
- 8     3 red_bull             NA       10
- 9     3 sauber               14        8
-10     3 williams             11        6</code></pre>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="sc">|&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(round, constructorRef) <span class="sc">|&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">position =</span> <span class="fu">min</span>(position)) <span class="sc">|&gt;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">reranked =</span> <span class="fu">rank</span>(position)) <span class="sc">|&gt;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(round <span class="sc">==</span> <span class="dv">3</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">round</th>
+<th style="text-align: left;">constructorRef</th>
+<th style="text-align: right;">position</th>
+<th style="text-align: right;">reranked</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">alpine</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">aston_martin</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">haas</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">rb</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">red_bull</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">sauber</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">3</td>
+<td style="text-align: left;">williams</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">6</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <p><code>NA</code> strikes again! Forgot to add the crucial <code>na.rm</code> parameter to the min. Right, a do-over.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ctr_positions <span class="ot">&lt;-</span> f2024 <span class="sc">|&gt;</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(round, constructorRef) <span class="sc">|&gt;</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># in the event of a double DNF, assign the last position</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">quali_position =</span> <span class="fu">pmin</span>(<span class="fu">min</span>(quali_position, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">10</span>),</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">pmin</span>(<span class="fu">min</span>(position, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">10</span>)</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># re-rank</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">quali_position =</span> <span class="fu">rank</span>(quali_position),</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">rank</span>(position)</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(round, position)</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ctr_positions) <span class="sc">+</span></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>ctr_positions <span class="ot">&lt;-</span> f2024 <span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(round, constructorRef) <span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># in the event of a double DNF, assign the last position</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">quali_position =</span> <span class="fu">pmin</span>(<span class="fu">min</span>(quali_position, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">10</span>),</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">pmin</span>(<span class="fu">min</span>(position, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="dv">10</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># re-rank</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">quali_position =</span> <span class="fu">rank</span>(quali_position),</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">rank</span>(position)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(round, position)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ctr_positions) <span class="sc">+</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-updated-ctr-positions" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -654,7 +777,7 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <img src="f1_files/figure-html/fig-updated-ctr-positions-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-updated-ctr-positions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Constructor position histograms after fixing NA sorting.
+Figure&nbsp;5: Constructor position histograms after fixing NA sorting.
 </figcaption>
 </figure>
 </div>
@@ -662,108 +785,8 @@ Figure&nbsp;4: Constructor position histograms after fixing NA sorting.
 </div>
 <p>That looks more like I’d expect. Let’s try Stan again.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">do.stan</span>(ctr_positions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Running MCMC with 4 sequential chains...
-
-Chain 1 Iteration:    1 / 2000 [  0%]  (Warmup) 
-Chain 1 Iteration:  100 / 2000 [  5%]  (Warmup) 
-Chain 1 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-Chain 1 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-Chain 1 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-Chain 1 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-Chain 1 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-Chain 1 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-Chain 1 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-Chain 1 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-Chain 1 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-Chain 1 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-Chain 1 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-Chain 1 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-Chain 1 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-Chain 1 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-Chain 1 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-Chain 1 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-Chain 1 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-Chain 1 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-Chain 1 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
-Chain 1 finished in 1.0 seconds.
-Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
-Chain 2 Iteration:  100 / 2000 [  5%]  (Warmup) 
-Chain 2 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-Chain 2 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-Chain 2 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-Chain 2 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-Chain 2 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-Chain 2 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-Chain 2 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-Chain 2 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-Chain 2 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-Chain 2 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-Chain 2 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-Chain 2 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-Chain 2 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-Chain 2 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-Chain 2 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-Chain 2 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-Chain 2 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-Chain 2 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-Chain 2 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-Chain 2 Iteration: 2000 / 2000 [100%]  (Sampling) 
-Chain 2 finished in 1.0 seconds.
-Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) 
-Chain 3 Iteration:  100 / 2000 [  5%]  (Warmup) 
-Chain 3 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-Chain 3 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-Chain 3 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-Chain 3 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-Chain 3 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-Chain 3 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-Chain 3 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-Chain 3 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-Chain 3 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-Chain 3 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-Chain 3 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-Chain 3 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-Chain 3 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-Chain 3 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-Chain 3 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-Chain 3 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-Chain 3 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-Chain 3 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
-Chain 3 finished in 1.0 seconds.
-Chain 4 Iteration:    1 / 2000 [  0%]  (Warmup) 
-Chain 4 Iteration:  100 / 2000 [  5%]  (Warmup) 
-Chain 4 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-Chain 4 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-Chain 4 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-Chain 4 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-Chain 4 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-Chain 4 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-Chain 4 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-Chain 4 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-Chain 4 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-Chain 4 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-Chain 4 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-Chain 4 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-Chain 4 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-Chain 4 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-Chain 4 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-Chain 4 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-Chain 4 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
-Chain 4 finished in 1.0 seconds.
-
-All 4 chains finished successfully.
-Mean chain execution time: 1.0 seconds.
-Total execution time: 4.3 seconds.</code></pre>
-</div>
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fit</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">do.stan</span>(ctr_positions)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fit</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-updated-posterior-samples" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -771,13 +794,14 @@ Total execution time: 4.3 seconds.</code></pre>
 <img src="f1_files/figure-html/fig-updated-posterior-samples-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-updated-posterior-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: Posterior samples after fixing NA sorting.
+Figure&nbsp;6: Posterior samples after fixing NA sorting.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari.</p>
+<p>That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor’s championship).</p>
+<p>That’ll do for now, but there’s a lot we can improve about this model.</p>
 
 
 </section>
