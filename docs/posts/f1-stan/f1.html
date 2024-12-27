@@ -9,7 +9,7 @@
 <meta name="author" content="Chris Bowdon">
 <meta name="dcterms.date" content="2024-12-27">
 
-<title>Latent skill of F1 drivers: fun with Bayesian models – Chris Bowdon</title>
+<title>Latent performance of F1 cars and drivers: fun with Bayesian models – Chris Bowdon</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -205,7 +205,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Latent skill of F1 drivers: fun with Bayesian models</h1>
+      <h1 class="title">Latent performance of F1 cars and drivers: fun with Bayesian models</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">bayesian</div>
                 <div class="quarto-category">r</div>
@@ -247,6 +247,8 @@ window.Quarto = {
 
 
 <p>For a bit of fun, let’s try and model the performance of F1 drivers and constructors using Bayesian models. This is of course using data from the fantastic <a href="https://ergast.com/mrd/">Ergast</a>.</p>
+<p>My model will be an imitation of the f1-metrics model. We have latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing <a href="https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/">Rasmus Bååth’s blog</a> where he models the latent skill of football teams in La Liga.</p>
+<p>I downloaded the CSVs from Ergast which we’ll first wrangle into shape. The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -266,7 +268,6 @@ window.Quarto = {
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, gp, year, round, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) <span class="sc">|&gt;</span></span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">ifelse</span>(position <span class="sc">==</span> <span class="st">"</span><span class="sc">\\</span><span class="st">N"</span>, <span class="cn">NA</span>, <span class="fu">as.numeric</span>(position)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>My model is an imitation of the f1-metrics model. We have latent variables of driver skill and car quality, which predict points. However I never did get hold of the paper for that, and am instead following the amazing <a href="https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/">Rasmus Bååth’s blog</a> where he models the latent skill of football teams in La Liga.</p>
 <p>In the interests of being educational - and because Lord knows I hate editing - I am writing this post as I go, including any blind-alleys and debugging.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="ot">&lt;-</span> f1data <span class="sc">|&gt;</span> <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>)</span>
@@ -305,7 +306,7 @@ Figure&nbsp;2: Histograms of driver and constructor performance in F1 2024.
 </div>
 </div>
 </div>
-<p>Points is simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.</p>
+<p>The model goes like this. Points are simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.</p>
 <p><span class="math display">\[
 \text{points} \sim \text{Poisson}(\text{perf}_{\text{drv}} + \text{perf}_{\text{ctr}})
 \]</span></p>
@@ -323,9 +324,9 @@ Figure&nbsp;2: Histograms of driver and constructor performance in F1 2024.
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  ... <span class="co"># whew</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<section id="car-performance" class="level1">
-<h1>Car performance</h1>
-<p>Let’s start simpler, with a view of the car performance. Assume that at least one driver for every constructor maximised the car’s performance each weekend. THIS ISN’T TRUE. If Albon had a poor weekend, Sargeant wasn’t going to step up, as one of many examples on the grid in 2024. However it is a useful approximation.</p>
+<section id="constructor-performance" class="level1">
+<h1>Constructor performance</h1>
+<p>Let’s start simpler, with a view of just the constructor performance. Assume that at least one driver for every constructor maximised the car’s performance each weekend. THIS ISN’T TRUE. If Albon had a poor weekend, Sargeant wasn’t going to step up, as one of many examples on the grid in 2024. However it is a useful approximation that let’s us analyse just the constructor performance.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ctr_positions <span class="ot">&lt;-</span> f2024 <span class="sc">|&gt;</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(round, constructorRef) <span class="sc">|&gt;</span></span>
@@ -405,7 +406,7 @@ model {
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">constructorRef =</span> ctrs,</span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>do.stan <span class="ot">&lt;-</span> <span class="cf">function</span>(ctr_positions) {</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>make_data_list <span class="ot">&lt;-</span> <span class="cf">function</span>(ctr_positions) {</span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  tidy_ctr_posns <span class="ot">&lt;-</span> ctr_positions <span class="sc">|&gt;</span> <span class="fu">merge</span>(ctr_index)</span>
 <span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  data_list <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
@@ -414,12 +415,15 @@ model {
 <span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">ctrs =</span> tidy_ctr_posns<span class="sc">$</span>constructorId,</span>
 <span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">positions =</span> tidy_ctr_posns<span class="sc">$</span>position</span>
 <span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>  mod <span class="ot">&lt;-</span> <span class="fu">cmdstan_model</span>(<span class="st">"f1.stan"</span>, <span class="at">exe_file =</span> <span class="st">"f1.bin"</span>)</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>  mod<span class="sc">$</span><span class="fu">sample</span>(data_list, <span class="at">seed =</span> <span class="dv">42</span>, <span class="at">show_messages =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">do.stan</span>(ctr_positions)</span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>fit</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>run_stan <span class="ot">&lt;-</span> <span class="cf">function</span>(data_list, <span class="at">model_file =</span> <span class="st">"f1.stan"</span>) {</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  mod <span class="ot">&lt;-</span> <span class="fu">cmdstan_model</span>(model_file, <span class="at">exe_file =</span> <span class="fu">str_c</span>(model_file, <span class="st">".bin"</span>))</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>  mod<span class="sc">$</span><span class="fu">sample</span>(data_list, <span class="at">seed =</span> <span class="dv">42</span>, <span class="at">show_messages =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">run_stan</span>(<span class="fu">make_data_list</span>(ctr_positions))</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>fit</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  variable    mean  median   sd  mad      q5     q95 rhat ess_bulk ess_tail
  lp__      -442.52 -442.14 2.49 2.36 -446.98 -439.30 1.00     1479     1643
@@ -445,7 +449,7 @@ model {
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">pivot_longer</span>(df, <span class="fu">all_of</span>(ctrs))) <span class="sc">+</span></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> value) <span class="sc">+</span></span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(name)) <span class="sc">+</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="fl">0.2</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>)</span>
 <span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fit</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -785,7 +789,7 @@ Figure&nbsp;5: Constructor position histograms after fixing NA sorting.
 </div>
 <p>That looks more like I’d expect. Let’s try Stan again.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">do.stan</span>(ctr_positions)</span>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">run_stan</span>(<span class="fu">make_data_list</span>(ctr_positions))</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fit</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div id="fig-updated-posterior-samples" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -800,10 +804,154 @@ Figure&nbsp;6: Posterior samples after fixing NA sorting.
 </div>
 </div>
 </div>
-<p>That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor’s championship).</p>
-<p>That’ll do for now, but there’s a lot we can improve about this model.</p>
+<p>That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor’s championship). This tells us that yes, Verstappen probably would have won the driver’s championship in a McLaren - but contrary to claims, not in a Ferrari, since it wasn’t faster than the Red Bull overall.</p>
+<p>There’s a lot we can improve about this model:</p>
+<ul>
+<li>Our priors for constructor performance are uniformative, and so our posteriors basically just reflect the data. Can we add some useful information to inform the model?</li>
+<li>The cars were regularly upgraded throughout the season, and received “big” updates at some races. There were also some key events like Newey leaving Red Bull. Can we model this?</li>
+</ul>
+</section>
+<section id="more-informative-priors" class="level1">
+<h1>More informative priors</h1>
+<p>What makes some constructors better than others? <del>Adrian Newey</del> Money. Let’s reflect this in our priors.</p>
+<p><span class="math display">\[
+\lambda_{\text{ctr}} \sim \text{Normal}(\text{budget}_\text{ctr}, \sigma)
+\]</span></p>
+<section id="budget-data" class="level2">
+<h2 class="anchored" data-anchor-id="budget-data">Budget data</h2>
+<p>This is a bit of a secret, so we have to estimate. We do know that the budget cap is 135M USD and it’s unlikely that anyone is operating below the cap. We also know that driver and top executive salaries are exempt from the cap. The top teams are spending about 100M USD on their drivers, and prior to the budget cap’s implementation likely invested in facilities that they can use for free (like wind tunnels).</p>
+<p>With that in mind, I asked 4o to search the web and estimate budgets for the teams. I sanity checked against <a href="https://www.blackbookmotorsport.com/content/f1-team-finances-2023-financial-results-revenue-profit-budget-cap/">this Blackbook Motorsport</a> article.</p>
+<p>These are probably reasonable estimates, but it makes sense to put a big variance on the priors to reflect the uncertainty.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>budgets <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>constructorRef, <span class="sc">~</span>budget,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"red_bull"</span>, <span class="dv">400</span>,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"mercedes"</span>, <span class="dv">400</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"ferrari"</span>, <span class="dv">400</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"mclaren"</span>, <span class="dv">250</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"aston_martin"</span>, <span class="dv">250</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">"alpine"</span>, <span class="dv">200</span>,</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rb"</span>, <span class="dv">150</span>,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"haas"</span>, <span class="dv">150</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"williams"</span>, <span class="dv">150</span>,</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"sauber"</span>, <span class="dv">150</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">norm_budget =</span> <span class="dv">1</span> <span class="sc">-</span> budget <span class="sc">/</span> <span class="fu">max</span>(budget)</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(budgets)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="tbl-ctr-budgets" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-ctr-budgets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Constructor budget estimates (USD millions)
+</figcaption>
+<div aria-describedby="tbl-ctr-budgets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">constructorRef</th>
+<th style="text-align: right;">budget</th>
+<th style="text-align: right;">norm_budget</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">red_bull</td>
+<td style="text-align: right;">400</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: right;">400</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: right;">400</td>
+<td style="text-align: right;">0.000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: right;">0.375</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">aston_martin</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: right;">0.375</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">alpine</td>
+<td style="text-align: right;">200</td>
+<td style="text-align: right;">0.500</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">rb</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">0.625</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">haas</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">0.625</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">williams</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">0.625</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sauber</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">0.625</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Let’s update our model and run Stan again.</p>
+<pre><code>data {
+  int&lt;lower=1&gt; n_ctrs;
+  int&lt;lower=1&gt; n_obs;
+  array[n_ctrs] int ctr_budgets;
+  array[n_obs] int&lt;lower=1, upper=10&gt; ctrs;
+  array[n_obs] int&lt;lower=1, upper=10&gt; positions;
+}
+parameters {
+  array[n_ctrs] real&lt;lower=1, upper=10&gt; lambda;
+}
+model {
+  lambda ~ normal(ctr_budgets, 1);
+  positions ~ normal(lambda[ctrs], 1) T[1, 10];
+
+  // the above "distribution" syntax is equivalent to:
+  //target += uniform_lpdf(lambda | 1, 10);
+  //target += poisson_lpmf(positions | lambda[ctrs]);
+}
+</code></pre>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>data_list_b <span class="ot">&lt;-</span> <span class="fu">make_data_list</span>(ctr_positions)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>data_list_b<span class="sc">$</span>ctr_budgets <span class="ot">=</span> <span class="dv">10</span> <span class="sc">*</span> <span class="fu">arrange</span>(budgets, constructorRef)<span class="sc">$</span>norm_budget</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>fit.b <span class="ot">&lt;-</span> <span class="fu">run_stan</span>(data_list_b, <span class="at">model_file =</span> <span class="st">"f1.b.stan"</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_fit</span>(fit.b)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="f1_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This hasn’t made much difference. McLaren has eased back towards Red Bull because their budget is smaller. Though if we’re trying to show constructor performance, you could say they did a lot better than Red Bull relative to their budget. Was budget a bad choice for the prior?</p>
+<p>More on this later.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

@@ -1,5 +1,5 @@
 ---
-title: "Latent skill of F1 drivers: fun with Bayesian models"
+title: "Latent performance of F1 cars and drivers: fun with Bayesian models"
 author: "Chris Bowdon"
 date: "2024-12-27"
 categories: [bayesian, r, f1]
@@ -8,6 +8,10 @@ freeze: false
 ---
 
 For a bit of fun, let's try and model the performance of F1 drivers and constructors using Bayesian models. This is of course using data from the fantastic [Ergast](https://ergast.com/mrd/).
+
+My model will be an imitation of the f1-metrics model. We have latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga.
+
+I downloaded the CSVs from Ergast which we'll first wrangle into shape. The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis.
 
 ```{r}
 #| label: data-loading
@@ -31,8 +35,6 @@ f1data <- races |>
   mutate(position = ifelse(position == "\\N", NA, as.numeric(position)))
 ```
 
-My model is an imitation of the f1-metrics model. We have latent variables of driver skill and car quality, which predict points. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga.
-
 In the interests of being educational - and because Lord knows I hate editing - I am writing this post as I go, including any blind-alleys and debugging.
 
 ```{r}
@@ -51,7 +53,7 @@ ggplot(f2024) +
   geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 ```
 
-Points is simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.
+The model goes like this. Points are simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.
 
 $$
 \text{points} \sim \text{Poisson}(\text{perf}_{\text{drv}} + \text{perf}_{\text{ctr}})
@@ -78,9 +80,9 @@ log_likelihood <- function(drv_race_pts, drv_perf, ctr_perf) {
 }
 ```
 
-# Car performance
+# Constructor performance
 
-Let's start simpler, with a view of the car performance. Assume that at least one driver for every constructor maximised the car's performance each weekend. THIS ISN'T TRUE. If Albon had a poor weekend, Sargeant wasn't going to step up, as one of many examples on the grid in 2024. However it is a useful approximation.
+Let's start simpler, with a view of just the constructor performance. Assume that at least one driver for every constructor maximised the car's performance each weekend. THIS ISN'T TRUE. If Albon had a poor weekend, Sargeant wasn't going to step up, as one of many examples on the grid in 2024. However it is a useful approximation that let's us analyse just the constructor performance.
 
 ```{r}
 #| label: fig-simpler-model
@@ -150,7 +152,7 @@ ctr_index <- tibble(
   constructorRef = ctrs,
 )
 
-do.stan <- function(ctr_positions) {
+make_data_list <- function(ctr_positions) {
   tidy_ctr_posns <- ctr_positions |> merge(ctr_index)
 
   data_list <- list(
@@ -159,11 +161,14 @@ do.stan <- function(ctr_positions) {
     ctrs = tidy_ctr_posns$constructorId,
     positions = tidy_ctr_posns$position
   )
-  mod <- cmdstan_model("f1.stan", exe_file = "f1.bin")
+}
+
+run_stan <- function(data_list, model_file = "f1.stan") {
+  mod <- cmdstan_model(model_file, exe_file = str_c(model_file, ".bin"))
   mod$sample(data_list, seed = 42, show_messages = FALSE)
 }
 
-fit <- do.stan(ctr_positions)
+fit <- run_stan(make_data_list(ctr_positions))
 fit
 ```
 
@@ -179,7 +184,7 @@ plot_fit <- function(fit) {
   ggplot(pivot_longer(df, all_of(ctrs))) +
     aes(x = value) +
     facet_wrap(vars(name)) +
-    geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 0.2)
+    geom_density(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1)
 }
 
 plot_fit(fit)
@@ -246,10 +251,69 @@ That looks more like I'd expect. Let's try Stan again.
 ```{r}
 #| label: fig-updated-posterior-samples
 #| fig-cap: Posterior samples after fixing NA sorting.
-fit <- do.stan(ctr_positions)
+fit <- run_stan(make_data_list(ctr_positions))
 plot_fit(fit)
 ```
 
-That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor's championship).
+That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor's championship). This tells us that yes, Verstappen probably would have won the driver's championship in a McLaren - but contrary to claims, not in a Ferrari, since it wasn't faster than the Red Bull overall.
 
-That'll do for now, but there's a lot we can improve about this model.
+There's a lot we can improve about this model:
+
+- Our priors for constructor performance are uniformative, and so our posteriors basically just reflect the data. Can we add some useful information to inform the model?
+- The cars were regularly upgraded throughout the season, and received "big" updates at some races. There were also some key events like Newey leaving Red Bull. Can we model this?
+
+# More informative priors
+
+What makes some constructors better than others? ~~Adrian Newey~~ Money. Let's reflect this in our priors.
+
+$$
+\lambda_{\text{ctr}} \sim \text{Normal}(\text{budget}_\text{ctr}, \sigma)
+$$
+
+## Budget data
+
+This is a bit of a secret, so we have to estimate. We do know that the budget cap is 135M USD and it's unlikely that anyone is operating below the cap. We also know that driver and top executive salaries are exempt from the cap. The top teams are spending about 100M USD on their drivers, and prior to the budget cap's implementation likely invested in facilities that they can use for free (like wind tunnels).
+
+With that in mind, I asked 4o to search the web and estimate budgets for the teams. I sanity checked against [this Blackbook Motorsport](https://www.blackbookmotorsport.com/content/f1-team-finances-2023-financial-results-revenue-profit-budget-cap/) article.
+
+These are probably reasonable estimates, but it makes sense to put a big variance on the priors to reflect the uncertainty.
+
+```{r}
+#| label: tbl-ctr-budgets
+#| tbl-cap: Constructor budget estimates (USD millions)
+budgets <- tribble(
+  ~constructorRef, ~budget,
+  "red_bull", 400,
+  "mercedes", 400,
+  "ferrari", 400,
+  "mclaren", 250,
+  "aston_martin", 250,
+  "alpine", 200,
+  "rb", 150,
+  "haas", 150,
+  "williams", 150,
+  "sauber", 150
+) |>
+  mutate(
+    norm_budget = 1 - budget / max(budget)
+  )
+knitr::kable(budgets)
+```
+
+Let's update our model and run Stan again.
+
+```
+{{< include f1.b.stan >}}
+```
+
+```{r}
+data_list_b <- make_data_list(ctr_positions)
+data_list_b$ctr_budgets = 10 * arrange(budgets, constructorRef)$norm_budget
+fit.b <- run_stan(data_list_b, model_file = "f1.b.stan")
+
+plot_fit(fit.b)
+```
+
+This hasn't made much difference. McLaren has eased back towards Red Bull because their budget is smaller. Though if we're trying to show constructor performance, you could say they did a lot better than Red Bull relative to their budget. Was budget a bad choice for the prior?
+
+More on this later.
