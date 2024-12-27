@@ -177,17 +177,25 @@ Let's tidy that up though, mapping parameters back to constructor names.
 ```{r}
 #| label: fig-ctr-lambda-posteriors
 #| fig-cap: Posterior samples for constructor performance
-plot_fit <- function(fit) {
+sample_posterior <- function(fit) {
   df <- fit$draws("lambda", format = "draws_matrix") |> as_tibble()
   colnames(df) <- ctrs
+  df |>
+    pivot_longer(
+      all_of(ctrs),
+      names_to = "constructorRef", values_to = "position"
+    ) |>
+    mutate(position = as.double(position))
+}
 
-  ggplot(pivot_longer(df, all_of(ctrs))) +
-    aes(x = value) +
-    facet_wrap(vars(name)) +
+plot_posterior <- function(fit) {
+  ggplot(sample_posterior(fit)) +
+    aes(x = position) +
+    facet_wrap(vars(constructorRef)) +
     geom_density(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1)
 }
 
-plot_fit(fit)
+plot_posterior(fit)
 ```
 
 The interesting thing is that this suggests the Red Bull was clearly the third-fastest car. I'm a little suspicious of that, because it claimed a sequence of 1-2s in the first third of the season. Let's take a closer look at that.
@@ -252,7 +260,7 @@ That looks more like I'd expect. Let's try Stan again.
 #| label: fig-updated-posterior-samples
 #| fig-cap: Posterior samples after fixing NA sorting.
 fit <- run_stan(make_data_list(ctr_positions))
-plot_fit(fit)
+plot_posterior(fit)
 ```
 
 That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor's championship). This tells us that yes, Verstappen probably would have won the driver's championship in a McLaren - but contrary to claims, not in a Ferrari, since it wasn't faster than the Red Bull overall.
@@ -276,7 +284,7 @@ This is a bit of a secret, so we have to estimate. We do know that the budget ca
 
 With that in mind, I asked 4o to search the web and estimate budgets for the teams. I sanity checked against [this Blackbook Motorsport](https://www.blackbookmotorsport.com/content/f1-team-finances-2023-financial-results-revenue-profit-budget-cap/) article.
 
-These are probably reasonable estimates, but it makes sense to put a big variance on the priors to reflect the uncertainty.
+These are probably reasonable estimates, and if we put a reasonable variance on the priors it will reflect the uncertainty.
 
 ```{r}
 #| label: tbl-ctr-budgets
@@ -307,13 +315,61 @@ Let's update our model and run Stan again.
 ```
 
 ```{r}
+#| label: fig-run-stan-b
+#| fig-cap: Posterior samples from the model with budget-based priors.
 data_list_b <- make_data_list(ctr_positions)
-data_list_b$ctr_budgets = 10 * arrange(budgets, constructorRef)$norm_budget
+data_list_b$ctr_budgets <- 10 * arrange(budgets, constructorRef)$norm_budget
+data_list_b$ctr_budget_sd <- 1.5
 fit.b <- run_stan(data_list_b, model_file = "f1.b.stan")
 
-plot_fit(fit.b)
+plot_posterior(fit.b)
 ```
 
-This hasn't made much difference. McLaren has eased back towards Red Bull because their budget is smaller. Though if we're trying to show constructor performance, you could say they did a lot better than Red Bull relative to their budget. Was budget a bad choice for the prior?
+This hasn't made much difference. McLaren has eased back towards Red Bull because their budget is smaller. You could say they did a lot better than Red Bull relative to their budget.
+
+```{r}
+#| label: tbl-mu-sig-fit-b
+#| tbl-cap: Mean and SD from posterior sample.
+sp <- sample_posterior(fit.b)
+sp |>
+  group_by(constructorRef) |>
+  summarise(mu = mean(position), sigma = sd(position)) |>
+  arrange(mu) |>
+  knitr::kable()
+```
+
+This model suggests there's very little nothing in it between Red Bull and McLaren, though the posterior distribution is wider for the top three teams than the others so there is more uncertainty.
+
+Was budget a bad choice for the prior? Not necessarily: this model of constructor performance incorporates an important factor that isn't clear from the results, but which should affect an objective assessment of which teams are better. Or to put it another way, if I were Max Verstappen I'd still rather be driving the Red Bull than the McLaren next year, because Red Bull's budget suggests a more capable team overall. (Not to mention the increased wind tunnel time that third place in the constructors' gets relative to the winner.)
+
+```{r}
+#| label: fig-plot-with-priors
+#| fig-cap: Comparison of prior and posterior samples.
+plot_posterior_with_prior <- function(ctrs, ctr_budgets, ctr_budget_sd, fit) {
+  s_post <- sample_posterior(fit) |> mutate(sample = "posterior")
+
+  ctr_index <- tibble(constructorRef = ctrs, constructorId = 1:length(ctrs))
+
+  s_prior <- ctr_budgets |>
+    lapply(\(mu) rnorm(100000, mu, ctr_budget_sd)) |>
+    lapply(as_tibble) |>
+    imap(\(t, i) mutate(t, constructorId = i, sample = "prior")) |>
+    bind_rows() |>
+    rename(position = value) |>
+    merge(ctr_index)
+
+  df <- bind_rows(s_prior, s_post)
+
+  ggplot(df) +
+    aes(x = position, fill = sample) +
+    facet_wrap(vars(constructorRef)) +
+    geom_density(alpha = 0.5, colour = "black", linewidth = 0.1) +
+    scale_x_continuous(breaks=seq(1, 10, by=2), limits=c(1, 10))
+}
+
+plot_posterior_with_prior(ctrs, data_list_b$ctr_budgets, data_list_b$ctr_budget_sd, fit.b)
+```
+
+Plotting the priors and posteriors together shows how McLaren over-performed and Mercedes continued to underperform.
 
 More on this later.
