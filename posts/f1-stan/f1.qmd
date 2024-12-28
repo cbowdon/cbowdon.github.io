@@ -17,6 +17,7 @@ I downloaded the CSVs from Ergast which we'll first wrangle into shape. The weap
 #| label: data-loading
 #| warning: false
 library(tidyverse)
+library(knitr)
 
 qualifying <- read_csv("data/qualifying.csv") |> rename(quali_position = position)
 races <- read_csv("data/races.csv") |>
@@ -25,6 +26,7 @@ races <- read_csv("data/races.csv") |>
 results <- read_csv("data/results.csv") |> select(resultId, raceId, driverId, constructorId, grid, position, points, milliseconds)
 constructors <- read_csv("data/constructors.csv") |> select(constructorId, constructorRef)
 drivers <- read_csv("data/drivers.csv") |> select(driverId, driverRef)
+circuits <- read_csv("data/circuits.csv")
 
 f1data <- races |>
   merge(results) |>
@@ -270,7 +272,7 @@ There's a lot we can improve about this model:
 - Our priors for constructor performance are uniformative, and so our posteriors basically just reflect the data. Can we add some useful information to inform the model?
 - The cars were regularly upgraded throughout the season, and received "big" updates at some races. There were also some key events like Newey leaving Red Bull. Can we model this?
 
-# More informative priors
+## More informative priors
 
 What makes some constructors better than others? ~~Adrian Newey~~ Money. Let's reflect this in our priors.
 
@@ -278,7 +280,7 @@ $$
 \lambda_{\text{ctr}} \sim \text{Normal}(\text{budget}_\text{ctr}, \sigma)
 $$
 
-## Budget data
+### Budget data
 
 This is a bit of a secret, so we have to estimate. We do know that the budget cap is 135M USD and it's unlikely that anyone is operating below the cap. We also know that driver and top executive salaries are exempt from the cap. The top teams are spending about 100M USD on their drivers, and prior to the budget cap's implementation likely invested in facilities that they can use for free (like wind tunnels).
 
@@ -364,12 +366,75 @@ plot_posterior_with_prior <- function(ctrs, ctr_budgets, ctr_budget_sd, fit) {
     aes(x = position, fill = sample) +
     facet_wrap(vars(constructorRef)) +
     geom_density(alpha = 0.5, colour = "black", linewidth = 0.1) +
-    scale_x_continuous(breaks=seq(1, 10, by=2), limits=c(1, 10))
+    scale_x_continuous(breaks = seq(1, 10, by = 2), limits = c(1, 10))
 }
 
 plot_posterior_with_prior(ctrs, data_list_b$ctr_budgets, data_list_b$ctr_budget_sd, fit.b)
 ```
 
 Plotting the priors and posteriors together shows how McLaren over-performed and Mercedes continued to underperform.
+
+### Past performance
+
+Another, very easy way to set the priors is to consider the constructors' performance over the previous seasons with the same regulations, in this case 2022 and 2023 (the ground-effect era). This is really easy to do - we would just take a weighted mean of the constructors' finishing positions as mu for our priors, and perhaps set the variance proportional to the difference. Not particularly innovative or interesting though, so let's skip it.
+
+### Two-by-two circuits
+
+Long-time F1 fans will know that at some tracks, the cars almost always finish in pairs. Somehow at these circuits driver skill makes little difference. That's no fun to watch, but I wonder if it's useful for establishing car performance?
+
+We'll start by looking back at historic race results to see if:
+
+1. Some circuits are more likely to finish in two-by-two order. We can score this by the median difference in position between _competitive_ finishing drivers.
+2. This order correlates well with the constructor rankings at the end of the season.
+
+```{r}
+#| label: fig-position-gaps
+#| fig-cap: Distribution of finishing position gaps between teammates by circuit, with median line.
+
+circuits2024 <- races |>
+  merge(circuits) |>
+  filter(year == 2024) |>
+  select(circuitId, circuitRef)
+
+position_gaps <- races |>
+  filter(year > 2014) |> # hybrid era onwards, to try and keep it relevant to modern F1 car sizes
+  merge(results) |>
+  merge(circuits2024) |>
+  select(year, round, circuitRef, constructorId, driverId, position) |>
+  filter(position != "\\N") |> # ignore DNFs
+  mutate(position = as.integer(position)) |>
+  filter(position <= 15) |> # discard last 5
+  group_by(year, round, circuitRef, constructorId) |>
+  filter(n() == 2) |> # must be a double finish
+  summarise(gap = max(position) - min(position), max_position = max(position)) |>
+  group_by(circuitRef) |>
+  mutate(median_gap = median(gap))
+
+ggplot(position_gaps) +
+  aes(x = gap) +
+  facet_wrap(vars(circuitRef)) +
+  geom_histogram(fill = "dodgerblue4", binwidth = 1) +
+  geom_vline(mapping = aes(xintercept = median_gap), colour = "dodgerblue1")
+```
+
+Perhaps unsurprisingly, the gap between drivers of the same car is usually very low. Note that we are discarding the last 5 finishers, which often includes cars that were wounded but finished the race for the sake of data gathering.
+
+```{r}
+#| label: tbl-position-gaps-medians
+#| tbl-cap: Median finishing position gaps between teammates, top 15 finishers only.
+modal <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+position_gaps |>
+  group_by(circuitRef) |>
+  summarise(median_gap = median(gap), mean_gap = mean(gap), modal_gap = modal(gap), n_races = n()) |>
+  arrange(median_gap, mean_gap, modal_gap, desc(n_races)) |>
+  head(10) |>
+  kable()
+
+# TODO - what's the probability of a 1-gap, 2-gap, 3-gap etc.?
+```
 
 More on this later.
