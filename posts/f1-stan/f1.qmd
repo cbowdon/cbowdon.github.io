@@ -1,5 +1,5 @@
 ---
-title: "Latent performance of F1 cars and drivers: fun with Bayesian models"
+title: "Latent F1 constructor performance in 2024: fun with Bayesian models"
 author: "Chris Bowdon"
 date: "2024-12-27"
 categories: [bayesian, r, f1]
@@ -8,17 +8,17 @@ freeze: false
 code-fold: true
 ---
 
-For a bit of fun, let's try and model the performance of F1 drivers and constructors using Bayesian models. This is of course using data from the fantastic [Ergast](https://ergast.com/mrd/).
+For a bit of fun, let's try and model the performance of F1 drivers and constructors using Bayesian models. The aim is to more to learn about using [Stan](https://mc-stan.org) than determine deep truths about F1, since there's far more to performance than we can easily model.
 
-My model will be an imitation of the f1-metrics model. We have latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga.
+We'll vaguely imitate the f1-metrics model: there are latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga. The general idea is the same.
 
-I downloaded the CSVs from Ergast which we'll first wrangle into shape. The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis. You can find the code behind the folds if you want to play along.
+I gathered CSVs of race data from the fantastic [Ergast](https://ergast.com/mrd/). The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis. You can find the code behind the folds if you want to play along.
 
 ```{r}
 #| label: data-loading
 #| warning: false
 library(tidyverse)
-library(knitr)
+library(knitr)  # this lib is for rendering tables nicely
 
 qualifying <- read_csv("data/qualifying.csv") |> rename(quali_position = position)
 races <- read_csv("data/races.csv") |>
@@ -51,7 +51,7 @@ f2024 <- f1data |> filter(year == 2024)
 ggplot(f2024) +
   aes(x = position) +
   facet_wrap(vars(driverRef)) +
-  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
+  geom_histogram(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 ```
 
 The model goes like this. Points are simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.
@@ -101,7 +101,7 @@ ctr_positions <- f2024 |>
 ggplot(ctr_positions) +
   aes(x = position) +
   facet_wrap(vars(constructorRef)) +
-  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
+  geom_histogram(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 ```
 
 A key point here is that we've recalculated positions using only the max driver's position for each constructor, i.e. there are now only 10 finishing positions.
@@ -139,7 +139,7 @@ Let's throw Stan at this now. Here's our Stan model file.
 {{< include f1.stan >}}
 ```
 
-And here's the R code for interacting with it via CmdStanR. I settled on CmdStanR rather than RStan after hitting too many nameless runtime errors through RStan - see [here](/posts/using-stan-from-r/).
+Below the fold is the R code for interacting with it via CmdStanR. I settled on CmdStanR rather than RStan after hitting too many nameless runtime errors through RStan - see [here](/posts/using-stan-from-r/).
 
 ```{r}
 #| label: run-stan
@@ -193,7 +193,7 @@ plot_posterior <- function(fit) {
   ggplot(sample_posterior(fit)) +
     aes(x = position) +
     facet_wrap(vars(constructorRef)) +
-    geom_density(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1)
+    geom_density(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1)
 }
 
 plot_posterior(fit)
@@ -218,7 +218,7 @@ f2024 |>
   knitr::kable()
 ```
 
-Round three is clearly a balls-up: how can Pere'z 5th place become the 10th constructor position? Let's work through it again.
+Round three is clearly a balls-up: how can Perez' 5th place become the 10th constructor position? Let's work through it again.
 
 ```{r}
 f2024 |>
@@ -252,7 +252,7 @@ ctr_positions <- f2024 |>
 ggplot(ctr_positions) +
   aes(x = position) +
   facet_wrap(vars(constructorRef)) +
-  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
+  geom_histogram(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 ```
 
 That looks more like I'd expect. Let's try Stan again.
@@ -266,10 +266,7 @@ plot_posterior(fit)
 
 That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor's championship). This tells us that yes, Verstappen probably would have won the driver's championship in a McLaren - but contrary to claims, not in a Ferrari, since it wasn't faster than the Red Bull overall.
 
-There's a lot we can improve about this model:
-
-- Our priors for constructor performance are uniformative, and so our posteriors basically just reflect the data. Can we add some useful information to inform the model?
-- The cars were regularly upgraded throughout the season, and received "big" updates at some races. There were also some key events like Newey leaving Red Bull. Can we model this?
+There's a lot we can improve about this model. The most obvious is that our priors for constructor performance are uniformative, and so our posteriors basically just reflect the data. Can we add some useful information to inform the model?
 
 ## More informative priors
 
@@ -283,9 +280,7 @@ $$
 
 This is a bit of a secret, so we have to estimate. We do know that the budget cap is 135M USD and it's unlikely that anyone is operating below the cap. We also know that driver and top executive salaries are exempt from the cap. The top teams are spending about 100M USD on their drivers, and prior to the budget cap's implementation likely invested in facilities that they can use for free (like wind tunnels).
 
-With that in mind, I asked 4o to search the web and estimate budgets for the teams. I sanity checked against [this Blackbook Motorsport](https://www.blackbookmotorsport.com/content/f1-team-finances-2023-financial-results-revenue-profit-budget-cap/) article.
-
-These are probably reasonable estimates, and if we put a reasonable variance on the priors it will reflect the uncertainty.
+With that in mind, I asked GPT-4o to search the web and estimate budgets for the teams. It came back with these results, which I sanity checked against [this Blackbook Motorsport](https://www.blackbookmotorsport.com/content/f1-team-finances-2023-financial-results-revenue-profit-budget-cap/) article.
 
 ```{r}
 #| label: tbl-ctr-budgets
@@ -319,8 +314,8 @@ Let's update our model and run Stan again.
 #| label: fig-run-stan-b
 #| fig-cap: Posterior samples from the model with budget-based priors.
 data_list_b <- make_data_list(ctr_positions)
-data_list_b$ctr_budgets <- 10 * arrange(budgets, constructorRef)$norm_budget
-data_list_b$ctr_budget_sd <- 1.5
+data_list_b$prior_mus <- 1 + 10 * arrange(budgets, constructorRef)$norm_budget
+data_list_b$prior_sd <- 1.5
 fit.b <- run_stan(data_list_b, model_file = "f1.b.stan")
 
 plot_posterior(fit.b)
@@ -346,13 +341,13 @@ Was budget a bad choice for the prior? Not necessarily: this model of constructo
 ```{r}
 #| label: fig-plot-with-priors
 #| fig-cap: Comparison of prior and posterior samples.
-plot_posterior_with_prior <- function(ctrs, ctr_budgets, ctr_budget_sd, fit) {
+plot_posterior_with_prior <- function(ctrs, prior_mus, prior_sd, fit) {
   s_post <- sample_posterior(fit) |> mutate(sample = "posterior")
 
   ctr_index <- tibble(constructorRef = ctrs, constructorId = 1:length(ctrs))
 
-  s_prior <- ctr_budgets |>
-    lapply(\(mu) rnorm(100000, mu, ctr_budget_sd)) |>
+  s_prior <- prior_mus |>
+    lapply(\(mu) rnorm(100000, mu, prior_sd)) |>
     lapply(as_tibble) |>
     imap(\(t, i) mutate(t, constructorId = i, sample = "prior")) |>
     bind_rows() |>
@@ -368,7 +363,7 @@ plot_posterior_with_prior <- function(ctrs, ctr_budgets, ctr_budget_sd, fit) {
     scale_x_continuous(breaks = seq(1, 10, by = 2), limits = c(1, 10))
 }
 
-plot_posterior_with_prior(ctrs, data_list_b$ctr_budgets, data_list_b$ctr_budget_sd, fit.b)
+plot_posterior_with_prior(ctrs, data_list_b$prior_mus, data_list_b$prior_sd, fit.b)
 ```
 
 Plotting the priors and posteriors together shows how McLaren over-performed and Mercedes continued to underperform.
@@ -377,14 +372,11 @@ Plotting the priors and posteriors together shows how McLaren over-performed and
 
 Another, very easy way to set the priors is to consider the constructors' performance over the previous seasons with the same regulations, in this case 2022 and 2023 (the ground-effect era). This is really easy to do - we would just take a weighted mean of the constructors' finishing positions as mu for our priors, and perhaps set the variance proportional to the difference. Not particularly innovative or interesting though, so let's skip it.
 
-### Two-by-two circuits
+### Car-limited circuits
 
-Long-time F1 fans will know that at some tracks, the cars almost always finish in pairs. Somehow at these circuits driver skill makes little difference. That's no fun to watch, but I wonder if it's useful for establishing car performance?
+Long-time F1 fans will know that at some tracks, the cars almost always finish in pairs, e.g. both Ferraris, then both Mercedes, and so on. Somehow at these circuits driver skill makes little difference; we could say the circuits are car-limited rather than driver-limited. That's no fun to watch, but I wonder if it's useful for establishing car performance?
 
-We'll start by looking back at historic race results to see if:
-
-1. Some circuits are more likely to finish in two-by-two order. We can score this by the median difference in position between _competitive_ finishing drivers.
-2. This order correlates well with the constructor rankings at the end of the season.
+Let's look back at historic race results to see if some circuits are more likely to finish in two-by-two order. We can score this by the median difference in position between finishing drivers.
 
 ```{r}
 #| label: fig-position-gaps
@@ -410,11 +402,11 @@ position_gaps <- f1data |>
 ggplot(position_gaps) +
   aes(x = gap) +
   facet_wrap(vars(circuitRef)) +
-  geom_histogram(fill = "dodgerblue4", binwidth = 1) +
-  geom_vline(mapping = aes(xintercept = median_gap), colour = "dodgerblue1")
+  geom_histogram(fill = "dodgerblue1", alpha=0.5, colour="black", linewidth=0.1, binwidth = 1) +
+  geom_vline(mapping = aes(xintercept = median_gap), colour = "dodgerblue4")
 ```
 
-Perhaps unsurprisingly, the gap between drivers of the same car is usually very low. I went back and forth on whether to discard cars that finished outside the top ten points-paying positions, as this often includes cars that were retired to save expense or were wounded but finished the race well below their potential for the sake of data gathering. In the end I kept them in because we need two-car finishes to calculate the statistics and setting a threshold would mean re-coding all the finish positions.
+Perhaps unsurprisingly given that F1 isn't a spec series, the gap between drivers of the same car is usually very low. I went back and forth on whether to discard cars that finished outside the top ten points-paying positions, as this often includes cars that were retired to save expense or were wounded but finished the race well below their potential for the sake of data gathering. In the end I kept them in because we need two-car finishes to calculate the statistics and setting a threshold would mean re-coding all the finish positions.
 
 It turns out to make little difference anyway. The race with the highest probability of teammates finishing in consecutive positions is Suzuka, whether or not you apply a threshold.
 
@@ -458,19 +450,23 @@ suzuka2024 |>
   kable()
 ```
 
-The cars are quite well in order here, if you ignore the gulf between Alonso and Stroll. This would suggest that in round 4, McLaren and Mercedes were quite evenly matched.
+The cars are quite well in order here, if you ignore the gulf between Alonso and Stroll. It looks like Suzuka is really a car-limited track. Incidentally, this would suggest that in round 4, McLaren and Mercedes were quite evenly matched.
 
 #### Counter-arguments
 
+Are we _sure_ Suzuka is a car-limited track?
+
 ##### Suzuka is a track "drivers love"! Surely it's a more skill-dependent track?
 
-I would have expected so, but statistically drivers are more likely to end up in pairs in Suzuka than anywhere else, which suggests the opposite. Suzuka is described as a technical track, with minimal room for error. Perhaps there aren't as many potential lines that a driver could take to distinguish themselves. It's also a good track for overtaking, so any driver that does qualify out of position is able to recover.
+I would have expected so! Suzuka is described as a technical track, with minimal room for error. Perhaps there aren't as many potential lines that a driver could take to distinguish themselves. It's also a good track for overtaking, so any driver that does qualify out of position is able to recover. Or perhaps the reason drivers love it is because they get to drive their cars on the limit: the limit of the car's performance.
+
+Either way, statistically drivers are more likely to end up in pairs in Suzuka than anywhere else.
 
 ##### Suzuka was an early round. Perhaps car performance converges over the season?
 
-On the one hand we'd expect to see teams converge on performance throughout the season, as the teams spot innovations on other cars that they can copy. Or secret design documents that they can copy, ahem. On the other hand, constructors in a tight battle would be motivated to develop their cars further - for example in 2022 when Red Bull overhauled an early Ferrari advantage.
+On the one hand we'd expect to see cars start at different levels but converge throughout the season, as the teams spot innovations on other cars that they can copy. Or secret design documents that they can copy, ahem. On the other hand, constructors in a tight battle would be motivated to develop their cars further - for example in 2022 when Red Bull overhauled an early Ferrari advantage.
 
-Historically Suzuka has been mid-to-late season, which suggests that this isn't the reason.
+As it happens, historically Suzuka has been mid-to-late season, which suggests that being an early round in 2024 isn't the reason for being car-limited.
 
 ```{r}
 #| label: tbl-suzuka-round-numbers
@@ -487,9 +483,11 @@ races |>
   kable()
 ```
 
-##### Are we sure that consecutive finishes aren't indicative of driver skill?
+##### Are we sure that consecutive finishes aren't indicative of similar driver skill levels?
 
-The top teams can also hire the best drivers, is it not possible that we're still seeing the drivers finishing in skill order? Hence Alonso and Stroll? On the other hand, between 2023 and 2024 there were no line-up changes among the top 5 teams, so we can compare circuits across the two years.
+The top teams can also hire the best drivers, is it not possible that we're still seeing the drivers finishing in skill order? I.e. it's actually driver-limited, but the drivers happen to be mostly paired with similarly-fast drivers. Alonso and Stroll being the clear exception in the 2024 race results.
+
+On the other hand, between 2023 and 2024 there were no line-up changes among the top 5 teams, so we can easily compare across the two years.
 
 ```{r}
 #| label: tbl-suzuka-2023
@@ -507,20 +505,20 @@ suzuka2023 |>
   kable()
 ```
 
-The order of constructors is very different, despite all drivers being the same except for Alpha Tauri/RB. Just for fun, here's a side-by-side comparison for each driver.
+The order of constructors is very different, despite all drivers being the same except for Alpha Tauri/RB. Just for fun, here's a side-by-side comparison for each driver for 2023 and 2024.
 
 ```{r}
 #| label: tbl-drivers-suzuka-2023-2024
 #| tbl-cap: Drivers' results for Suzuka in 2023 and 2024
 s24 <- suzuka2024 |>
-  # reinstate the old names for joining
-  # (yes I could have used constructorId, but opaque IDs are so tedious to handle)
-  mutate(constructorRef = ifelse(constructorRef == "rb", "alphatauri", constructorRef)) |>
-  mutate(constructorRef = ifelse(constructorRef == "sauber", "alfa", constructorRef)) |>
   select(constructorRef, driverRef, position) |>
   rename(position2024 = position)
 
 s23 <- suzuka2023 |>
+  # correct to the new names for joining
+  # (yes I could have used constructorId, but opaque IDs are so tedious to handle)
+  mutate(constructorRef = ifelse(constructorRef == "alphatauri", "rb", constructorRef)) |>
+  mutate(constructorRef = ifelse(constructorRef == "alfa", "sauber", constructorRef)) |>
   select(constructorRef, driverRef, position) |>
   rename(position2023 = position)
 
@@ -528,5 +526,46 @@ merge(s23, s24, all = TRUE) |>
   arrange(position2023) |>
   kable()
 ```
+
+### Suzuka-based priors
+
+At this point I'm convinced enough that Suzuka is a clear indicator of relative car performance, so let's take the position of each team's fastest car round Suzuka as constructor performance priors. Luckily there weren't any double-DNFs - at least one car from each team finished - so every team is represented.
+
+The Stan model is the same, we're just injecting different prior mus and SDs.
+
+```{r}
+#| label: fig-suzuka-priors
+#| fig-cap: Posterior samples alongside the Suzuka-position priors.
+
+suzuka_positions <- suzuka2024 |>
+  drop_na() |>
+  group_by(constructorRef) |>
+  summarise(position = min(position)) |>
+  mutate(position = rank(position)) |>
+  arrange(constructorRef)
+
+data_list_suzuka <- make_data_list(ctr_positions)
+data_list_suzuka$prior_mus <- suzuka_positions$position
+data_list_suzuka$prior_sd <- 1
+
+fit_suzuka <- run_stan(data_list_suzuka, "f1.b.stan")
+
+plot_posterior_with_prior(ctrs, data_list_suzuka$prior_mus, data_list_suzuka$prior_sd, fit_suzuka)
+```
+
+It's not dramatically different. It shouldn't be, the model and data are the same and the priors are very similar to the budget-based priors - the fun was in figuring out that Suzuka is car-limited.
+
+```{r}
+#| label: tbl-mu-sig-fit-suzuka
+#| tbl-cap: Mean and SD from posterior sample, with Suzuka priors.
+sp <- sample_posterior(fit_suzuka)
+sp |>
+  group_by(constructorRef) |>
+  summarise(mu = mean(position), sigma = sd(position)) |>
+  arrange(mu) |>
+  knitr::kable()
+```
+
+Most teams didn't move far from their priors. I'd draw similar conclusions to before: the McLaren was fastest, Red Bull was a close second, and Ferrari were close behind.
 
 More on this later.
