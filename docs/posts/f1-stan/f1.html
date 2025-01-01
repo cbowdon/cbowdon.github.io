@@ -260,59 +260,52 @@ window.Quarto = {
 
 <p>For a bit of fun, let’s try and model the performance of F1 drivers and constructors using Bayesian models. This is of course using data from the fantastic <a href="https://ergast.com/mrd/">Ergast</a>.</p>
 <p>My model will be an imitation of the f1-metrics model. We have latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing <a href="https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/">Rasmus Bååth’s blog</a> where he models the latent skill of football teams in La Liga.</p>
-<p>I downloaded the CSVs from Ergast which we’ll first wrangle into shape. The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis.</p>
+<p>I downloaded the CSVs from Ergast which we’ll first wrangle into shape. The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis. You can find the code behind the folds if you want to play along.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>qualifying <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/qualifying.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">rename</span>(<span class="at">quali_position =</span> position)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>races <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/races.csv"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, year, round, circuitId, name) <span class="sc">|&gt;</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">gp =</span> name)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/results.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(resultId, raceId, driverId, constructorId, grid, position, points, milliseconds)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>constructors <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/constructors.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(constructorId, constructorRef)</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>drivers <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/drivers.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(driverId, driverRef)</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>f1data <span class="ot">&lt;-</span> races <span class="sc">|&gt;</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(results) <span class="sc">|&gt;</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(qualifying) <span class="sc">|&gt;</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(constructors) <span class="sc">|&gt;</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(drivers) <span class="sc">|&gt;</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, gp, year, round, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) <span class="sc">|&gt;</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">ifelse</span>(position <span class="sc">==</span> <span class="st">"</span><span class="sc">\\</span><span class="st">N"</span>, <span class="cn">NA</span>, <span class="fu">as.numeric</span>(position)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>qualifying <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/qualifying.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">rename</span>(<span class="at">quali_position =</span> position)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>races <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/races.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, year, round, circuitId, name) <span class="sc">|&gt;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">gp =</span> name)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>results <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/results.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(resultId, raceId, driverId, constructorId, grid, position, points, milliseconds)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>constructors <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/constructors.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(constructorId, constructorRef)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>drivers <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/drivers.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(driverId, driverRef)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>circuits <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/circuits.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(circuitId, circuitRef)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>f1data <span class="ot">&lt;-</span> races <span class="sc">|&gt;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(results) <span class="sc">|&gt;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(qualifying) <span class="sc">|&gt;</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(constructors) <span class="sc">|&gt;</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(drivers) <span class="sc">|&gt;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits) <span class="sc">|&gt;</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) <span class="sc">|&gt;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">ifelse</span>(position <span class="sc">==</span> <span class="st">"</span><span class="sc">\\</span><span class="st">N"</span>, <span class="cn">NA</span>, <span class="fu">as.numeric</span>(position)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>In the interests of being educational - and because Lord knows I hate editing - I am writing this post as I go, including any blind-alleys and debugging.</p>
+<p>Let’s start with some visualisations of the data we have.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="ot">&lt;-</span> f1data <span class="sc">|&gt;</span> <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(f2024) <span class="sc">+</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(driverRef)) <span class="sc">+</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(f2024) <span class="sc">+</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
-<div id="fig-data-2024-1" class="quarto-float quarto-figure quarto-figure-center anchored">
+<div id="fig-data-2024" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-data-2024-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div aria-describedby="fig-data-2024-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="f1_files/figure-html/fig-data-2024-1.png" class="img-fluid figure-img" width="672">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-data-2024-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: Histograms of driver and constructor performance in F1 2024.
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div id="fig-data-2024-2" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-data-2024-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="f1_files/figure-html/fig-data-2024-2.png" class="img-fluid figure-img" width="672">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-data-2024-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: Histograms of driver and constructor performance in F1 2024.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-data-2024-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Histograms of driver performance in F1 2024.
 </figcaption>
 </figure>
 </div>
@@ -332,14 +325,19 @@ Figure&nbsp;2: Histograms of driver and constructor performance in F1 2024.
 \]</span></p>
 <p>We will therefore have a likelihood function that is the product of the Poisson density of the points for each driver for each race. The number of parameters is very high, as a performance score for each driver and for each constructor.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>log_likelihood <span class="ot">&lt;-</span> <span class="cf">function</span>(drv_race_pts, drv_perf, ctr_perf) {</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  ... <span class="co"># whew</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <section id="constructor-performance" class="level1">
 <h1>Constructor performance</h1>
 <p>Let’s start simpler, with a view of just the constructor performance. Assume that at least one driver for every constructor maximised the car’s performance each weekend. THIS ISN’T TRUE. If Albon had a poor weekend, Sargeant wasn’t going to step up, as one of many examples on the grid in 2024. However it is a useful approximation that let’s us analyse just the constructor performance.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ctr_positions <span class="ot">&lt;-</span> f2024 <span class="sc">|&gt;</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(round, constructorRef) <span class="sc">|&gt;</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">quali_position =</span> <span class="fu">min</span>(quali_position), <span class="at">position =</span> <span class="fu">min</span>(position)) <span class="sc">|&gt;</span></span>
@@ -354,6 +352,7 @@ Figure&nbsp;2: Histograms of driver and constructor performance in F1 2024.
 <span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
 <span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
 <span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <div id="fig-simpler-model" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -361,7 +360,7 @@ Figure&nbsp;2: Histograms of driver and constructor performance in F1 2024.
 <img src="f1_files/figure-html/fig-simpler-model-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-simpler-model-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: Histogram of re-ranked constructor results in F1 2024.
+Figure&nbsp;2: Histogram of re-ranked constructor results in F1 2024.
 </figcaption>
 </figure>
 </div>
@@ -378,6 +377,8 @@ p \sim \text{Poisson}(\lambda_{\text{ctr}})
 \]</span></p>
 <p>Then our likelihood function is much simpler. (We won’t actually need this, but I find it useful to write out for the sake of understanding.)</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>log_lik_ctr <span class="ot">&lt;-</span> <span class="cf">function</span>(ctr_positions, ctr_perfs) {</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  ctrs <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(ctr_positions<span class="sc">$</span>constructorRef))</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  log_lik <span class="ot">&lt;-</span> <span class="fl">1.0</span></span>
@@ -387,6 +388,7 @@ p \sim \text{Poisson}(\lambda_{\text{ctr}})
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  log_lik</span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <p>Let’s throw Stan at this now. Here’s our Stan model file.</p>
 <pre><code>data {
@@ -409,6 +411,8 @@ model {
 </code></pre>
 <p>And here’s the R code for interacting with it via CmdStanR. I settled on CmdStanR rather than RStan after hitting too many nameless runtime errors through RStan - see <a href="../../posts/using-stan-from-r/">here</a>.</p>
 <div class="cell" data-warnings="false">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cmdstanr, <span class="at">quietly =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">check_cmdstan_toolchain</span>(<span class="at">fix =</span> <span class="cn">TRUE</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -436,6 +440,7 @@ model {
 <span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">run_stan</span>(<span class="fu">make_data_list</span>(ctr_positions))</span>
 <span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>fit</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>  variable    mean  median   sd  mad      q5     q95 rhat ess_bulk ess_tail
  lp__      -442.52 -442.14 2.49 2.36 -446.98 -439.30 1.00     1479     1643
@@ -454,6 +459,8 @@ model {
 </div>
 <p>Let’s tidy that up though, mapping parameters back to constructor names.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>sample_posterior <span class="ot">&lt;-</span> <span class="cf">function</span>(fit) {</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  df <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">draws</span>(<span class="st">"lambda"</span>, <span class="at">format =</span> <span class="st">"draws_matrix"</span>) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>()</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(df) <span class="ot">&lt;-</span> ctrs</span>
@@ -473,6 +480,7 @@ model {
 <span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <div id="fig-ctr-lambda-posteriors" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -480,7 +488,7 @@ model {
 <img src="f1_files/figure-html/fig-ctr-lambda-posteriors-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ctr-lambda-posteriors-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Posterior samples for constructor performance
+Figure&nbsp;3: Posterior samples for constructor performance
 </figcaption>
 </figure>
 </div>
@@ -489,6 +497,8 @@ Figure&nbsp;4: Posterior samples for constructor performance
 <p>The interesting thing is that this suggests the Red Bull was clearly the third-fastest car. I’m a little suspicious of that, because it claimed a sequence of 1-2s in the first third of the season. Let’s take a closer look at that.</p>
 <p>The first thing to check is whether my dumb “max driver, 10 positions” model is problematic. Let’s look at Red Bull’s results.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="sc">|&gt;</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(constructorRef <span class="sc">==</span> <span class="st">"red_bull"</span>) <span class="sc">|&gt;</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gp, round, driverRef, position) <span class="sc">|&gt;</span></span>
@@ -498,6 +508,7 @@ Figure&nbsp;4: Posterior samples for constructor performance
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    ctr_positions <span class="sc">|&gt;</span> <span class="fu">filter</span>(constructorRef <span class="sc">==</span> <span class="st">"red_bull"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(round, position)</span>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div id="tbl-red-bull-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-red-bull-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -693,12 +704,15 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 </div>
 <p>Round three is clearly a balls-up: how can Pere’z 5th place become the 10th constructor position? Let’s work through it again.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="sc">|&gt;</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(round, constructorRef) <span class="sc">|&gt;</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">position =</span> <span class="fu">min</span>(position)) <span class="sc">|&gt;</span></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">reranked =</span> <span class="fu">rank</span>(position)) <span class="sc">|&gt;</span></span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(round <span class="sc">==</span> <span class="dv">3</span>) <span class="sc">|&gt;</span></span>
 <span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <thead>
@@ -776,6 +790,8 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 </div>
 <p><code>NA</code> strikes again! Forgot to add the crucial <code>na.rm</code> parameter to the min. Right, a do-over.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>ctr_positions <span class="ot">&lt;-</span> f2024 <span class="sc">|&gt;</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(round, constructorRef) <span class="sc">|&gt;</span></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
@@ -794,6 +810,7 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
 <span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
 <span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <div id="fig-updated-ctr-positions" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -801,7 +818,7 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <img src="f1_files/figure-html/fig-updated-ctr-positions-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-updated-ctr-positions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: Constructor position histograms after fixing NA sorting.
+Figure&nbsp;4: Constructor position histograms after fixing NA sorting.
 </figcaption>
 </figure>
 </div>
@@ -809,8 +826,11 @@ Figure&nbsp;5: Constructor position histograms after fixing NA sorting.
 </div>
 <p>That looks more like I’d expect. Let’s try Stan again.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">run_stan</span>(<span class="fu">make_data_list</span>(ctr_positions))</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <div id="fig-updated-posterior-samples" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -818,7 +838,7 @@ Figure&nbsp;5: Constructor position histograms after fixing NA sorting.
 <img src="f1_files/figure-html/fig-updated-posterior-samples-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-updated-posterior-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: Posterior samples after fixing NA sorting.
+Figure&nbsp;5: Posterior samples after fixing NA sorting.
 </figcaption>
 </figure>
 </div>
@@ -830,19 +850,20 @@ Figure&nbsp;6: Posterior samples after fixing NA sorting.
 <li>Our priors for constructor performance are uniformative, and so our posteriors basically just reflect the data. Can we add some useful information to inform the model?</li>
 <li>The cars were regularly upgraded throughout the season, and received “big” updates at some races. There were also some key events like Newey leaving Red Bull. Can we model this?</li>
 </ul>
-</section>
-<section id="more-informative-priors" class="level1">
-<h1>More informative priors</h1>
+<section id="more-informative-priors" class="level2">
+<h2 class="anchored" data-anchor-id="more-informative-priors">More informative priors</h2>
 <p>What makes some constructors better than others? <del>Adrian Newey</del> Money. Let’s reflect this in our priors.</p>
 <p><span class="math display">\[
 \lambda_{\text{ctr}} \sim \text{Normal}(\text{budget}_\text{ctr}, \sigma)
 \]</span></p>
-<section id="budget-data" class="level2">
-<h2 class="anchored" data-anchor-id="budget-data">Budget data</h2>
+<section id="budget-data" class="level3">
+<h3 class="anchored" data-anchor-id="budget-data">Budget data</h3>
 <p>This is a bit of a secret, so we have to estimate. We do know that the budget cap is 135M USD and it’s unlikely that anyone is operating below the cap. We also know that driver and top executive salaries are exempt from the cap. The top teams are spending about 100M USD on their drivers, and prior to the budget cap’s implementation likely invested in facilities that they can use for free (like wind tunnels).</p>
 <p>With that in mind, I asked 4o to search the web and estimate budgets for the teams. I sanity checked against <a href="https://www.blackbookmotorsport.com/content/f1-team-finances-2023-financial-results-revenue-profit-budget-cap/">this Blackbook Motorsport</a> article.</p>
 <p>These are probably reasonable estimates, and if we put a reasonable variance on the priors it will reflect the uncertainty.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>budgets <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>constructorRef, <span class="sc">~</span>budget,</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"red_bull"</span>, <span class="dv">400</span>,</span>
@@ -860,6 +881,7 @@ Figure&nbsp;6: Posterior samples after fixing NA sorting.
 <span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">norm_budget =</span> <span class="dv">1</span> <span class="sc">-</span> budget <span class="sc">/</span> <span class="fu">max</span>(budget)</span>
 <span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(budgets)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div id="tbl-ctr-budgets" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-ctr-budgets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -951,12 +973,15 @@ model {
 }
 </code></pre>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>data_list_b <span class="ot">&lt;-</span> <span class="fu">make_data_list</span>(ctr_positions)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>data_list_b<span class="sc">$</span>ctr_budgets <span class="ot">&lt;-</span> <span class="dv">10</span> <span class="sc">*</span> <span class="fu">arrange</span>(budgets, constructorRef)<span class="sc">$</span>norm_budget</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>data_list_b<span class="sc">$</span>ctr_budget_sd <span class="ot">&lt;-</span> <span class="fl">1.5</span></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>fit.b <span class="ot">&lt;-</span> <span class="fu">run_stan</span>(data_list_b, <span class="at">model_file =</span> <span class="st">"f1.b.stan"</span>)</span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior</span>(fit.b)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <div id="fig-run-stan-b" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -964,7 +989,7 @@ model {
 <img src="f1_files/figure-html/fig-run-stan-b-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-run-stan-b-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7: Posterior samples from the model with budget-based priors.
+Figure&nbsp;6: Posterior samples from the model with budget-based priors.
 </figcaption>
 </figure>
 </div>
@@ -972,12 +997,15 @@ Figure&nbsp;7: Posterior samples from the model with budget-based priors.
 </div>
 <p>This hasn’t made much difference. McLaren has eased back towards Red Bull because their budget is smaller. You could say they did a lot better than Red Bull relative to their budget.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>sp <span class="ot">&lt;-</span> <span class="fu">sample_posterior</span>(fit.b)</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>sp <span class="sc">|&gt;</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(constructorRef) <span class="sc">|&gt;</span></span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mu =</span> <span class="fu">mean</span>(position), <span class="at">sigma =</span> <span class="fu">sd</span>(position)) <span class="sc">|&gt;</span></span>
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(mu) <span class="sc">|&gt;</span></span>
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div id="tbl-mu-sig-fit-b" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-mu-sig-fit-b-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -1054,6 +1082,8 @@ Table&nbsp;3: Mean and SD from posterior sample.
 <p>This model suggests there’s very little nothing in it between Red Bull and McLaren, though the posterior distribution is wider for the top three teams than the others so there is more uncertainty.</p>
 <p>Was budget a bad choice for the prior? Not necessarily: this model of constructor performance incorporates an important factor that isn’t clear from the results, but which should affect an objective assessment of which teams are better. Or to put it another way, if I were Max Verstappen I’d still rather be driving the Red Bull than the McLaren next year, because Red Bull’s budget suggests a more capable team overall. (Not to mention the increased wind tunnel time that third place in the constructors’ gets relative to the winner.)</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>plot_posterior_with_prior <span class="ot">&lt;-</span> <span class="cf">function</span>(ctrs, ctr_budgets, ctr_budget_sd, fit) {</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  s_post <span class="ot">&lt;-</span> <span class="fu">sample_posterior</span>(fit) <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">sample =</span> <span class="st">"posterior"</span>)</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1073,10 +1103,11 @@ Table&nbsp;3: Mean and SD from posterior sample.
 <span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> sample) <span class="sc">+</span></span>
 <span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
 <span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">breaks=</span><span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">10</span>, <span class="at">by=</span><span class="dv">2</span>), <span class="at">limits=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">10</span>))</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">10</span>, <span class="at">by =</span> <span class="dv">2</span>), <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">10</span>))</span>
 <span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior_with_prior</span>(ctrs, data_list_b<span class="sc">$</span>ctr_budgets, data_list_b<span class="sc">$</span>ctr_budget_sd, fit.b)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <div id="fig-plot-with-priors" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -1084,16 +1115,793 @@ Table&nbsp;3: Mean and SD from posterior sample.
 <img src="f1_files/figure-html/fig-plot-with-priors-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-plot-with-priors-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;8: Comparison of prior and posterior samples.
+Figure&nbsp;7: Comparison of prior and posterior samples.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 <p>Plotting the priors and posteriors together shows how McLaren over-performed and Mercedes continued to underperform.</p>
+</section>
+<section id="past-performance" class="level3">
+<h3 class="anchored" data-anchor-id="past-performance">Past performance</h3>
+<p>Another, very easy way to set the priors is to consider the constructors’ performance over the previous seasons with the same regulations, in this case 2022 and 2023 (the ground-effect era). This is really easy to do - we would just take a weighted mean of the constructors’ finishing positions as mu for our priors, and perhaps set the variance proportional to the difference. Not particularly innovative or interesting though, so let’s skip it.</p>
+</section>
+<section id="two-by-two-circuits" class="level3">
+<h3 class="anchored" data-anchor-id="two-by-two-circuits">Two-by-two circuits</h3>
+<p>Long-time F1 fans will know that at some tracks, the cars almost always finish in pairs. Somehow at these circuits driver skill makes little difference. That’s no fun to watch, but I wonder if it’s useful for establishing car performance?</p>
+<p>We’ll start by looking back at historic race results to see if:</p>
+<ol type="1">
+<li>Some circuits are more likely to finish in two-by-two order. We can score this by the median difference in position between <em>competitive</em> finishing drivers.</li>
+<li>This order correlates well with the constructor rankings at the end of the season.</li>
+</ol>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>circuits2024 <span class="ot">&lt;-</span> races <span class="sc">|&gt;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits) <span class="sc">|&gt;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>) <span class="sc">|&gt;</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(circuitRef)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>position_gaps <span class="ot">&lt;-</span> f1data <span class="sc">|&gt;</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">&gt;</span> <span class="dv">2014</span>) <span class="sc">|&gt;</span> <span class="co"># hybrid era onwards, to try and keep it relevant to modern F1 car sizes</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits2024) <span class="sc">|&gt;</span> <span class="co"># circuits from 2024 only</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(year, round, circuitRef, constructorRef, driverRef, position) <span class="sc">|&gt;</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(position <span class="sc">!=</span> <span class="st">"</span><span class="sc">\\</span><span class="st">N"</span>) <span class="sc">|&gt;</span> <span class="co"># ignore DNFs</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">as.integer</span>(position)) <span class="sc">|&gt;</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(year, round, circuitRef, constructorRef) <span class="sc">|&gt;</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">n</span>() <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">|&gt;</span> <span class="co"># must be a double finish</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">gap =</span> <span class="fu">max</span>(position) <span class="sc">-</span> <span class="fu">min</span>(position), <span class="at">max_position =</span> <span class="fu">max</span>(position)) <span class="sc">|&gt;</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(circuitRef) <span class="sc">|&gt;</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">median_gap =</span> <span class="fu">median</span>(gap))</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(position_gaps) <span class="sc">+</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> gap) <span class="sc">+</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(circuitRef)) <span class="sc">+</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue4"</span>, <span class="at">binwidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">xintercept =</span> median_gap), <span class="at">colour =</span> <span class="st">"dodgerblue1"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-position-gaps" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-position-gaps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="f1_files/figure-html/fig-position-gaps-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-position-gaps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Distribution of finishing position gaps between teammates by circuit, with median line.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Perhaps unsurprisingly, the gap between drivers of the same car is usually very low. I went back and forth on whether to discard cars that finished outside the top ten points-paying positions, as this often includes cars that were retired to save expense or were wounded but finished the race well below their potential for the sake of data gathering. In the end I kept them in because we need two-car finishes to calculate the statistics and setting a threshold would mean re-coding all the finish positions.</p>
+<p>It turns out to make little difference anyway. The race with the highest probability of teammates finishing in consecutive positions is Suzuka, whether or not you apply a threshold.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>rounds2024 <span class="ot">&lt;-</span> races <span class="sc">|&gt;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits) <span class="sc">|&gt;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(circuitRef, round) <span class="sc">|&gt;</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">round2024 =</span> round)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>p_gap_1 <span class="ot">&lt;-</span> position_gaps <span class="sc">|&gt;</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(circuitRef, gap) <span class="sc">|&gt;</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(circuitRef) <span class="sc">|&gt;</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p_gap =</span> n <span class="sc">/</span> <span class="fu">sum</span>(n)) <span class="sc">|&gt;</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(gap <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(rounds2024)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>p_gap_1 <span class="sc">|&gt;</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(p_gap, <span class="at">n =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div id="tbl-position-gaps-medians" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-position-gaps-medians-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: Circuits with highest probability of having teammates finishing together.
+</figcaption>
+<div aria-describedby="tbl-position-gaps-medians-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">circuitRef</th>
+<th style="text-align: right;">gap</th>
+<th style="text-align: right;">n</th>
+<th style="text-align: right;">p_gap</th>
+<th style="text-align: right;">round2024</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">0.4754098</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">albert_park</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.4130435</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">rodriguez</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">0.3939394</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">jeddah</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">0.3846154</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">yas_marina</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">0.3625000</td>
+<td style="text-align: right;">24</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">imola</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">0.3333333</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hungaroring</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">0.3250000</td>
+<td style="text-align: right;">13</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">shanghai</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">0.3061224</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bahrain</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">0.3048780</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">interlagos</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.3015873</td>
+<td style="text-align: right;">21</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>How did the cars line up at Suzuka in 2024, noting that this was round 4 of a 24-round championship?</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>suzuka2024 <span class="ot">&lt;-</span> f1data <span class="sc">|&gt;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>) <span class="sc">|&gt;</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(circuitRef <span class="sc">==</span> <span class="st">"suzuka"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(year, round, circuitRef, constructorRef, driverRef, quali_position, position)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>suzuka2024 <span class="sc">|&gt;</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(constructorRef) <span class="sc">|&gt;</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">n</span>() <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">|&gt;</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(position) <span class="sc">|&gt;</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div id="tbl-suzuka-2024" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-suzuka-2024-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: Results for Suzuka 2024 (two-car finishes only)
+</figcaption>
+<div aria-describedby="tbl-suzuka-2024-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 7%">
+<col style="width: 14%">
+<col style="width: 19%">
+<col style="width: 20%">
+<col style="width: 19%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">year</th>
+<th style="text-align: right;">round</th>
+<th style="text-align: left;">circuitRef</th>
+<th style="text-align: left;">constructorRef</th>
+<th style="text-align: left;">driverRef</th>
+<th style="text-align: right;">quali_position</th>
+<th style="text-align: right;">position</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">red_bull</td>
+<td style="text-align: left;">max_verstappen</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">red_bull</td>
+<td style="text-align: left;">perez</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: left;">sainz</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: left;">leclerc</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: left;">norris</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">aston_martin</td>
+<td style="text-align: left;">alonso</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: left;">russell</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: left;">piastri</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: left;">hamilton</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">haas</td>
+<td style="text-align: left;">hulkenberg</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">aston_martin</td>
+<td style="text-align: left;">stroll</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">haas</td>
+<td style="text-align: left;">kevin_magnussen</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">13</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">alpine</td>
+<td style="text-align: left;">ocon</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">15</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">alpine</td>
+<td style="text-align: left;">gasly</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">16</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>The cars are quite well in order here, if you ignore the gulf between Alonso and Stroll. This would suggest that in round 4, McLaren and Mercedes were quite evenly matched.</p>
+<section id="counter-arguments" class="level4">
+<h4 class="anchored" data-anchor-id="counter-arguments">Counter-arguments</h4>
+<section id="suzuka-is-a-track-drivers-love-surely-its-a-more-skill-dependent-track" class="level5">
+<h5 class="anchored" data-anchor-id="suzuka-is-a-track-drivers-love-surely-its-a-more-skill-dependent-track">Suzuka is a track “drivers love”! Surely it’s a more skill-dependent track?</h5>
+<p>I would have expected so, but statistically drivers are more likely to end up in pairs in Suzuka than anywhere else, which suggests the opposite. Suzuka is described as a technical track, with minimal room for error. Perhaps there aren’t as many potential lines that a driver could take to distinguish themselves. It’s also a good track for overtaking, so any driver that does qualify out of position is able to recover.</p>
+</section>
+<section id="suzuka-was-an-early-round.-perhaps-car-performance-converges-over-the-season" class="level5">
+<h5 class="anchored" data-anchor-id="suzuka-was-an-early-round.-perhaps-car-performance-converges-over-the-season">Suzuka was an early round. Perhaps car performance converges over the season?</h5>
+<p>On the one hand we’d expect to see teams converge on performance throughout the season, as the teams spot innovations on other cars that they can copy. Or secret design documents that they can copy, ahem. On the other hand, constructors in a tight battle would be motivated to develop their cars further - for example in 2022 when Red Bull overhauled an early Ferrari advantage.</p>
+<p>Historically Suzuka has been mid-to-late season, which suggests that this isn’t the reason.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>races <span class="sc">|&gt;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">&gt;=</span> <span class="dv">2014</span>) <span class="sc">|&gt;</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(year) <span class="sc">|&gt;</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">n_rounds =</span> <span class="fu">n_distinct</span>(round)) <span class="sc">|&gt;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits) <span class="sc">|&gt;</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(circuitRef <span class="sc">==</span> <span class="st">"suzuka"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(year, round, n_rounds) <span class="sc">|&gt;</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(year, round) <span class="sc">|&gt;</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div id="tbl-suzuka-round-numbers" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-suzuka-round-numbers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6: Suzuka’s placement in each season
+</figcaption>
+<div aria-describedby="tbl-suzuka-round-numbers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">year</th>
+<th style="text-align: right;">round</th>
+<th style="text-align: right;">n_rounds</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">2014</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">19</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2015</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">19</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2016</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">21</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2017</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2018</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">21</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2019</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">21</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2022</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2024</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">24</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+</section>
+<section id="are-we-sure-that-consecutive-finishes-arent-indicative-of-driver-skill" class="level5">
+<h5 class="anchored" data-anchor-id="are-we-sure-that-consecutive-finishes-arent-indicative-of-driver-skill">Are we sure that consecutive finishes aren’t indicative of driver skill?</h5>
+<p>The top teams can also hire the best drivers, is it not possible that we’re still seeing the drivers finishing in skill order? Hence Alonso and Stroll? On the other hand, between 2023 and 2024 there were no line-up changes among the top 5 teams, so we can compare circuits across the two years.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>suzuka2023 <span class="ot">&lt;-</span> f1data <span class="sc">|&gt;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2023</span>) <span class="sc">|&gt;</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(circuitRef <span class="sc">==</span> <span class="st">"suzuka"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(year, round, circuitRef, constructorRef, driverRef, quali_position, position)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>suzuka2023 <span class="sc">|&gt;</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(constructorRef) <span class="sc">|&gt;</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">n</span>() <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">|&gt;</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(position) <span class="sc">|&gt;</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div id="tbl-suzuka-2023" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-suzuka-2023-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7: Results for Suzuka 2024 (two-car finishes only)
+</figcaption>
+<div aria-describedby="tbl-suzuka-2023-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 7%">
+<col style="width: 14%">
+<col style="width: 19%">
+<col style="width: 20%">
+<col style="width: 19%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">year</th>
+<th style="text-align: right;">round</th>
+<th style="text-align: left;">circuitRef</th>
+<th style="text-align: left;">constructorRef</th>
+<th style="text-align: left;">driverRef</th>
+<th style="text-align: right;">quali_position</th>
+<th style="text-align: right;">position</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: left;">norris</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: left;">piastri</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: left;">leclerc</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: left;">hamilton</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: left;">sainz</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: left;">russell</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">alpine</td>
+<td style="text-align: left;">ocon</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">alpine</td>
+<td style="text-align: left;">gasly</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">alphatauri</td>
+<td style="text-align: left;">lawson</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">alphatauri</td>
+<td style="text-align: left;">tsunoda</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">haas</td>
+<td style="text-align: left;">hulkenberg</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">haas</td>
+<td style="text-align: left;">kevin_magnussen</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">15</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>The order of constructors is very different, despite all drivers being the same except for Alpha Tauri/RB. Just for fun, here’s a side-by-side comparison for each driver.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>s24 <span class="ot">&lt;-</span> suzuka2024 <span class="sc">|&gt;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># reinstate the old names for joining</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># (yes I could have used constructorId, but opaque IDs are so tedious to handle)</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">constructorRef =</span> <span class="fu">ifelse</span>(constructorRef <span class="sc">==</span> <span class="st">"rb"</span>, <span class="st">"alphatauri"</span>, constructorRef)) <span class="sc">|&gt;</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">constructorRef =</span> <span class="fu">ifelse</span>(constructorRef <span class="sc">==</span> <span class="st">"sauber"</span>, <span class="st">"alfa"</span>, constructorRef)) <span class="sc">|&gt;</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(constructorRef, driverRef, position) <span class="sc">|&gt;</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">position2024 =</span> position)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>s23 <span class="ot">&lt;-</span> suzuka2023 <span class="sc">|&gt;</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(constructorRef, driverRef, position) <span class="sc">|&gt;</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">position2023 =</span> position)</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="fu">merge</span>(s23, s24, <span class="at">all =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(position2023) <span class="sc">|&gt;</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div id="tbl-drivers-suzuka-2023-2024" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-drivers-suzuka-2023-2024-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8: Drivers’ results for Suzuka in 2023 and 2024
+</figcaption>
+<div aria-describedby="tbl-drivers-suzuka-2023-2024-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">constructorRef</th>
+<th style="text-align: left;">driverRef</th>
+<th style="text-align: right;">position2023</th>
+<th style="text-align: right;">position2024</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">red_bull</td>
+<td style="text-align: left;">max_verstappen</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: left;">norris</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: left;">piastri</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: left;">leclerc</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: left;">hamilton</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: left;">sainz</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: left;">russell</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">aston_martin</td>
+<td style="text-align: left;">alonso</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">alpine</td>
+<td style="text-align: left;">ocon</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">15</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">alpine</td>
+<td style="text-align: left;">gasly</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">alphatauri</td>
+<td style="text-align: left;">lawson</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">alphatauri</td>
+<td style="text-align: left;">tsunoda</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">alfa</td>
+<td style="text-align: left;">zhou</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">haas</td>
+<td style="text-align: left;">hulkenberg</td>
+<td style="text-align: right;">14</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">haas</td>
+<td style="text-align: left;">kevin_magnussen</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">13</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">alfa</td>
+<td style="text-align: left;">bottas</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">alphatauri</td>
+<td style="text-align: left;">ricciardo</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">aston_martin</td>
+<td style="text-align: left;">stroll</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">red_bull</td>
+<td style="text-align: left;">perez</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">williams</td>
+<td style="text-align: left;">albon</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">williams</td>
+<td style="text-align: left;">sargeant</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">17</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
 <p>More on this later.</p>
 
 
+</section>
+</section>
+</section>
 </section>
 </section>
 

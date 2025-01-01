@@ -5,13 +5,14 @@ date: "2024-12-27"
 categories: [bayesian, r, f1]
 warning: false
 freeze: false
+code-fold: true
 ---
 
 For a bit of fun, let's try and model the performance of F1 drivers and constructors using Bayesian models. This is of course using data from the fantastic [Ergast](https://ergast.com/mrd/).
 
 My model will be an imitation of the f1-metrics model. We have latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga.
 
-I downloaded the CSVs from Ergast which we'll first wrangle into shape. The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis.
+I downloaded the CSVs from Ergast which we'll first wrangle into shape. The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis. You can find the code behind the folds if you want to play along.
 
 ```{r}
 #| label: data-loading
@@ -26,32 +27,30 @@ races <- read_csv("data/races.csv") |>
 results <- read_csv("data/results.csv") |> select(resultId, raceId, driverId, constructorId, grid, position, points, milliseconds)
 constructors <- read_csv("data/constructors.csv") |> select(constructorId, constructorRef)
 drivers <- read_csv("data/drivers.csv") |> select(driverId, driverRef)
-circuits <- read_csv("data/circuits.csv")
+circuits <- read_csv("data/circuits.csv") |> select(circuitId, circuitRef)
 
 f1data <- races |>
   merge(results) |>
   merge(qualifying) |>
   merge(constructors) |>
   merge(drivers) |>
-  select(raceId, gp, year, round, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) |>
+  merge(circuits) |>
+  select(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) |>
   mutate(position = ifelse(position == "\\N", NA, as.numeric(position)))
 ```
 
 In the interests of being educational - and because Lord knows I hate editing - I am writing this post as I go, including any blind-alleys and debugging.
 
+Let's start with some visualisations of the data we have.
+
 ```{r}
 #| label: fig-data-2024
-#| fig-cap: Histograms of driver and constructor performance in F1 2024.
+#| fig-cap: Histograms of driver performance in F1 2024.
 f2024 <- f1data |> filter(year == 2024)
 
 ggplot(f2024) +
   aes(x = position) +
   facet_wrap(vars(driverRef)) +
-  geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
-
-ggplot(f2024) +
-  aes(x = position) +
-  facet_wrap(vars(constructorRef)) +
   geom_histogram(fill = "dodgerblue4", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
 ```
 
@@ -394,17 +393,15 @@ We'll start by looking back at historic race results to see if:
 circuits2024 <- races |>
   merge(circuits) |>
   filter(year == 2024) |>
-  select(circuitId, circuitRef)
+  select(circuitRef)
 
-position_gaps <- races |>
+position_gaps <- f1data |>
   filter(year > 2014) |> # hybrid era onwards, to try and keep it relevant to modern F1 car sizes
-  merge(results) |>
-  merge(circuits2024) |>
-  select(year, round, circuitRef, constructorId, driverId, position) |>
+  merge(circuits2024) |> # circuits from 2024 only
+  select(year, round, circuitRef, constructorRef, driverRef, position) |>
   filter(position != "\\N") |> # ignore DNFs
   mutate(position = as.integer(position)) |>
-  filter(position <= 15) |> # discard last 5
-  group_by(year, round, circuitRef, constructorId) |>
+  group_by(year, round, circuitRef, constructorRef) |>
   filter(n() == 2) |> # must be a double finish
   summarise(gap = max(position) - min(position), max_position = max(position)) |>
   group_by(circuitRef) |>
@@ -417,24 +414,119 @@ ggplot(position_gaps) +
   geom_vline(mapping = aes(xintercept = median_gap), colour = "dodgerblue1")
 ```
 
-Perhaps unsurprisingly, the gap between drivers of the same car is usually very low. Note that we are discarding the last 5 finishers, which often includes cars that were wounded but finished the race for the sake of data gathering.
+Perhaps unsurprisingly, the gap between drivers of the same car is usually very low. I went back and forth on whether to discard cars that finished outside the top ten points-paying positions, as this often includes cars that were retired to save expense or were wounded but finished the race well below their potential for the sake of data gathering. In the end I kept them in because we need two-car finishes to calculate the statistics and setting a threshold would mean re-coding all the finish positions.
+
+It turns out to make little difference anyway. The race with the highest probability of teammates finishing in consecutive positions is Suzuka, whether or not you apply a threshold.
 
 ```{r}
 #| label: tbl-position-gaps-medians
-#| tbl-cap: Median finishing position gaps between teammates, top 15 finishers only.
-modal <- function(x) {
-  ux <- unique(x)
-  ux[which.max(tabulate(match(x, ux)))]
-}
+#| tbl-cap: Circuits with highest probability of having teammates finishing together.
+rounds2024 <- races |>
+  filter(year == 2024) |>
+  merge(circuits) |>
+  select(circuitRef, round) |>
+  rename(round2024 = round)
 
-position_gaps |>
+p_gap_1 <- position_gaps |>
+  count(circuitRef, gap) |>
   group_by(circuitRef) |>
-  summarise(median_gap = median(gap), mean_gap = mean(gap), modal_gap = modal(gap), n_races = n()) |>
-  arrange(median_gap, mean_gap, modal_gap, desc(n_races)) |>
-  head(10) |>
-  kable()
+  mutate(p_gap = n / sum(n)) |>
+  filter(gap == 1) |>
+  ungroup() |>
+  merge(rounds2024)
 
-# TODO - what's the probability of a 1-gap, 2-gap, 3-gap etc.?
+p_gap_1 |>
+  slice_max(p_gap, n = 10) |>
+  kable()
+```
+
+How did the cars line up at Suzuka in 2024, noting that this was round 4 of a 24-round championship?
+
+```{r}
+#| label: tbl-suzuka-2024
+#| tbl-cap: Results for Suzuka 2024 (two-car finishes only)
+suzuka2024 <- f1data |>
+  filter(year == 2024) |>
+  filter(circuitRef == "suzuka") |>
+  select(year, round, circuitRef, constructorRef, driverRef, quali_position, position)
+
+suzuka2024 |>
+  drop_na() |>
+  group_by(constructorRef) |>
+  filter(n() == 2) |>
+  arrange(position) |>
+  kable()
+```
+
+The cars are quite well in order here, if you ignore the gulf between Alonso and Stroll. This would suggest that in round 4, McLaren and Mercedes were quite evenly matched.
+
+#### Counter-arguments
+
+##### Suzuka is a track "drivers love"! Surely it's a more skill-dependent track?
+
+I would have expected so, but statistically drivers are more likely to end up in pairs in Suzuka than anywhere else, which suggests the opposite. Suzuka is described as a technical track, with minimal room for error. Perhaps there aren't as many potential lines that a driver could take to distinguish themselves. It's also a good track for overtaking, so any driver that does qualify out of position is able to recover.
+
+##### Suzuka was an early round. Perhaps car performance converges over the season?
+
+On the one hand we'd expect to see teams converge on performance throughout the season, as the teams spot innovations on other cars that they can copy. Or secret design documents that they can copy, ahem. On the other hand, constructors in a tight battle would be motivated to develop their cars further - for example in 2022 when Red Bull overhauled an early Ferrari advantage.
+
+Historically Suzuka has been mid-to-late season, which suggests that this isn't the reason.
+
+```{r}
+#| label: tbl-suzuka-round-numbers
+#| tbl-cap: Suzuka's placement in each season
+races |>
+  filter(year >= 2014) |>
+  group_by(year) |>
+  mutate(n_rounds = n_distinct(round)) |>
+  ungroup() |>
+  merge(circuits) |>
+  filter(circuitRef == "suzuka") |>
+  select(year, round, n_rounds) |>
+  arrange(year, round) |>
+  kable()
+```
+
+##### Are we sure that consecutive finishes aren't indicative of driver skill?
+
+The top teams can also hire the best drivers, is it not possible that we're still seeing the drivers finishing in skill order? Hence Alonso and Stroll? On the other hand, between 2023 and 2024 there were no line-up changes among the top 5 teams, so we can compare circuits across the two years.
+
+```{r}
+#| label: tbl-suzuka-2023
+#| tbl-cap: Results for Suzuka 2024 (two-car finishes only)
+suzuka2023 <- f1data |>
+  filter(year == 2023) |>
+  filter(circuitRef == "suzuka") |>
+  select(year, round, circuitRef, constructorRef, driverRef, quali_position, position)
+
+suzuka2023 |>
+  drop_na() |>
+  group_by(constructorRef) |>
+  filter(n() == 2) |>
+  arrange(position) |>
+  kable()
+```
+
+The order of constructors is very different, despite all drivers being the same except for Alpha Tauri/RB. Just for fun, here's a side-by-side comparison for each driver.
+
+```{r}
+#| label: tbl-drivers-suzuka-2023-2024
+#| tbl-cap: Drivers' results for Suzuka in 2023 and 2024
+s24 <- suzuka2024 |>
+  # reinstate the old names for joining
+  # (yes I could have used constructorId, but opaque IDs are so tedious to handle)
+  mutate(constructorRef = ifelse(constructorRef == "rb", "alphatauri", constructorRef)) |>
+  mutate(constructorRef = ifelse(constructorRef == "sauber", "alfa", constructorRef)) |>
+  select(constructorRef, driverRef, position) |>
+  rename(position2024 = position)
+
+s23 <- suzuka2023 |>
+  select(constructorRef, driverRef, position) |>
+  rename(position2023 = position)
+
+merge(s23, s24, all = TRUE) |>
+  arrange(position2023) |>
+  kable()
 ```
 
 More on this later.
