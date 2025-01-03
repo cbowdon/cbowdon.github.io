@@ -294,11 +294,10 @@ window.Quarto = {
 <span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(results) <span class="sc">|&gt;</span></span>
 <span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(qualifying) <span class="sc">|&gt;</span></span>
 <span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(constructors) <span class="sc">|&gt;</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(team_colours) <span class="sc">|&gt;</span></span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(drivers) <span class="sc">|&gt;</span></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits) <span class="sc">|&gt;</span></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position, team_colour) <span class="sc">|&gt;</span></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">ifelse</span>(position <span class="sc">==</span> <span class="st">"</span><span class="sc">\\</span><span class="st">N"</span>, <span class="cn">NA</span>, <span class="fu">as.numeric</span>(position)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(drivers) <span class="sc">|&gt;</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits) <span class="sc">|&gt;</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) <span class="sc">|&gt;</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">ifelse</span>(position <span class="sc">==</span> <span class="st">"</span><span class="sc">\\</span><span class="st">N"</span>, <span class="cn">NA</span>, <span class="fu">as.numeric</span>(position)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>In the interests of being educational - and because Lord knows I hate editing - I am writing this post as I go, including any blind-alleys and debugging.</p>
@@ -364,7 +363,7 @@ Figure&nbsp;1: Histograms of driver performance in F1 2024.
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(round, position)</span>
 <span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">merge</span>(ctr_positions, team_colours)) <span class="sc">+</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ctr_positions) <span class="sc">+</span></span>
 <span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
 <span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>constructorRef) <span class="sc">+</span></span>
 <span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> team_colours<span class="sc">$</span>team_colour) <span class="sc">+</span></span>
@@ -490,11 +489,11 @@ model {
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>plot_posterior <span class="ot">&lt;-</span> <span class="cf">function</span>(fit) {</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">sample_posterior</span>(fit)) <span class="sc">+</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>constructorRef) <span class="sc">+</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  means <span class="ot">&lt;-</span> <span class="fu">sample_posterior</span>(fit) <span class="sc">|&gt;</span> <span class="fu">group_by</span>(constructorRef) <span class="sc">|&gt;</span> <span class="fu">summarise</span>(<span class="at">mu =</span> <span class="fu">mean</span>(position))</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">sample_posterior</span>(fit)) <span class="sc">+</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
 <span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> team_colours<span class="sc">$</span>team_colour) <span class="sc">+</span></span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>)</span>
 <span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -539,8 +538,8 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <tr class="header">
 <th style="text-align: right;">round</th>
 <th style="text-align: left;">gp</th>
-<th style="text-align: right;">max_verstappen</th>
 <th style="text-align: right;">perez</th>
+<th style="text-align: right;">max_verstappen</th>
 <th style="text-align: right;">position</th>
 </tr>
 </thead>
@@ -548,169 +547,169 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <tr class="odd">
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Bahrain Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Saudi Arabian Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">3</td>
 <td style="text-align: left;">Australian Grand Prix</td>
-<td style="text-align: right;">NA</td>
 <td style="text-align: right;">5</td>
+<td style="text-align: right;">NA</td>
 <td style="text-align: right;">10</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">4</td>
 <td style="text-align: left;">Japanese Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">5</td>
 <td style="text-align: left;">Chinese Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">3</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">6</td>
 <td style="text-align: left;">Miami Grand Prix</td>
-<td style="text-align: right;">2</td>
 <td style="text-align: right;">4</td>
+<td style="text-align: right;">2</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">7</td>
 <td style="text-align: left;">Emilia Romagna Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">8</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">8</td>
 <td style="text-align: left;">Monaco Grand Prix</td>
-<td style="text-align: right;">6</td>
 <td style="text-align: right;">NA</td>
+<td style="text-align: right;">6</td>
 <td style="text-align: right;">10</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">9</td>
 <td style="text-align: left;">Canadian Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">NA</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">9</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">10</td>
 <td style="text-align: left;">Spanish Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">8</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">11</td>
 <td style="text-align: left;">Austrian Grand Prix</td>
-<td style="text-align: right;">5</td>
 <td style="text-align: right;">7</td>
+<td style="text-align: right;">5</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">12</td>
 <td style="text-align: left;">British Grand Prix</td>
-<td style="text-align: right;">2</td>
 <td style="text-align: right;">17</td>
+<td style="text-align: right;">2</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">13</td>
 <td style="text-align: left;">Hungarian Grand Prix</td>
-<td style="text-align: right;">5</td>
 <td style="text-align: right;">7</td>
+<td style="text-align: right;">5</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">14</td>
 <td style="text-align: left;">Belgian Grand Prix</td>
-<td style="text-align: right;">4</td>
 <td style="text-align: right;">7</td>
+<td style="text-align: right;">4</td>
 <td style="text-align: right;">3</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">15</td>
 <td style="text-align: left;">Dutch Grand Prix</td>
-<td style="text-align: right;">2</td>
 <td style="text-align: right;">6</td>
+<td style="text-align: right;">2</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">16</td>
 <td style="text-align: left;">Italian Grand Prix</td>
-<td style="text-align: right;">6</td>
 <td style="text-align: right;">8</td>
+<td style="text-align: right;">6</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">17</td>
 <td style="text-align: left;">Azerbaijan Grand Prix</td>
-<td style="text-align: right;">5</td>
 <td style="text-align: right;">17</td>
+<td style="text-align: right;">5</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">18</td>
 <td style="text-align: left;">Singapore Grand Prix</td>
-<td style="text-align: right;">2</td>
 <td style="text-align: right;">10</td>
+<td style="text-align: right;">2</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">19</td>
 <td style="text-align: left;">United States Grand Prix</td>
-<td style="text-align: right;">3</td>
 <td style="text-align: right;">7</td>
+<td style="text-align: right;">3</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">20</td>
 <td style="text-align: left;">Mexico City Grand Prix</td>
-<td style="text-align: right;">6</td>
 <td style="text-align: right;">17</td>
+<td style="text-align: right;">6</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">21</td>
 <td style="text-align: left;">São Paulo Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">11</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">22</td>
 <td style="text-align: left;">Las Vegas Grand Prix</td>
-<td style="text-align: right;">5</td>
 <td style="text-align: right;">10</td>
+<td style="text-align: right;">5</td>
 <td style="text-align: right;">3</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">23</td>
 <td style="text-align: left;">Qatar Grand Prix</td>
-<td style="text-align: right;">1</td>
 <td style="text-align: right;">NA</td>
+<td style="text-align: right;">1</td>
 <td style="text-align: right;">9</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">24</td>
 <td style="text-align: left;">Abu Dhabi Grand Prix</td>
-<td style="text-align: right;">6</td>
 <td style="text-align: right;">NA</td>
+<td style="text-align: right;">6</td>
 <td style="text-align: right;">8</td>
 </tr>
 </tbody>
@@ -720,7 +719,7 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 </figure>
 </div>
 </div>
-<p>Round three is clearly a balls-up: how can Perez’ 5th place become the 10th constructor position? Let’s work through it again.</p>
+<p>Round three is clearly a mistake: how can Perez’ 5th place become the 10th constructor position? Let’s work through it again.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -864,6 +863,7 @@ Figure&nbsp;5: Posterior samples after fixing NA sorting.
 </div>
 </div>
 <p>That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor’s championship). This tells us that yes, Verstappen probably would have won the driver’s championship in a McLaren - but contrary to claims, not in a Ferrari, since it wasn’t faster than the Red Bull overall.</p>
+<p>The three teams that are on top of each other are: Alpine, Haas, and RB. You can also just about discern that the model is less sure about the top teams, since their posteriors are slightly wider.</p>
 <p>There’s a lot we can improve about this model. The most obvious is that our priors for constructor performance are uniformative, and so our posteriors basically just reflect the data. Can we add some useful information to inform the model?</p>
 <section id="more-informative-priors" class="level2">
 <h2 class="anchored" data-anchor-id="more-informative-priors">More informative priors</h2>
@@ -1227,74 +1227,74 @@ Table&nbsp;4: Circuits with highest probability of having teammates finishing to
 </thead>
 <tbody>
 <tr class="odd">
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">0.4754098</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">albert_park</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">15</td>
-<td style="text-align: right;">0.4838710</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.4130435</td>
 <td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">rodriguez</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">0.3939394</td>
+<td style="text-align: right;">20</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">jeddah</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">10</td>
-<td style="text-align: right;">0.4545455</td>
+<td style="text-align: right;">0.3846154</td>
 <td style="text-align: right;">2</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">suzuka</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">20</td>
-<td style="text-align: right;">0.4545455</td>
-<td style="text-align: right;">4</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">rodriguez</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">23</td>
-<td style="text-align: right;">0.4423077</td>
-<td style="text-align: right;">20</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">hungaroring</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">21</td>
-<td style="text-align: right;">0.3818182</td>
-<td style="text-align: right;">13</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">interlagos</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">17</td>
-<td style="text-align: right;">0.3695652</td>
-<td style="text-align: right;">21</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">yas_marina</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">22</td>
-<td style="text-align: right;">0.3548387</td>
+<td style="text-align: right;">29</td>
+<td style="text-align: right;">0.3625000</td>
 <td style="text-align: right;">24</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">bahrain</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">20</td>
-<td style="text-align: right;">0.3508772</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">imola</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">8</td>
+<td style="text-align: right;">10</td>
 <td style="text-align: right;">0.3333333</td>
 <td style="text-align: right;">7</td>
 </tr>
-<tr class="even">
-<td style="text-align: left;">villeneuve</td>
+<tr class="odd">
+<td style="text-align: left;">hungaroring</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">0.3250000</td>
 <td style="text-align: right;">13</td>
-<td style="text-align: right;">0.2954545</td>
-<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">shanghai</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">0.3061224</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bahrain</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">0.3048780</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">interlagos</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.3015873</td>
+<td style="text-align: right;">21</td>
 </tr>
 </tbody>
 </table>
@@ -1701,6 +1701,24 @@ Table&nbsp;7: Results for Suzuka 2024 (two-car finishes only)
 <td style="text-align: right;">2023</td>
 <td style="text-align: right;">16</td>
 <td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">alphatauri</td>
+<td style="text-align: left;">lawson</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
+<td style="text-align: left;">alphatauri</td>
+<td style="text-align: left;">tsunoda</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2023</td>
+<td style="text-align: right;">16</td>
+<td style="text-align: left;">suzuka</td>
 <td style="text-align: left;">haas</td>
 <td style="text-align: left;">hulkenberg</td>
 <td style="text-align: right;">18</td>
@@ -1820,34 +1838,46 @@ Table&nbsp;8: Drivers’ results for Suzuka in 2023 and 2024
 <td style="text-align: right;">16</td>
 </tr>
 <tr class="odd">
+<td style="text-align: left;">rb</td>
+<td style="text-align: left;">lawson</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">rb</td>
+<td style="text-align: left;">tsunoda</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">sauber</td>
+<td style="text-align: left;">zhou</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;">haas</td>
 <td style="text-align: left;">hulkenberg</td>
 <td style="text-align: right;">14</td>
 <td style="text-align: right;">11</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">haas</td>
 <td style="text-align: left;">kevin_magnussen</td>
 <td style="text-align: right;">15</td>
 <td style="text-align: right;">13</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;">aston_martin</td>
 <td style="text-align: left;">stroll</td>
 <td style="text-align: right;">NA</td>
 <td style="text-align: right;">12</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">rb</td>
 <td style="text-align: left;">ricciardo</td>
 <td style="text-align: right;">NA</td>
 <td style="text-align: right;">NA</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">rb</td>
-<td style="text-align: left;">tsunoda</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">10</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">red_bull</td>
@@ -1862,18 +1892,12 @@ Table&nbsp;8: Drivers’ results for Suzuka in 2023 and 2024
 <td style="text-align: right;">14</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">sauber</td>
-<td style="text-align: left;">zhou</td>
-<td style="text-align: right;">NA</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="odd">
 <td style="text-align: left;">williams</td>
 <td style="text-align: left;">albon</td>
 <td style="text-align: right;">NA</td>
 <td style="text-align: right;">NA</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">williams</td>
 <td style="text-align: left;">sargeant</td>
 <td style="text-align: right;">NA</td>

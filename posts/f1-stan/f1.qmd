@@ -47,10 +47,9 @@ f1data <- races |>
   merge(results) |>
   merge(qualifying) |>
   merge(constructors) |>
-  merge(team_colours) |>
   merge(drivers) |>
   merge(circuits) |>
-  select(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position, team_colour) |>
+  select(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) |>
   mutate(position = ifelse(position == "\\N", NA, as.numeric(position)))
 ```
 
@@ -114,7 +113,7 @@ ctr_positions <- f2024 |>
   ) |>
   arrange(round, position)
 
-ggplot(merge(ctr_positions, team_colours)) +
+ggplot(ctr_positions) +
   aes(x = position, fill = constructorRef) +
   facet_wrap(~constructorRef) +
   scale_fill_manual(values = team_colours$team_colour) +
@@ -207,11 +206,11 @@ sample_posterior <- function(fit) {
 }
 
 plot_posterior <- function(fit) {
+  means <- sample_posterior(fit) |> group_by(constructorRef) |> summarise(mu = mean(position))
   ggplot(sample_posterior(fit)) +
     aes(x = position, fill = constructorRef) +
-    facet_wrap(~constructorRef) +
     scale_fill_manual(values = team_colours$team_colour) +
-    geom_density(alpha = 0.5, colour = "black", linewidth = 0.1, show.legend = FALSE)
+    geom_density(alpha = 0.5, colour = "black", linewidth = 0.1)
 }
 
 plot_posterior(fit)
@@ -236,7 +235,7 @@ f2024 |>
   knitr::kable()
 ```
 
-Round three is clearly a balls-up: how can Perez' 5th place become the 10th constructor position? Let's work through it again.
+Round three is clearly a mistake: how can Perez' 5th place become the 10th constructor position? Let's work through it again.
 
 ```{r}
 f2024 |>
@@ -284,6 +283,8 @@ plot_posterior(fit)
 ```
 
 That is more intuitive: Red Bull is now much closer to McLaren and marginally ahead of Ferrari (despite coming third in the constructor's championship). This tells us that yes, Verstappen probably would have won the driver's championship in a McLaren - but contrary to claims, not in a Ferrari, since it wasn't faster than the Red Bull overall.
+
+The three teams that are on top of each other are: Alpine, Haas, and RB. You can also just about discern that the model is less sure about the top teams, since their posteriors are slightly wider.
 
 There's a lot we can improve about this model. The most obvious is that our priors for constructor performance are uniformative, and so our posteriors basically just reflect the data. Can we add some useful information to inform the model?
 
