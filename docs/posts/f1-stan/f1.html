@@ -265,7 +265,7 @@ window.Quarto = {
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)  <span class="co"># this lib is for rendering tables nicely</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr) <span class="co"># this lib is for rendering tables nicely</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>qualifying <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/qualifying.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">rename</span>(<span class="at">quali_position =</span> position)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>races <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/races.csv"</span>) <span class="sc">|&gt;</span></span>
@@ -276,14 +276,29 @@ window.Quarto = {
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>drivers <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/drivers.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(driverId, driverRef)</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>circuits <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/circuits.csv"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(circuitId, circuitRef)</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>f1data <span class="ot">&lt;-</span> races <span class="sc">|&gt;</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(results) <span class="sc">|&gt;</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(qualifying) <span class="sc">|&gt;</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(constructors) <span class="sc">|&gt;</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(drivers) <span class="sc">|&gt;</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits) <span class="sc">|&gt;</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) <span class="sc">|&gt;</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">ifelse</span>(position <span class="sc">==</span> <span class="st">"</span><span class="sc">\\</span><span class="st">N"</span>, <span class="cn">NA</span>, <span class="fu">as.numeric</span>(position)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>team_colours <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>constructorRef, <span class="sc">~</span>team_colour,</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="st">"red_bull"</span>, <span class="st">"#3671c6"</span>,</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="st">"mercedes"</span>, <span class="st">"#26f5d2"</span>,</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="st">"ferrari"</span>, <span class="st">"#e80220"</span>,</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"mclaren"</span>, <span class="st">"#ff8001"</span>,</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"aston_martin"</span>, <span class="st">"#229971"</span>,</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"alpine"</span>, <span class="st">"#0093cc"</span>,</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"williams"</span>, <span class="st">"#63c4ff"</span>,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rb"</span>, <span class="st">"#6592ff"</span>,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="st">"sauber"</span>, <span class="st">"#52e252"</span>,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  <span class="st">"haas"</span>, <span class="st">"#b6babd"</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> <span class="fu">arrange</span>(constructorRef)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>f1data <span class="ot">&lt;-</span> races <span class="sc">|&gt;</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(results) <span class="sc">|&gt;</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(qualifying) <span class="sc">|&gt;</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(constructors) <span class="sc">|&gt;</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(team_colours) <span class="sc">|&gt;</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(drivers) <span class="sc">|&gt;</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(circuits) <span class="sc">|&gt;</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position, team_colour) <span class="sc">|&gt;</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">ifelse</span>(position <span class="sc">==</span> <span class="st">"</span><span class="sc">\\</span><span class="st">N"</span>, <span class="cn">NA</span>, <span class="fu">as.numeric</span>(position)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>In the interests of being educational - and because Lord knows I hate editing - I am writing this post as I go, including any blind-alleys and debugging.</p>
@@ -294,9 +309,10 @@ window.Quarto = {
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>f2024 <span class="ot">&lt;-</span> f1data <span class="sc">|&gt;</span> <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2024</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(f2024) <span class="sc">+</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(driverRef)) <span class="sc">+</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue1"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>driverRef) <span class="sc">+</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> team_colours<span class="sc">$</span>team_colour) <span class="sc">+</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-data-2024" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -348,10 +364,11 @@ Figure&nbsp;1: Histograms of driver performance in F1 2024.
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(round, position)</span>
 <span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ctr_positions) <span class="sc">+</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue1"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">merge</span>(ctr_positions, team_colours)) <span class="sc">+</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>constructorRef) <span class="sc">+</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> team_colours<span class="sc">$</span>team_colour) <span class="sc">+</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-simpler-model" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -474,12 +491,13 @@ model {
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>plot_posterior <span class="ot">&lt;-</span> <span class="cf">function</span>(fit) {</span>
 <span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">sample_posterior</span>(fit)) <span class="sc">+</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="at">fill =</span> <span class="st">"dodgerblue1"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>)</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>constructorRef) <span class="sc">+</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> team_colours<span class="sc">$</span>team_colour) <span class="sc">+</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior</span>(fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-ctr-lambda-posteriors" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -521,8 +539,8 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <tr class="header">
 <th style="text-align: right;">round</th>
 <th style="text-align: left;">gp</th>
-<th style="text-align: right;">perez</th>
 <th style="text-align: right;">max_verstappen</th>
+<th style="text-align: right;">perez</th>
 <th style="text-align: right;">position</th>
 </tr>
 </thead>
@@ -530,169 +548,169 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <tr class="odd">
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Bahrain Grand Prix</td>
-<td style="text-align: right;">2</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Saudi Arabian Grand Prix</td>
-<td style="text-align: right;">2</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">3</td>
 <td style="text-align: left;">Australian Grand Prix</td>
-<td style="text-align: right;">5</td>
 <td style="text-align: right;">NA</td>
+<td style="text-align: right;">5</td>
 <td style="text-align: right;">10</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">4</td>
 <td style="text-align: left;">Japanese Grand Prix</td>
-<td style="text-align: right;">2</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">5</td>
 <td style="text-align: left;">Chinese Grand Prix</td>
-<td style="text-align: right;">3</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">3</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">6</td>
 <td style="text-align: left;">Miami Grand Prix</td>
-<td style="text-align: right;">4</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">4</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">7</td>
 <td style="text-align: left;">Emilia Romagna Grand Prix</td>
-<td style="text-align: right;">8</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">8</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">8</td>
 <td style="text-align: left;">Monaco Grand Prix</td>
-<td style="text-align: right;">NA</td>
 <td style="text-align: right;">6</td>
+<td style="text-align: right;">NA</td>
 <td style="text-align: right;">10</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">9</td>
 <td style="text-align: left;">Canadian Grand Prix</td>
-<td style="text-align: right;">NA</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">NA</td>
 <td style="text-align: right;">9</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">10</td>
 <td style="text-align: left;">Spanish Grand Prix</td>
-<td style="text-align: right;">8</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">8</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">11</td>
 <td style="text-align: left;">Austrian Grand Prix</td>
-<td style="text-align: right;">7</td>
 <td style="text-align: right;">5</td>
+<td style="text-align: right;">7</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">12</td>
 <td style="text-align: left;">British Grand Prix</td>
-<td style="text-align: right;">17</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">17</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">13</td>
 <td style="text-align: left;">Hungarian Grand Prix</td>
-<td style="text-align: right;">7</td>
 <td style="text-align: right;">5</td>
+<td style="text-align: right;">7</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">14</td>
 <td style="text-align: left;">Belgian Grand Prix</td>
-<td style="text-align: right;">7</td>
 <td style="text-align: right;">4</td>
+<td style="text-align: right;">7</td>
 <td style="text-align: right;">3</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">15</td>
 <td style="text-align: left;">Dutch Grand Prix</td>
-<td style="text-align: right;">6</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">6</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">16</td>
 <td style="text-align: left;">Italian Grand Prix</td>
-<td style="text-align: right;">8</td>
 <td style="text-align: right;">6</td>
+<td style="text-align: right;">8</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">17</td>
 <td style="text-align: left;">Azerbaijan Grand Prix</td>
-<td style="text-align: right;">17</td>
 <td style="text-align: right;">5</td>
+<td style="text-align: right;">17</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">18</td>
 <td style="text-align: left;">Singapore Grand Prix</td>
-<td style="text-align: right;">10</td>
 <td style="text-align: right;">2</td>
+<td style="text-align: right;">10</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">19</td>
 <td style="text-align: left;">United States Grand Prix</td>
-<td style="text-align: right;">7</td>
 <td style="text-align: right;">3</td>
+<td style="text-align: right;">7</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">20</td>
 <td style="text-align: left;">Mexico City Grand Prix</td>
-<td style="text-align: right;">17</td>
 <td style="text-align: right;">6</td>
+<td style="text-align: right;">17</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">21</td>
 <td style="text-align: left;">São Paulo Grand Prix</td>
-<td style="text-align: right;">11</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">11</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">22</td>
 <td style="text-align: left;">Las Vegas Grand Prix</td>
-<td style="text-align: right;">10</td>
 <td style="text-align: right;">5</td>
+<td style="text-align: right;">10</td>
 <td style="text-align: right;">3</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">23</td>
 <td style="text-align: left;">Qatar Grand Prix</td>
-<td style="text-align: right;">NA</td>
 <td style="text-align: right;">1</td>
+<td style="text-align: right;">NA</td>
 <td style="text-align: right;">9</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">24</td>
 <td style="text-align: left;">Abu Dhabi Grand Prix</td>
-<td style="text-align: right;">NA</td>
 <td style="text-align: right;">6</td>
+<td style="text-align: right;">NA</td>
 <td style="text-align: right;">8</td>
 </tr>
 </tbody>
@@ -807,9 +825,10 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(round, position)</span>
 <span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ctr_positions) <span class="sc">+</span></span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position) <span class="sc">+</span></span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue1"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>constructorRef) <span class="sc">+</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> team_colours<span class="sc">$</span>team_colour) <span class="sc">+</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-updated-ctr-positions" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1096,12 +1115,13 @@ Table&nbsp;3: Mean and SD from posterior sample.
 <span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(df) <span class="sc">+</span></span>
 <span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> sample) <span class="sc">+</span></span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(constructorRef)) <span class="sc">+</span></span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">10</span>, <span class="at">by =</span> <span class="dv">2</span>), <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">10</span>))</span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior_with_prior</span>(ctrs, data_list_b<span class="sc">$</span>prior_mus, data_list_b<span class="sc">$</span>prior_sd, fit.b)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>constructorRef) <span class="sc">+</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>) <span class="sc">+</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">10</span>, <span class="at">by =</span> <span class="dv">2</span>), <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">10</span>)) <span class="sc">+</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"dodgerblue1"</span>, <span class="st">"dodgerblue4"</span>))</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_posterior_with_prior</span>(ctrs, data_list_b<span class="sc">$</span>prior_mus, data_list_b<span class="sc">$</span>prior_sd, fit.b)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-plot-with-priors" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1149,7 +1169,7 @@ Figure&nbsp;7: Comparison of prior and posterior samples.
 <span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(position_gaps) <span class="sc">+</span></span>
 <span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> gap) <span class="sc">+</span></span>
 <span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(circuitRef)) <span class="sc">+</span></span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue1"</span>, <span class="at">alpha=</span><span class="fl">0.5</span>, <span class="at">colour=</span><span class="st">"black"</span>, <span class="at">linewidth=</span><span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">fill =</span> <span class="st">"dodgerblue1"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.1</span>, <span class="at">binwidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
 <span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">xintercept =</span> median_gap), <span class="at">colour =</span> <span class="st">"dodgerblue4"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
@@ -1207,74 +1227,74 @@ Table&nbsp;4: Circuits with highest probability of having teammates finishing to
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">suzuka</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">29</td>
-<td style="text-align: right;">0.4754098</td>
-<td style="text-align: right;">4</td>
-</tr>
-<tr class="even">
 <td style="text-align: left;">albert_park</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">19</td>
-<td style="text-align: right;">0.4130435</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">0.4838710</td>
 <td style="text-align: right;">3</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">rodriguez</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">26</td>
-<td style="text-align: right;">0.3939394</td>
-<td style="text-align: right;">20</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">jeddah</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">10</td>
-<td style="text-align: right;">0.3846154</td>
+<td style="text-align: right;">0.4545455</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">yas_marina</td>
+<td style="text-align: left;">suzuka</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">29</td>
-<td style="text-align: right;">0.3625000</td>
-<td style="text-align: right;">24</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.4545455</td>
+<td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">imola</td>
+<td style="text-align: left;">rodriguez</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">10</td>
-<td style="text-align: right;">0.3333333</td>
-<td style="text-align: right;">7</td>
+<td style="text-align: right;">23</td>
+<td style="text-align: right;">0.4423077</td>
+<td style="text-align: right;">20</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">hungaroring</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">26</td>
-<td style="text-align: right;">0.3250000</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">0.3818182</td>
 <td style="text-align: right;">13</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">shanghai</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">15</td>
-<td style="text-align: right;">0.3061224</td>
-<td style="text-align: right;">5</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">bahrain</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">25</td>
-<td style="text-align: right;">0.3048780</td>
-<td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">interlagos</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">19</td>
-<td style="text-align: right;">0.3015873</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">0.3695652</td>
 <td style="text-align: right;">21</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">yas_marina</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">0.3548387</td>
+<td style="text-align: right;">24</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bahrain</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.3508772</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">imola</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0.3333333</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">villeneuve</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0.2954545</td>
+<td style="text-align: right;">9</td>
 </tr>
 </tbody>
 </table>
@@ -1681,24 +1701,6 @@ Table&nbsp;7: Results for Suzuka 2024 (two-car finishes only)
 <td style="text-align: right;">2023</td>
 <td style="text-align: right;">16</td>
 <td style="text-align: left;">suzuka</td>
-<td style="text-align: left;">alphatauri</td>
-<td style="text-align: left;">lawson</td>
-<td style="text-align: right;">11</td>
-<td style="text-align: right;">11</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">2023</td>
-<td style="text-align: right;">16</td>
-<td style="text-align: left;">suzuka</td>
-<td style="text-align: left;">alphatauri</td>
-<td style="text-align: left;">tsunoda</td>
-<td style="text-align: right;">9</td>
-<td style="text-align: right;">12</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">2023</td>
-<td style="text-align: right;">16</td>
-<td style="text-align: left;">suzuka</td>
 <td style="text-align: left;">haas</td>
 <td style="text-align: left;">hulkenberg</td>
 <td style="text-align: right;">18</td>
@@ -1818,46 +1820,34 @@ Table&nbsp;8: Drivers’ results for Suzuka in 2023 and 2024
 <td style="text-align: right;">16</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">rb</td>
-<td style="text-align: left;">lawson</td>
-<td style="text-align: right;">11</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">rb</td>
-<td style="text-align: left;">tsunoda</td>
-<td style="text-align: right;">12</td>
-<td style="text-align: right;">10</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">sauber</td>
-<td style="text-align: left;">zhou</td>
-<td style="text-align: right;">13</td>
-<td style="text-align: right;">NA</td>
-</tr>
-<tr class="even">
 <td style="text-align: left;">haas</td>
 <td style="text-align: left;">hulkenberg</td>
 <td style="text-align: right;">14</td>
 <td style="text-align: right;">11</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;">haas</td>
 <td style="text-align: left;">kevin_magnussen</td>
 <td style="text-align: right;">15</td>
 <td style="text-align: right;">13</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;">aston_martin</td>
 <td style="text-align: left;">stroll</td>
 <td style="text-align: right;">NA</td>
 <td style="text-align: right;">12</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;">rb</td>
 <td style="text-align: left;">ricciardo</td>
 <td style="text-align: right;">NA</td>
 <td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">rb</td>
+<td style="text-align: left;">tsunoda</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">10</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">red_bull</td>
@@ -1872,12 +1862,18 @@ Table&nbsp;8: Drivers’ results for Suzuka in 2023 and 2024
 <td style="text-align: right;">14</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;">sauber</td>
+<td style="text-align: left;">zhou</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
 <td style="text-align: left;">williams</td>
 <td style="text-align: left;">albon</td>
 <td style="text-align: right;">NA</td>
 <td style="text-align: right;">NA</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td style="text-align: left;">williams</td>
 <td style="text-align: left;">sargeant</td>
 <td style="text-align: right;">NA</td>

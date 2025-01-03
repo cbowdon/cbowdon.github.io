@@ -18,7 +18,7 @@ I gathered CSVs of race data from the fantastic [Ergast](https://ergast.com/mrd/
 #| label: data-loading
 #| warning: false
 library(tidyverse)
-library(knitr)  # this lib is for rendering tables nicely
+library(knitr) # this lib is for rendering tables nicely
 
 qualifying <- read_csv("data/qualifying.csv") |> rename(quali_position = position)
 races <- read_csv("data/races.csv") |>
@@ -29,13 +29,28 @@ constructors <- read_csv("data/constructors.csv") |> select(constructorId, const
 drivers <- read_csv("data/drivers.csv") |> select(driverId, driverRef)
 circuits <- read_csv("data/circuits.csv") |> select(circuitId, circuitRef)
 
+team_colours <- tribble(
+  ~constructorRef, ~team_colour,
+  "red_bull", "#3671c6",
+  "mercedes", "#26f5d2",
+  "ferrari", "#e80220",
+  "mclaren", "#ff8001",
+  "aston_martin", "#229971",
+  "alpine", "#0093cc",
+  "williams", "#63c4ff",
+  "rb", "#6592ff",
+  "sauber", "#52e252",
+  "haas", "#b6babd"
+) |> arrange(constructorRef)
+
 f1data <- races |>
   merge(results) |>
   merge(qualifying) |>
   merge(constructors) |>
+  merge(team_colours) |>
   merge(drivers) |>
   merge(circuits) |>
-  select(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position) |>
+  select(raceId, gp, year, round, circuitRef, constructorRef, driverRef, q1, q2, q3, quali_position, grid, position, team_colour) |>
   mutate(position = ifelse(position == "\\N", NA, as.numeric(position)))
 ```
 
@@ -49,9 +64,10 @@ Let's start with some visualisations of the data we have.
 f2024 <- f1data |> filter(year == 2024)
 
 ggplot(f2024) +
-  aes(x = position) +
-  facet_wrap(vars(driverRef)) +
-  geom_histogram(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
+  aes(x = position, fill = constructorRef) +
+  facet_wrap(~driverRef) +
+  scale_fill_manual(values = team_colours$team_colour) +
+  geom_histogram(alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1, show.legend = FALSE)
 ```
 
 The model goes like this. Points are simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.
@@ -98,10 +114,11 @@ ctr_positions <- f2024 |>
   ) |>
   arrange(round, position)
 
-ggplot(ctr_positions) +
-  aes(x = position) +
-  facet_wrap(vars(constructorRef)) +
-  geom_histogram(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
+ggplot(merge(ctr_positions, team_colours)) +
+  aes(x = position, fill = constructorRef) +
+  facet_wrap(~constructorRef) +
+  scale_fill_manual(values = team_colours$team_colour) +
+  geom_histogram(alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1, show.legend = FALSE)
 ```
 
 A key point here is that we've recalculated positions using only the max driver's position for each constructor, i.e. there are now only 10 finishing positions.
@@ -191,9 +208,10 @@ sample_posterior <- function(fit) {
 
 plot_posterior <- function(fit) {
   ggplot(sample_posterior(fit)) +
-    aes(x = position) +
-    facet_wrap(vars(constructorRef)) +
-    geom_density(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1)
+    aes(x = position, fill = constructorRef) +
+    facet_wrap(~constructorRef) +
+    scale_fill_manual(values = team_colours$team_colour) +
+    geom_density(alpha = 0.5, colour = "black", linewidth = 0.1, show.legend = FALSE)
 }
 
 plot_posterior(fit)
@@ -250,9 +268,10 @@ ctr_positions <- f2024 |>
   arrange(round, position)
 
 ggplot(ctr_positions) +
-  aes(x = position) +
-  facet_wrap(vars(constructorRef)) +
-  geom_histogram(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1)
+  aes(x = position, fill = constructorRef) +
+  facet_wrap(~constructorRef) +
+  scale_fill_manual(values = team_colours$team_colour) +
+  geom_histogram(alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1, show.legend = FALSE)
 ```
 
 That looks more like I'd expect. Let's try Stan again.
@@ -358,9 +377,10 @@ plot_posterior_with_prior <- function(ctrs, prior_mus, prior_sd, fit) {
 
   ggplot(df) +
     aes(x = position, fill = sample) +
-    facet_wrap(vars(constructorRef)) +
-    geom_density(alpha = 0.5, colour = "black", linewidth = 0.1) +
-    scale_x_continuous(breaks = seq(1, 10, by = 2), limits = c(1, 10))
+    facet_wrap(~constructorRef) +
+    geom_density(alpha = 0.5, linewidth = 0.1) +
+    scale_x_continuous(breaks = seq(1, 10, by = 2), limits = c(1, 10)) +
+    scale_fill_manual(values=c("dodgerblue1", "dodgerblue4"))
 }
 
 plot_posterior_with_prior(ctrs, data_list_b$prior_mus, data_list_b$prior_sd, fit.b)
@@ -402,7 +422,7 @@ position_gaps <- f1data |>
 ggplot(position_gaps) +
   aes(x = gap) +
   facet_wrap(vars(circuitRef)) +
-  geom_histogram(fill = "dodgerblue1", alpha=0.5, colour="black", linewidth=0.1, binwidth = 1) +
+  geom_histogram(fill = "dodgerblue1", alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1) +
   geom_vline(mapping = aes(xintercept = median_gap), colour = "dodgerblue4")
 ```
 
