@@ -9,7 +9,7 @@ parameters {
 }
 model {
   lambda ~ uniform(1, 10);
-  positions ~ normal(lambda[ctrs], 1) T[1, 10];
+  positions ~ poisson(lambda[ctrs]) T[1, 10];
 
   // the above "distribution" syntax is equivalent to:
   //target += uniform_lpdf(lambda | 1, 10);

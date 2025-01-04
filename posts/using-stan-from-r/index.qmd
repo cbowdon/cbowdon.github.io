@@ -36,6 +36,10 @@ CmdStanR on the other hand would print something useful. Other aspects of the de
 
 I found installing CmdStanR, Stan and the rest of the toolchain from Macports to be very easy. However your mileage may vary when it comes to getting an R installation from Macports, due to some esoteric g95 and xcode compiler errors. I ended up having to [locate the R and R-group files on my system and edit them](https://trac.macports.org/ticket/71068). Hopefully the Macports team will resolve this, because I really appreciate being able to install R from there.
 
+# Ensure `show_messages` is `TRUE`
+
+For obvious reasons.
+
 # "Rejecting initial value" errors
 
 I got "Rejecting initial value" a lot:
@@ -62,7 +66,7 @@ I don't have a comprehensive understanding of this, but the general idea is that
 
 A simple way to do this is to transform your parameters with the inverse logistic function, which has a range (output) between 0 and 1. You could also pin one of your parameters to a constant, though I found that harder to follow and more difficult to make work.
 
-Here's an example from my F1 project, simplified slightly.
+Here's an example from my [F1 project](/posts/f1-stan/), simplified slightly.
 
 ```
 #| label: stan-constraints-example
@@ -77,7 +81,6 @@ parameters {
   // Raw will be sampled from prior distribution
   vector[n_ctrs] lambda_ctrs_raw;
   vector[n_drvs] lambda_drvs_raw;
-  real<lower=0> sigma;
 }
 transformed parameters {
   // Transformed will be used as the parameter
@@ -92,11 +95,10 @@ transformed parameters {
 model {
   lambda_ctrs_raw ~ std_normal();
   lambda_drvs_raw ~ std_normal();
-  sigma ~ std_normal();
   
   for (k in 1 : n_obs) {
     int i = position_indices[k, 1];
     int j = position_indices[k, 2];
-    positions[k] ~ normal(exp(lambda_ctrs[i] + lambda_drvs[j]), sigma);
+    positions[k] ~ poisson(exp(lambda_ctrs[i] + lambda_drvs[j]));
   }
 ```

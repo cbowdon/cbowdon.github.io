@@ -11,5 +11,5 @@ parameters {
 }
 model {
   lambda ~ normal(prior_mus, prior_sd);
-  positions ~ normal(lambda[ctrs], 1) T[1, 10];
+  positions ~ poisson(lambda[ctrs]) T[1, 10];
 }
