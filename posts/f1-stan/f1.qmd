@@ -1,5 +1,5 @@
 ---
-title: "Latent F1 driver and constructor performance in 2024: fun with Bayesian models"
+title: "Latent F1 team and driver performance: fun with Bayesian models"
 author: "Chris Bowdon"
 date: "2024-12-27"
 categories: [bayesian, r, f1]
@@ -643,7 +643,7 @@ There are some crucial changes. First to ensure the model is identifiable, the r
 #| label: run-drv-ctr-model
 run_stan2 <- function(data_list, model_file = "f1.c.stan") {
   mod <- cmdstan_model(model_file, exe_file = str_c(model_file, ".bin"))
-  mod$sample(data_list, seed = 42, show_messages = TRUE, parallel_chains = 8)
+  mod$sample(data_list, seed = 42, show_messages = FALSE, parallel_chains = 8)
 }
 
 ctrs <- sort(unique(f2024$constructorRef))
