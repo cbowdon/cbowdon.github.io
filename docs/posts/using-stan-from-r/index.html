@@ -219,12 +219,65 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 <li>better status updates (e.g.&nbsp;showing when compiling)</li>
 <li>editor support for stan files e.g.&nbsp;linting</li>
 </ul>
+<p>I found installing CmdStanR, Stan and the rest of the toolchain from Macports to be very easy. However your mileage may vary when it comes to getting an R installation from Macports, due to some esoteric g95 and xcode compiler errors. I ended up having to <a href="https://trac.macports.org/ticket/71068">locate the R and R-group files on my system and edit them</a>. Hopefully the Macports team will resolve this, because I really appreciate being able to install R from there.</p>
 </section>
-<section id="common-errors" class="level1">
-<h1>Common Errors</h1>
-<ul>
-<li>I got “Rejecting initial value” a lot: “log probability evaluates to log(0), i.e.&nbsp;negative infinity”. This is trying to tell you that the default initial value chosen by Stan has a probability of zero in your prior. You need to set constraints in the parameters block that match the prior distribution you choose. For example if you chose a uniform(1, 10) prior, you should add the constraint <code>&lt;lower=1, upper=10&gt;</code> to your parameter declaration.</li>
-</ul>
+<section id="rejecting-initial-value-errors" class="level1">
+<h1>“Rejecting initial value” errors</h1>
+<p>I got “Rejecting initial value” a lot:</p>
+<blockquote class="blockquote">
+<p>log probability evaluates to log(0), i.e.&nbsp;negative infinity</p>
+</blockquote>
+<p>This is trying to tell you that the default initial value chosen by Stan has a probability of zero in your prior. You need to set constraints in the parameters block that match the prior distribution you choose. For example if you chose a uniform(1, 10) prior, you should add the constraint <code>&lt;lower=1, upper=10&gt;</code> to your parameter declaration.</p>
+</section>
+<section id="dont-forget-to-set-parallel_chains" class="level1">
+<h1>Don’t forget to set <code>parallel_chains</code></h1>
+<p>On my system <code>getOption("mc.cores")</code> was unset and Stan defaulted to running all four chains on a single core. Oops. You can also have within-chain parallelism, but I’ve read varying accounts on the usefulness of this (presumably there’s more communication required, which is usually the death of parallelism gains).</p>
+<p>Other software can apparently use GPUs for calculations by the way (e.g.&nbsp;the TensorFlow-based software) so if you have massive calculations to do those may be worth investigating.</p>
+</section>
+<section id="maximum-tree-depth-warnings" class="level1">
+<h1>Maximum tree-depth warnings</h1>
+<p>Hitting maximum tree-depth for the majority of samples was because of an <em>identifiability</em> problem in my model.</p>
+<p>The linked advice within the warning is fairly clear: https://mc-stan.org/misc/warnings#maximum-treedepth. If you’re wondering whether your Rhat and ESS values are good, read higher up that page.</p>
+</section>
+<section id="resolving-unidentified-or-weakly-identified-models" class="level1">
+<h1>Resolving unidentified or weakly-identified models</h1>
+<p>I don’t have a comprehensive understanding of this, but the general idea is that your problem doesn’t have a unique solution, or more precisely there are multiple parameter values that would give the same distribution of observed data. Here’s a dumb example: imagine you are modelling your data as draws from a Normal distribution where the mean is the sum of two parameters, i.e.&nbsp;<code>observations ~ normal(a + b, 1)</code>. If <code>a</code> and <code>b</code> don’t correspond to real phenomena captured in your observations, the values could be all over the place and the model will struggle. You need to constrain the parameters.</p>
+<p>A simple way to do this is to transform your parameters with the inverse logistic function, which has a range (output) between 0 and 1. You could also pin one of your parameters to a constant, though I found that harder to follow and more difficult to make work.</p>
+<p>Here’s an example from my F1 project, simplified slightly.</p>
+<pre><code>#| label: stan-constraints-example
+data {
+  int&lt;lower=1&gt; n_ctrs;
+  int&lt;lower=1&gt; n_drvs;
+  int&lt;lower=1&gt; n_obs;
+  array[n_obs] int&lt;lower=1, upper=20&gt; positions;
+  array[n_obs, 2] int position_indices;
+}
+parameters {
+  // Raw will be sampled from prior distribution
+  vector[n_ctrs] lambda_ctrs_raw;
+  vector[n_drvs] lambda_drvs_raw;
+  real&lt;lower=0&gt; sigma;
+}
+transformed parameters {
+  // Transformed will be used as the parameter
+  vector[n_ctrs] lambda_ctrs;
+  vector[n_drvs] lambda_drvs;
+  
+  // The transformed params can only be between 1 and 10
+  // because the inv_logit function has range [0, 1]
+  lambda_ctrs = 1 + 9 * inv_logit(lambda_ctrs_raw);
+  lambda_drvs = 1 + 9 * inv_logit(lambda_drvs_raw);
+}
+model {
+  lambda_ctrs_raw ~ std_normal();
+  lambda_drvs_raw ~ std_normal();
+  sigma ~ std_normal();
+  
+  for (k in 1 : n_obs) {
+    int i = position_indices[k, 1];
+    int j = position_indices[k, 2];
+    positions[k] ~ normal(exp(lambda_ctrs[i] + lambda_drvs[j]), sigma);
+  }</code></pre>
 
 
 </section>

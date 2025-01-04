@@ -34,6 +34,69 @@ CmdStanR on the other hand would print something useful. Other aspects of the de
 - better status updates (e.g. showing when compiling)
 - editor support for stan files e.g. linting
 
-# Common Errors
+I found installing CmdStanR, Stan and the rest of the toolchain from Macports to be very easy. However your mileage may vary when it comes to getting an R installation from Macports, due to some esoteric g95 and xcode compiler errors. I ended up having to [locate the R and R-group files on my system and edit them](https://trac.macports.org/ticket/71068). Hopefully the Macports team will resolve this, because I really appreciate being able to install R from there.
 
-- I got "Rejecting initial value" a lot: "log probability evaluates to log(0), i.e. negative infinity". This is trying to tell you that the default initial value chosen by Stan has a probability of zero in your prior. You need to set constraints in the parameters block that match the prior distribution you choose. For example if you chose a uniform(1, 10) prior, you should add the constraint `<lower=1, upper=10>` to your parameter declaration.
+# "Rejecting initial value" errors
+
+I got "Rejecting initial value" a lot:
+
+> log probability evaluates to log(0), i.e. negative infinity
+
+This is trying to tell you that the default initial value chosen by Stan has a probability of zero in your prior. You need to set constraints in the parameters block that match the prior distribution you choose. For example if you chose a uniform(1, 10) prior, you should add the constraint `<lower=1, upper=10>` to your parameter declaration.
+
+# Don't forget to set `parallel_chains`
+
+On my system `getOption("mc.cores")` was unset and Stan defaulted to running all four chains on a single core. Oops. You can also have within-chain parallelism, but I've read varying accounts on the usefulness of this (presumably there's more communication required, which is usually the death of parallelism gains).
+
+Other software can apparently use GPUs for calculations by the way (e.g. the TensorFlow-based software) so if you have massive calculations to do those may be worth investigating.
+
+# Maximum tree-depth warnings
+
+Hitting maximum tree-depth for the majority of samples was because of an _identifiability_ problem in my model.
+
+The linked advice within the warning is fairly clear: https://mc-stan.org/misc/warnings#maximum-treedepth. If you're wondering whether your Rhat and ESS values are good, read higher up that page.
+
+# Resolving unidentified or weakly-identified models
+
+I don't have a comprehensive understanding of this, but the general idea is that your problem doesn't have a unique solution, or more precisely there are multiple parameter values that would give the same distribution of observed data. Here's a dumb example: imagine you are modelling your data as draws from a Normal distribution where the mean is the sum of two parameters, i.e. `observations ~ normal(a + b, 1)`. If `a` and `b` don't correspond to real phenomena captured in your observations, the values could be all over the place and the model will struggle. You need to constrain the parameters.
+
+A simple way to do this is to transform your parameters with the inverse logistic function, which has a range (output) between 0 and 1. You could also pin one of your parameters to a constant, though I found that harder to follow and more difficult to make work.
+
+Here's an example from my F1 project, simplified slightly.
+
+```
+#| label: stan-constraints-example
+data {
+  int<lower=1> n_ctrs;
+  int<lower=1> n_drvs;
+  int<lower=1> n_obs;
+  array[n_obs] int<lower=1, upper=20> positions;
+  array[n_obs, 2] int position_indices;
+}
+parameters {
+  // Raw will be sampled from prior distribution
+  vector[n_ctrs] lambda_ctrs_raw;
+  vector[n_drvs] lambda_drvs_raw;
+  real<lower=0> sigma;
+}
+transformed parameters {
+  // Transformed will be used as the parameter
+  vector[n_ctrs] lambda_ctrs;
+  vector[n_drvs] lambda_drvs;
+  
+  // The transformed params can only be between 1 and 10
+  // because the inv_logit function has range [0, 1]
+  lambda_ctrs = 1 + 9 * inv_logit(lambda_ctrs_raw);
+  lambda_drvs = 1 + 9 * inv_logit(lambda_drvs_raw);
+}
+model {
+  lambda_ctrs_raw ~ std_normal();
+  lambda_drvs_raw ~ std_normal();
+  sigma ~ std_normal();
+  
+  for (k in 1 : n_obs) {
+    int i = position_indices[k, 1];
+    int j = position_indices[k, 2];
+    positions[k] ~ normal(exp(lambda_ctrs[i] + lambda_drvs[j]), sigma);
+  }
+```

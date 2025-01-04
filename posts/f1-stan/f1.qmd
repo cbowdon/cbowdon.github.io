@@ -1,5 +1,5 @@
 ---
-title: "Latent F1 constructor performance in 2024: fun with Bayesian models"
+title: "Latent F1 driver and constructor performance in 2024: fun with Bayesian models"
 author: "Chris Bowdon"
 date: "2024-12-27"
 categories: [bayesian, r, f1]
@@ -10,7 +10,7 @@ code-fold: true
 
 For a bit of fun, let's try and model the performance of F1 drivers and constructors using Bayesian models. The aim is to more to learn about using [Stan](https://mc-stan.org) than determine deep truths about F1, since there's far more to performance than we can easily model.
 
-We'll vaguely imitate the f1-metrics model: there are latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga. The general idea is the same.
+We'll vaguely imitate the f1-metrics model: there are latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga.
 
 I gathered CSVs of race data from the fantastic [Ergast](https://ergast.com/mrd/). The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis. You can find the code behind the folds if you want to play along.
 
@@ -29,8 +29,37 @@ constructors <- read_csv("data/constructors.csv") |> select(constructorId, const
 drivers <- read_csv("data/drivers.csv") |> select(driverId, driverRef)
 circuits <- read_csv("data/circuits.csv") |> select(circuitId, circuitRef)
 
-team_colours <- tribble(
-  ~constructorRef, ~team_colour,
+ctr_drvs <- tribble(
+  ~constructorRef, ~driverRef,
+  "alpine", "doohan",
+  "alpine", "gasly",
+  "alpine", "ocon",
+  "aston_martin", "alonso",
+  "aston_martin", "stroll",
+  "ferrari", "bearman",
+  "ferrari", "leclerc",
+  "ferrari", "sainz",
+  "haas", "bearman",
+  "haas", "hulkenberg",
+  "haas", "kevin_magnussen",
+  "mclaren", "norris",
+  "mclaren", "piastri",
+  "mercedes", "hamilton",
+  "mercedes", "russell",
+  "rb", "lawson",
+  "rb", "ricciardo",
+  "rb", "tsunoda",
+  "red_bull", "max_verstappen",
+  "red_bull", "perez",
+  "sauber", "bottas",
+  "sauber", "zhou",
+  "williams", "albon",
+  "williams", "colapinto",
+  "williams", "sargeant",
+)
+
+ctr_colours <- tribble(
+  ~constructorRef, ~colour,
   "red_bull", "#3671c6",
   "mercedes", "#26f5d2",
   "ferrari", "#e80220",
@@ -41,7 +70,16 @@ team_colours <- tribble(
   "rb", "#6592ff",
   "sauber", "#52e252",
   "haas", "#b6babd"
-) |> arrange(constructorRef)
+) |>
+  arrange(constructorRef)
+
+drv_colours <- ctr_colours |>
+  merge(ctr_drvs) |>
+  group_by(driverRef) |>
+  arrange(constructorRef) |>
+  slice_head(n = 1) |>  # alphabetical first for multi-team drivers i.e. Bearman
+  select(driverRef, colour) |>
+  arrange(driverRef)
 
 f1data <- races |>
   merge(results) |>
@@ -63,9 +101,9 @@ Let's start with some visualisations of the data we have.
 f2024 <- f1data |> filter(year == 2024)
 
 ggplot(f2024) +
-  aes(x = position, fill = constructorRef) +
+  aes(x = position, fill = driverRef) +
   facet_wrap(~driverRef) +
-  scale_fill_manual(values = team_colours$team_colour) +
+  scale_fill_manual(values = drv_colours$colour) +
   geom_histogram(alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1, show.legend = FALSE)
 ```
 
@@ -116,7 +154,7 @@ ctr_positions <- f2024 |>
 ggplot(ctr_positions) +
   aes(x = position, fill = constructorRef) +
   facet_wrap(~constructorRef) +
-  scale_fill_manual(values = team_colours$team_colour) +
+  scale_fill_manual(values = ctr_colours$colour) +
   geom_histogram(alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1, show.legend = FALSE)
 ```
 
@@ -206,10 +244,12 @@ sample_posterior <- function(fit) {
 }
 
 plot_posterior <- function(fit) {
-  means <- sample_posterior(fit) |> group_by(constructorRef) |> summarise(mu = mean(position))
+  means <- sample_posterior(fit) |>
+    group_by(constructorRef) |>
+    summarise(mu = mean(position))
   ggplot(sample_posterior(fit)) +
     aes(x = position, fill = constructorRef) +
-    scale_fill_manual(values = team_colours$team_colour) +
+    scale_fill_manual(values = ctr_colours$colour) +
     geom_density(alpha = 0.5, colour = "black", linewidth = 0.1)
 }
 
@@ -269,7 +309,7 @@ ctr_positions <- f2024 |>
 ggplot(ctr_positions) +
   aes(x = position, fill = constructorRef) +
   facet_wrap(~constructorRef) +
-  scale_fill_manual(values = team_colours$team_colour) +
+  scale_fill_manual(values = ctr_colours$colour) +
   geom_histogram(alpha = 0.5, colour = "black", linewidth = 0.1, binwidth = 1, show.legend = FALSE)
 ```
 
@@ -381,7 +421,7 @@ plot_posterior_with_prior <- function(ctrs, prior_mus, prior_sd, fit) {
     facet_wrap(~constructorRef) +
     geom_density(alpha = 0.5, linewidth = 0.1) +
     scale_x_continuous(breaks = seq(1, 10, by = 2), limits = c(1, 10)) +
-    scale_fill_manual(values=c("dodgerblue1", "dodgerblue4"))
+    scale_fill_manual(values = c("dodgerblue1", "dodgerblue4"))
 }
 
 plot_posterior_with_prior(ctrs, data_list_b$prior_mus, data_list_b$prior_sd, fit.b)
@@ -588,5 +628,103 @@ sp |>
 ```
 
 Most teams didn't move far from their priors. I'd draw similar conclusions to before: the McLaren was fastest, Red Bull was a close second, and Ferrari were close behind.
+
+# Reintroducing driver skill
+
+Simple model achieved, let's push on to something more complex i.e. the originally described model. Here it is:
+
+```
+{{< include f1.c.stan >}}
+```
+
+There are some crucial changes. First to ensure the model is identifiable, the raw skill parameters are constrained to [0, 1] with an inverse logistic transform. Second, I've tried to arrange it so that the skill parameters are interpretable in terms of positions gained/lost. The idea is that a negative skill for a car/driver means it is more likely to finish in a lower position (i.e. closer to first place).
+
+```{r}
+#| label: run-drv-ctr-model
+run_stan2 <- function(data_list, model_file = "f1.c.stan") {
+  mod <- cmdstan_model(model_file, exe_file = str_c(model_file, ".bin"))
+  mod$sample(data_list, seed = 42, show_messages = TRUE, parallel_chains = 8)
+}
+
+ctrs <- sort(unique(f2024$constructorRef))
+drvs <- sort(unique(f2024$driverRef))
+
+ctr_index <- tibble(constructorRef = ctrs, ctr_idx = 1:n_distinct(ctrs))
+drv_index <- tibble(driverRef = drvs, drv_idx = 1:n_distinct(drvs))
+
+ctr_drv_positions <- f2024 |>
+  select(constructorRef, driverRef, position) |>
+  arrange(constructorRef, driverRef) |>
+  merge(ctr_index) |>
+  merge(drv_index) |>
+  drop_na()
+
+sample_posterior2 <- function(fit) {
+  ctrs <- sort(unique(ctr_drv_positions$constructorRef))
+  drvs <- sort(unique(ctr_drv_positions$driverRef))
+  df_ctrs <- fit$draws("lambda_ctrs_raw", format = "draws_matrix") |> as_tibble()
+  colnames(df_ctrs) <- ctrs
+
+  df_drvs <- fit$draws("lambda_drvs_raw", format = "draws_matrix") |> as_tibble()
+  colnames(df_drvs) <- drvs
+
+  list(
+    ctrs = df_ctrs |>
+      pivot_longer(
+        all_of(ctrs),
+        names_to = "constructorRef", values_to = "position"
+      ) |>
+      mutate(position = as.double(position)),
+    drvs = df_drvs |>
+      pivot_longer(
+        all_of(drvs),
+        names_to = "driverRef", values_to = "position"
+      ) |>
+      mutate(position = as.double(position))
+  )
+}
+
+fit.c <- run_stan2(
+  list(
+    n_ctrs = n_distinct(ctrs),
+    n_drvs = n_distinct(drvs),
+    n_obs = nrow(ctr_drv_positions),
+    ctr_mus = 0.2 * (-5 + suzuka_positions$position), # shift to centre on 0
+    ctr_sd = 0.2,
+    positions = ctr_drv_positions$position,
+    position_indices = ctr_drv_positions |> select(ctr_idx, drv_idx) |> as.matrix()
+  )
+)
+```
+
+Let's first have a look at the constructor performance as determined by the model.
+
+```{r}
+#| label: fig-ctr-perf
+#| fig-cap: Constructor performance parameters determined by model. Lower is better.
+posterior_ctrs <- sample_posterior2(fit.c)$ctrs
+ggplot(posterior_ctrs) +
+  aes(x = position, fill = constructorRef) +
+  facet_wrap(~constructorRef) +
+  scale_fill_manual(values=ctr_colours$colour) +
+  geom_density(alpha = 0.5, colour = "black", linewidth = 0.2, show.legend = FALSE)
+```
+
+The model suggests - perhaps controversially - that the Red Bull was the fastest car, followed by Ferrari and _then_ the McLaren. It suggests that being in one of those three, Mercedes, or Aston Martin, would gain you positions relative to the field and anything else you would lose positions, which does seem reasonable.
+
+Forgive me for not labelling the drivers on this next plot, but it's usually obvious which is which.
+
+```{r}
+#| label: fig-drv-perf
+#| fig-cap: Driver performance parameters determined by model. Lower is better.
+posterior_drvs <- sample_posterior2(fit.c)$drvs |> merge(ctr_drvs)
+ggplot(posterior_drvs) +
+  aes(x = position, fill = driverRef) +
+  facet_wrap(~constructorRef) +
+  scale_fill_manual(values=drv_colours$colour) +
+  geom_density(alpha = 0.5, colour = "black", linewidth = 0.2, show.legend=FALSE)
+```
+
+The model suggests that the top drivers performed similarly, with Verstappen fastest. Perez isn't considered so slow: but this could be because I removed all DNFs, flattering Perez.
 
 More on this later.
