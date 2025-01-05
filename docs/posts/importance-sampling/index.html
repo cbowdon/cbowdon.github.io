@@ -6,7 +6,6 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Chris Bowdon">
 <meta name="dcterms.date" content="2024-12-23">
 
 <title>Importance Sampling – Chris Bowdon</title>
@@ -232,12 +231,6 @@ window.Quarto = {
   
   <div class="quarto-title-meta">
 
-      <div>
-      <div class="quarto-title-meta-heading">Author</div>
-      <div class="quarto-title-meta-contents">
-               <p>Chris Bowdon </p>
-            </div>
-    </div>
       
       <div>
       <div class="quarto-title-meta-heading">Published</div>
@@ -266,8 +259,8 @@ window.Quarto = {
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The aim of this post is to teach myself basic Bayesian methods. I’ll set up a toy example problem and solve it.</p>
-<p>Let’s assume we have a natural event that happens with a variable periodicity e.g.&nbsp;a woman’s menstrual cycle. I’m drawing from <a href="https://www.sumsar.net/blog/2015/11/a-bayesian-model-to-calculate-whether-my-wife-is-pregnant/">this excellent blog</a>, but doing a much simpler model because I am but a baby.</p>
-<p>The aim here is to see if we can find the mean period of the specific woman’s menstrual cycle given some samples and priors for the average cycle. First, priors from the blog linked above:</p>
+<p>Let’s assume we have a natural event that happens with a variable periodicity e.g.&nbsp;a woman’s menstrual cycle. I’m drawing from <a href="https://www.sumsar.net/blog/2015/11/a-bayesian-model-to-calculate-whether-my-wife-is-pregnant/">this excellent blog on predicting a pregnancy</a>, but doing a much simpler model because I am but a baby myself.</p>
+<p>The aim here is to see if we can find the mean period of the cycle given some samples and priors for the average cycle. First, priors from the blog linked above:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a normal distribution for the mean days between period starts</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>prior_mean_mu <span class="ot">&lt;-</span> <span class="fl">27.7</span></span>
@@ -402,8 +395,8 @@ window.Quarto = {
 <p>If the proposal distribution is thinner at the ends than the target distribution, this is suboptimal because we will have fewer samples there. So a T distribution is a useful proposal for a normal target, because it has fatter tails (as controlled by the <code>df</code> degrees of freedom parameter).</p>
 <p>We could choose a very sloppy proposal like a uniform distribution, but in that case we are suboptimal in terms of how quickly we explore the space. We would have a relatively high number of samples in the tails compared to the peak. Bååth has a neat method of using a Laplacian approximation as a proposal.</p>
 </section>
-<section id="aki-another-example" class="level2">
-<h2 class="anchored" data-anchor-id="aki-another-example">Aki, another example</h2>
+<section id="quick-look-at-another-example" class="level2">
+<h2 class="anchored" data-anchor-id="quick-look-at-another-example">Quick look at another example</h2>
 <p>Now an example from <a href="https://david-salazar.github.io/posts/bayesian-statistics/2020-06-27-bayesian-data-analysis-week-4-importance-sampling.html">this blog post</a>. This one uses a T as the proposal.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>approx_samples <span class="ot">&lt;-</span> <span class="fu">rt</span>(<span class="dv">100</span>, <span class="at">df =</span> <span class="dv">3</span>)  <span class="co"># T with 3 deg free is our approximation to posterior</span></span>
@@ -429,6 +422,7 @@ window.Quarto = {
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>mean_estimate <span class="ot">&lt;-</span> <span class="fu">sum</span>(approx_samples <span class="sc">*</span> weights)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p>The point of using the Student T distribution as the proposal is to have a proposal with better coverage of the tails.</p>
 
 
 </section>
