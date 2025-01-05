@@ -6,9 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-12-26">
 
-<title>Using Stan from R – Chris Bowdon</title>
+<title>About – Chris Bowdon</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -24,22 +23,22 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../../">
-<script src="../../site_libs/quarto-html/quarto.js"></script>
-<script src="../../site_libs/quarto-html/popper.min.js"></script>
-<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2486e1f0a3ee9ee1fc393803a1361cdb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-5462d0dc975739fea4b7814f85fabdb2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-2486e1f0a3ee9ee1fc393803a1361cdb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-5462d0dc975739fea4b7814f85fabdb2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -79,7 +78,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 
 
 <link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="Using Stan from R – Chris Bowdon">
+<meta property="og:title" content="About – Chris Bowdon">
 <meta property="og:description" content="">
 <meta property="og:site_name" content="Chris Bowdon">
 </head>
@@ -87,11 +86,11 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 <body class="nav-fixed fullcontent">
 
 <div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+  <header id="quarto-header" class="headroom fixed-top">
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="../../index.html">
+    <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">Chris Bowdon</span>
     </a>
   </div>
@@ -102,7 +101,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../../index.html"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Posts</span></a>
   </li>  
   <li class="nav-item dropdown ">
@@ -115,7 +114,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
  <span class="dropdown-text">Medium posts</span></a>
   </li>  
         <li>
-    <a class="dropdown-item" href="../../proxy.html">
+    <a class="dropdown-item" href="./proxy.html">
  <span class="dropdown-text">Working with (around) proxies</span></a>
   </li>  
     </ul>
@@ -136,7 +135,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
     </ul>
   </li>
   <li class="nav-item">
-    <a class="nav-link" href="../../about.html"> 
+    <a class="nav-link active" href="./about.html" aria-current="page"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -154,132 +153,36 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
     </nav>
 </header>
 <!-- content -->
-<header id="title-block-header" class="quarto-title-block default page-columns page-full">
-  <div class="quarto-title-banner page-columns page-full">
-    <div class="quarto-title column-body">
-      <h1 class="title">Using Stan from R</h1>
-                                <div class="quarto-categories">
-                <div class="quarto-category">bayesian</div>
-                <div class="quarto-category">r</div>
-                <div class="quarto-category">stan</div>
-              </div>
-                  </div>
-  </div>
-    
-  
-  <div class="quarto-title-meta">
-
-      
-      <div>
-      <div class="quarto-title-meta-heading">Published</div>
-      <div class="quarto-title-meta-contents">
-        <p class="date">December 26, 2024</p>
-      </div>
-    </div>
-    
-      
-    </div>
-    
-  
-  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
 <!-- main -->
-<main class="content quarto-banner-title-block" id="quarto-document-content">
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">About</h1>
+</div>
 
 
 
+<div class="quarto-title-meta">
 
-
-<p>I’ve been trying to get the hang of Bayesian models with Stan. One of the hurdles has been using Stan from R, so in this post I’m jotting down what I’ve learned (mostly the hard way).</p>
-<section id="rstan-or-cmdstanr" class="level1">
-<h1>RStan or CmdStanR?</h1>
-<p>On the whole I had a much better time using <code>CmdStanR</code> than <code>RStan</code>. When I made a mistake that led to a runtime exception, RStan would simply die with this kind of error:</p>
-<pre><code>Error in `unserialize()`:
-! error reading from connection
-     ▆
-  1. └─rstan::stan(...)
-  2.   ├─rstan::sampling(...)
-  3.   └─rstan::sampling(...)
-  4.     └─rstan (local) .local(object, ...)
-  5.       └─parallel::parLapplyLB(cl, X = 1:chains, fun = callFun)
-  6.         ├─base::do.call(...)
-  7.         └─parallel::clusterApplyLB(...)
-  8.           └─parallel:::dynamicClusterApply(cl, fun, length(x), argfun)
-  9.             └─parallel:::recvOneResult(cl)
- 10.               ├─parallel::recvOneData(cl)
- 11.               └─parallel:::recvOneData.SOCKcluster(cl)
- 12.                 └─base::unserialize(socklist[[n]])</code></pre>
-<p>CmdStanR on the other hand would print something useful. Other aspects of the development experience were also nicer:</p>
-<ul>
-<li>better status updates (e.g.&nbsp;showing when compiling)</li>
-<li>editor support for stan files e.g.&nbsp;linting</li>
-</ul>
-<p>I found installing CmdStanR, Stan and the rest of the toolchain from Macports to be very easy. However your mileage may vary when it comes to getting an R installation from Macports, due to some esoteric g95 and xcode compiler errors. I ended up having to <a href="https://trac.macports.org/ticket/71068">locate the R and R-group files on my system and edit them</a>. Hopefully the Macports team will resolve this, because I really appreciate being able to install R from there.</p>
-</section>
-<section id="ensure-show_messages-is-true" class="level1">
-<h1>Ensure <code>show_messages</code> is <code>TRUE</code></h1>
-<p>For obvious reasons.</p>
-</section>
-<section id="rejecting-initial-value-errors" class="level1">
-<h1>“Rejecting initial value” errors</h1>
-<p>I got “Rejecting initial value” a lot:</p>
-<blockquote class="blockquote">
-<p>log probability evaluates to log(0), i.e.&nbsp;negative infinity</p>
-</blockquote>
-<p>This is trying to tell you that the default initial value chosen by Stan has a probability of zero in your prior. You need to set constraints in the parameters block that match the prior distribution you choose. For example if you chose a uniform(1, 10) prior, you should add the constraint <code>&lt;lower=1, upper=10&gt;</code> to your parameter declaration.</p>
-</section>
-<section id="dont-forget-to-set-parallel_chains" class="level1">
-<h1>Don’t forget to set <code>parallel_chains</code></h1>
-<p>On my system <code>getOption("mc.cores")</code> was unset and Stan defaulted to running all four chains on a single core. Oops. You can also have within-chain parallelism, but I’ve read varying accounts on the usefulness of this (presumably there’s more communication required, which is usually the death of parallelism gains).</p>
-<p>Other software can apparently use GPUs for calculations by the way (e.g.&nbsp;the TensorFlow-based software) so if you have massive calculations to do those may be worth investigating.</p>
-</section>
-<section id="maximum-tree-depth-warnings" class="level1">
-<h1>Maximum tree-depth warnings</h1>
-<p>Hitting maximum tree-depth for the majority of samples was because of an <em>identifiability</em> problem in my model.</p>
-<p>The linked advice within the warning is fairly clear: https://mc-stan.org/misc/warnings#maximum-treedepth. If you’re wondering whether your Rhat and ESS values are good, read higher up that page.</p>
-</section>
-<section id="resolving-unidentified-or-weakly-identified-models" class="level1">
-<h1>Resolving unidentified or weakly-identified models</h1>
-<p>I don’t have a comprehensive understanding of this, but the general idea is that your problem doesn’t have a unique solution, or more precisely there are multiple parameter values that would give the same distribution of observed data. Here’s a dumb example: imagine you are modelling your data as draws from a Normal distribution where the mean is the sum of two parameters, i.e.&nbsp;<code>observations ~ normal(a + b, 1)</code>. If <code>a</code> and <code>b</code> don’t correspond to real phenomena captured in your observations, the values could be all over the place and the model will struggle. You need to constrain the parameters.</p>
-<p>A simple way to do this is to transform your parameters with the inverse logistic function, which has a range (output) between 0 and 1. You could also pin one of your parameters to a constant, though I found that harder to follow and more difficult to make work.</p>
-<p>Here’s an example from my <a href="../../posts/f1-stan/">F1 project</a>, simplified slightly.</p>
-<pre><code>#| label: stan-constraints-example
-data {
-  int&lt;lower=1&gt; n_ctrs;
-  int&lt;lower=1&gt; n_drvs;
-  int&lt;lower=1&gt; n_obs;
-  array[n_obs] int&lt;lower=1, upper=20&gt; positions;
-  array[n_obs, 2] int position_indices;
-}
-parameters {
-  // Raw will be sampled from prior distribution
-  vector[n_ctrs] lambda_ctrs_raw;
-  vector[n_drvs] lambda_drvs_raw;
-}
-transformed parameters {
-  // Transformed will be used as the parameter
-  vector[n_ctrs] lambda_ctrs;
-  vector[n_drvs] lambda_drvs;
+    
   
-  // The transformed params can only be between 1 and 10
-  // because the inv_logit function has range [0, 1]
-  lambda_ctrs = 1 + 9 * inv_logit(lambda_ctrs_raw);
-  lambda_drvs = 1 + 9 * inv_logit(lambda_drvs_raw);
-}
-model {
-  lambda_ctrs_raw ~ std_normal();
-  lambda_drvs_raw ~ std_normal();
+    
+  </div>
   
-  for (k in 1 : n_obs) {
-    int i = position_indices[k, 1];
-    int j = position_indices[k, 2];
-    positions[k] ~ poisson(exp(lambda_ctrs[i] + lambda_drvs[j]));
-  }</code></pre>
 
 
-</section>
+</header>
+
+
+<p>This is the personal blog of Chris Bowdon. Hi! By day I am the CTO of Polecat Intelligence, working with AI and Big Data, but you will be shocked to learn that I am also into maths and code. The posts here cover the bits and pieces I do that are not for work.</p>
+<p>If you’d like to get in touch, please look me up on LinkedIn.</p>
+
+
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

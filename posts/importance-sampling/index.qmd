@@ -1,6 +1,5 @@
 ---
 title: "Importance Sampling"
-author: "Chris Bowdon"
 date: "2024-12-23"
 categories: [bayesian, r]
 ---
@@ -13,9 +12,9 @@ set.seed(42)
 
 The aim of this post is to teach myself basic Bayesian methods. I'll set up a toy example problem and solve it.
 
-Let's assume we have a natural event that happens with a variable periodicity e.g. a woman's menstrual cycle. I'm drawing from [this excellent blog](https://www.sumsar.net/blog/2015/11/a-bayesian-model-to-calculate-whether-my-wife-is-pregnant/), but doing a much simpler model because I am but a baby.
+Let's assume we have a natural event that happens with a variable periodicity e.g. a woman's menstrual cycle. I'm drawing from [this excellent blog on predicting a pregnancy](https://www.sumsar.net/blog/2015/11/a-bayesian-model-to-calculate-whether-my-wife-is-pregnant/), but doing a much simpler model because I am but a baby myself.
 
-The aim here is to see if we can find the mean period of the specific woman's menstrual cycle given some samples and priors for the average cycle. First, priors from the blog linked above:
+The aim here is to see if we can find the mean period of the cycle given some samples and priors for the average cycle. First, priors from the blog linked above:
 
 ```{r}
 # a normal distribution for the mean days between period starts
@@ -126,7 +125,7 @@ If the proposal distribution is thinner at the ends than the target distribution
 
 We could choose a very sloppy proposal like a uniform distribution, but in that case we are suboptimal in terms of how quickly we explore the space. We would have a relatively high number of samples in the tails compared to the peak. Bååth has a neat method of using a Laplacian approximation as a proposal.
 
-## Aki, another example
+## Quick look at another example
 
 Now an example from [this blog post](https://david-salazar.github.io/posts/bayesian-statistics/2020-06-27-bayesian-data-analysis-week-4-importance-sampling.html). This one uses a T as the proposal.
 
@@ -149,3 +148,5 @@ weights <- exp(log_imp_weights) / sum(exp(log_imp_weights))
 
 mean_estimate <- sum(approx_samples * weights)
 ```
+
+The point of using the Student T distribution as the proposal is to have a proposal with better coverage of the tails.

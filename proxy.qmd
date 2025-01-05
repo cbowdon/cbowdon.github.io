@@ -3,6 +3,7 @@ title: "Working with (around) proxies"
 format: html
 execute:
   enabled: false
+freeze: true
 ---
 
 N.B. This article is ten years old and certainly does not represent best practices in the 2020s.

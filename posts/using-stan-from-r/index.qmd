@@ -1,6 +1,5 @@
 ---
 title: "Using Stan from R"
-author: "Chris Bowdon"
 date: "2024-12-26"
 categories: [bayesian, r, stan]
 ---

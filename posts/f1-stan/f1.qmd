@@ -1,8 +1,7 @@
 ---
 title: "Latent F1 team and driver performance: fun with Bayesian models"
-author: "Chris Bowdon"
 date: "2024-12-27"
-categories: [bayesian, r, f1]
+categories: [bayesian, r, f1, stan]
 warning: false
 freeze: false
 code-fold: true

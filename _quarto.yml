@@ -10,20 +10,22 @@ website:
       - icon: github
         href: https://github.com/cbowdon
     left:
-      - text: Index
+      - text: Posts
         href: index.qmd
+      - text: Rather Old Posts
+        menu:
+          - text: Medium posts
+            href: https://medium.com/@cbowdon
+          - text: Working with (around) proxies
+            href: proxy.qmd
       - text: "Open Source Software"
         menu:
           - text: "TsMonad"
             href: https://github.com/cbowdon/TsMonad
           - text: daemons.el
             href: https://github.com/cbowdon/daemons.el
-      - text: Very Old Posts
-        menu:
-          - text: Medium posts
-            href: https://medium.com/@cbowdon
-          - text: Working with (around) proxies
-            href: proxy.qmd
+      - text: About
+        href: about.qmd
   google-analytics: G-QC160P51EN
   open-graph: true
         

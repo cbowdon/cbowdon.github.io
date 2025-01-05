@@ -1,0 +1,11 @@
+---
+title: "About"
+format: html
+execute:
+  enabled: false
+freeze: true
+---
+
+This is the personal blog of Chris Bowdon. Hi! By day I am the CTO of Polecat Intelligence, working with AI and Big Data, but you will be shocked to learn that I am also into maths and code. The posts here cover the bits and pieces I do that are not for work.
+
+If you'd like to get in touch, please look me up on LinkedIn.

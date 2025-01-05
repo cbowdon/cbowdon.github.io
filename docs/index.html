@@ -161,8 +161,23 @@ window.Quarto = {
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
     <a class="nav-link active" href="./index.html" aria-current="page"> 
-<span class="menu-text">Index</span></a>
+<span class="menu-text">Posts</span></a>
   </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-rather-old-posts" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Rather Old Posts</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-rather-old-posts">    
+        <li>
+    <a class="dropdown-item" href="https://medium.com/@cbowdon">
+ <span class="dropdown-text">Medium posts</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./proxy.html">
+ <span class="dropdown-text">Working with (around) proxies</span></a>
+  </li>  
+    </ul>
+  </li>
   <li class="nav-item dropdown ">
     <a class="nav-link dropdown-toggle" href="#" id="nav-menu-open-source-software" role="link" data-bs-toggle="dropdown" aria-expanded="false">
  <span class="menu-text">Open Source Software</span>
@@ -178,21 +193,10 @@ window.Quarto = {
   </li>  
     </ul>
   </li>
-  <li class="nav-item dropdown ">
-    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-very-old-posts" role="link" data-bs-toggle="dropdown" aria-expanded="false">
- <span class="menu-text">Very Old Posts</span>
-    </a>
-    <ul class="dropdown-menu" aria-labelledby="nav-menu-very-old-posts">    
-        <li>
-    <a class="dropdown-item" href="https://medium.com/@cbowdon">
- <span class="dropdown-text">Medium posts</span></a>
+  <li class="nav-item">
+    <a class="nav-link" href="./about.html"> 
+<span class="menu-text">About</span></a>
   </li>  
-        <li>
-    <a class="dropdown-item" href="./proxy.html">
- <span class="dropdown-text">Working with (around) proxies</span></a>
-  </li>  
-    </ul>
-  </li>
 </ul>
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
@@ -229,7 +233,7 @@ window.Quarto = {
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         
-    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(3)</span></div><div class="category" data-category="YmF5ZXNpYW4=">bayesian <span class="quarto-category-count">(3)</span></div><div class="category" data-category="ZjE=">f1 <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cg==">r <span class="quarto-category-count">(3)</span></div><div class="category" data-category="c3Rhbg==">stan <span class="quarto-category-count">(1)</span></div></div></div>
+    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(3)</span></div><div class="category" data-category="YmF5ZXNpYW4=">bayesian <span class="quarto-category-count">(3)</span></div><div class="category" data-category="ZjE=">f1 <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cg==">r <span class="quarto-category-count">(3)</span></div><div class="category" data-category="c3Rhbg==">stan <span class="quarto-category-count">(2)</span></div></div></div>
 <!-- main -->
 <main class="content quarto-banner-title-block column-page-left" id="quarto-document-content">
 
@@ -243,7 +247,7 @@ window.Quarto = {
 
 <div class="quarto-listing quarto-listing-container-default" id="listing-listing">
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="YmF5ZXNpYW4scixmMQ==" data-listing-date-sort="1735257600000" data-listing-file-modified-sort="1736072637866" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="22" data-listing-word-count-sort="4392">
+<div class="quarto-post image-right" data-index="0" data-categories="YmF5ZXNpYW4scixmMSxzdGFu" data-listing-date-sort="1735257600000" data-listing-file-modified-sort="1736073802786" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="22" data-listing-word-count-sort="4392">
 <div class="thumbnail">
 <p><a href="./posts/f1-stan/f1.html" class="no-external"></a></p><a href="./posts/f1-stan/f1.html" class="no-external">
 <p class="card-img-top"><img src="posts/f1-stan/f1_files/figure-html/fig-data-2024-1.png"  class="thumbnail-image card-img"/></p>
@@ -266,6 +270,9 @@ r
 <div class="listing-category" onclick="window.quartoListingCategory('ZjE='); return false;">
 f1
 </div>
+<div class="listing-category" onclick="window.quartoListingCategory('c3Rhbg=='); return false;">
+stan
+</div>
 </div>
 <div class="listing-description">
 <a href="./posts/f1-stan/f1.html" class="no-external">For a bit of fun, let’s try and model the performance of F1 drivers and constructors in the 2024 season using Bayesian models. The aim is to more to learn about using Stan th…</a>
@@ -276,13 +283,10 @@ f1
 <div class="listing-date">
 Dec 27, 2024
 </div>
-<div class="listing-author">
-Chris Bowdon
-</div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="1" data-categories="YmF5ZXNpYW4scixzdGFu" data-listing-date-sort="1735171200000" data-listing-file-modified-sort="1736010089270" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="5" data-listing-word-count-sort="833">
+<div class="quarto-post image-right" data-index="1" data-categories="YmF5ZXNpYW4scixzdGFu" data-listing-date-sort="1735171200000" data-listing-file-modified-sort="1736073815619" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="5" data-listing-word-count-sort="833">
 <div class="thumbnail">
 <p><a href="./posts/using-stan-from-r/index.html" class="no-external"></a></p><a href="./posts/using-stan-from-r/index.html" class="no-external">
 <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
@@ -315,13 +319,10 @@ stan
 <div class="listing-date">
 Dec 26, 2024
 </div>
-<div class="listing-author">
-Chris Bowdon
-</div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="2" data-categories="YmF5ZXNpYW4scg==" data-listing-date-sort="1734912000000" data-listing-file-modified-sort="1735244355749" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="4" data-listing-word-count-sort="760">
+<div class="quarto-post image-right" data-index="2" data-categories="YmF5ZXNpYW4scg==" data-listing-date-sort="1734912000000" data-listing-file-modified-sort="1736074020749" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="4" data-listing-word-count-sort="785">
 <div class="thumbnail">
 <p><a href="./posts/importance-sampling/index.html" class="no-external"></a></p><a href="./posts/importance-sampling/index.html" class="no-external">
 <p class="card-img-top"><img src="posts/importance-sampling/index_files/figure-html/unnamed-chunk-6-1.png"  class="thumbnail-image card-img"/></p>
@@ -350,9 +351,6 @@ r
 <a href="./posts/importance-sampling/index.html" class="no-external">
 <div class="listing-date">
 Dec 23, 2024
-</div>
-<div class="listing-author">
-Chris Bowdon
 </div>
 </a>
 </div>
