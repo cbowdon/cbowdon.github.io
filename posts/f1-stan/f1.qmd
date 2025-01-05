@@ -777,6 +777,35 @@ The model suggests that the top drivers performed similarly, with Verstappen fas
 
 There are some obvious issues though. Alonso is considered only the 15th best performer out of 24, which is absurd. This could be because the Suzuka prior placed Aston Martin ahead of Mercedes whereas they actually finished the season well behind.
 
+If the informative prior is so bad, why don't we just use uninformative priors? If we do that the model will not be willing/able to distinguish the contribution from cars and drivers. We need a better prior.
+
 There will also be some effect from the way I've simply excluded DNFs rather than penalising driver-fault DNFs.
 
-More on this later.
+# Weaknesses of this model
+
+To an extent I'm just role-playing being Dr Phillips here, so your number one takeaway should be: prefer the F1 Metrics model or the Bell et al. (2016) model, which is a much more sophisticated Bayesian model. If you are seriously interested in estimating driver performance, please check those out.
+
+Nonetheless, there are some obvious weaknesses in this model that it's worth highlighting.
+
+## Use of positions rather than points
+
+Phillips makes a good argument for a non-linear reward function, for it punishes drivers more fairly for DNFs. That would be an improvement here.
+
+## No assignment of DNF blame
+
+I've just discarded all that data, which flatters the DNF-prone drivers. Though I note that the drivers near the bottom of the performance rankings in my model were more DNF-prone in 2024 anyway, so perhaps there's a correlation between low performance and DNFs, or those drivers had some races where they wounded the car but finished anyway.
+
+## Only a single season considered
+
+With more data for each driver - across different cars - the model would be better able to distinguish driver and car performance. Note that it would be necessary to model each constructor by year because the car performance varies so much.
+
+This suggests that we might benefit from having multiple representations of car performance within each year, e.g. splitting each team into A and B specs according to when they brought their largest upgrade. The challenge with that (apart from the tedious business of determining the break points) is that we'd have less data for each car and also there are perhaps several step changes in performance throughout the season.
+
+# Summing it all up
+
+What did we learn?
+
+1. How to use Stan to sample the posterior for a Bayesian model in R.
+2. Very little about F1.
+
+Perhaps point 2 is under-selling a little, since we did learn that Suzuka is quite good for assessing relative constructor performance, and the model turned out some reasonable results for car and driver performance. There are some major caveats of couse, but it is the kind of model we could build on. An obvious future step is to look at the other car-limited tracks - hopefully some that are at a different point in the season and have more slow corners than Suzuka - and make the prior a combination of results at these tracks. If I try that out in future I'll be sure to post an update here.
