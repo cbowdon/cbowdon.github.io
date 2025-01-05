@@ -259,7 +259,7 @@ window.Quarto = {
 
 
 <p>For a bit of fun, let’s try and model the performance of F1 drivers and constructors in the 2024 season using Bayesian models. The aim is to more to learn about using <a href="https://mc-stan.org">Stan</a> than determine deep truths about F1, since there’s far more to performance than we can easily model.</p>
-<p>We’ll vaguely imitate the superb <a href="https://f1metrics.wordpress.com">f1-metrics</a> model: there are latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing <a href="https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/">Rasmus Bååth’s blog</a> where he models the latent skill of football teams in La Liga.</p>
+<p>We’ll vaguely imitate the <a href="https://f1metrics.wordpress.com">f1-metrics</a> model, which I used to eagerly await after each season. In this model there are latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing <a href="https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/">Rasmus Bååth’s blog</a> where he models the latent skill of football teams in La Liga.</p>
 <p>I gathered CSVs of race data from the fantastic <a href="https://ergast.com/mrd/">Ergast</a>. The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis. You can find the code behind the folds if you want to play along.</p>
 <div class="cell">
 <details class="code-fold">
@@ -312,7 +312,7 @@ window.Quarto = {
 <span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>  <span class="st">"ferrari"</span>, <span class="st">"#e80220"</span>,</span>
 <span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>  <span class="st">"mclaren"</span>, <span class="st">"#ff8001"</span>,</span>
 <span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>  <span class="st">"aston_martin"</span>, <span class="st">"#229971"</span>,</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>  <span class="st">"alpine"</span>, <span class="st">"#0093cc"</span>,</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>  <span class="st">"alpine"</span>, <span class="st">"#F363B9"</span>, <span class="co"># Should be "#0093cc" but there's too much blue</span></span>
 <span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>  <span class="st">"williams"</span>, <span class="st">"#63c4ff"</span>,</span>
 <span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>  <span class="st">"rb"</span>, <span class="st">"#6592ff"</span>,</span>
 <span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>  <span class="st">"sauber"</span>, <span class="st">"#52e252"</span>,</span>
@@ -366,7 +366,7 @@ Figure&nbsp;1: Histograms of driver performance in F1 2024.
 </div>
 <p>The model goes like this. Points are simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.</p>
 <p><span class="math display">\[
-\text{points} \sim \text{Poisson}(\text{perf}_{\text{drv}} + \text{perf}_{\text{ctr}})
+\text{points} \sim \text{Poisson}(e^{\text{perf}_{\text{drv}} + \text{perf}_{\text{ctr}}})
 \]</span></p>
 <p>Driver performance is simulated as a draw from a normal distribution.</p>
 <p><span class="math display">\[
@@ -543,6 +543,7 @@ Figure&nbsp;3: Posterior samples for constructor performance
 </div>
 </div>
 </div>
+<p>On this plot lower x-values are better.</p>
 <p>The interesting thing is that this suggests the Red Bull was clearly the third-fastest car. I’m a little suspicious of that, because it claimed a sequence of 1-2s in the first third of the season. Let’s take a closer look at that.</p>
 <p>The first thing to check is whether my dumb “max driver, 10 positions” model is problematic. Let’s look at Red Bull’s results.</p>
 <div class="cell">
@@ -556,7 +557,7 @@ Figure&nbsp;3: Posterior samples for constructor performance
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(</span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    ctr_positions <span class="sc">|&gt;</span> <span class="fu">filter</span>(constructorRef <span class="sc">==</span> <span class="st">"red_bull"</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(round, position)</span>
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div id="tbl-red-bull-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -760,7 +761,7 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">position =</span> <span class="fu">min</span>(position)) <span class="sc">|&gt;</span></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">reranked =</span> <span class="fu">rank</span>(position)) <span class="sc">|&gt;</span></span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(round <span class="sc">==</span> <span class="dv">3</span>) <span class="sc">|&gt;</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div id="tbl-round-3-results" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -935,7 +936,7 @@ Figure&nbsp;5: Posterior samples after fixing NA sorting.
 <span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">norm_budget =</span> <span class="dv">1</span> <span class="sc">-</span> budget <span class="sc">/</span> <span class="fu">max</span>(budget)</span>
 <span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(budgets)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(<span class="fu">select</span>(budgets, <span class="sc">-</span>norm_budget))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div id="tbl-ctr-budgets" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -949,59 +950,48 @@ Table&nbsp;3: Constructor budget estimates (USD millions)
 <tr class="header">
 <th style="text-align: left;">constructorRef</th>
 <th style="text-align: right;">budget</th>
-<th style="text-align: right;">norm_budget</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">red_bull</td>
 <td style="text-align: right;">400</td>
-<td style="text-align: right;">0.000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">mercedes</td>
 <td style="text-align: right;">400</td>
-<td style="text-align: right;">0.000</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">ferrari</td>
 <td style="text-align: right;">400</td>
-<td style="text-align: right;">0.000</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">mclaren</td>
 <td style="text-align: right;">250</td>
-<td style="text-align: right;">0.375</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">aston_martin</td>
 <td style="text-align: right;">250</td>
-<td style="text-align: right;">0.375</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">alpine</td>
 <td style="text-align: right;">200</td>
-<td style="text-align: right;">0.500</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">rb</td>
 <td style="text-align: right;">150</td>
-<td style="text-align: right;">0.625</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">haas</td>
 <td style="text-align: right;">150</td>
-<td style="text-align: right;">0.625</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">williams</td>
 <td style="text-align: right;">150</td>
-<td style="text-align: right;">0.625</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">sauber</td>
 <td style="text-align: right;">150</td>
-<td style="text-align: right;">0.625</td>
 </tr>
 </tbody>
 </table>
@@ -1059,7 +1049,7 @@ Figure&nbsp;6: Posterior samples from the model with budget-based priors.
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(constructorRef) <span class="sc">|&gt;</span></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mu =</span> <span class="fu">mean</span>(position), <span class="at">sigma =</span> <span class="fu">sd</span>(position)) <span class="sc">|&gt;</span></span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(mu) <span class="sc">|&gt;</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div id="tbl-mu-sig-fit-b" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -1079,53 +1069,53 @@ Table&nbsp;4: Mean and SD from posterior sample.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">mclaren</td>
-<td style="text-align: right;">2.056714</td>
-<td style="text-align: right;">0.3286582</td>
+<td style="text-align: right;">2.06</td>
+<td style="text-align: right;">0.33</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">red_bull</td>
-<td style="text-align: right;">2.072150</td>
-<td style="text-align: right;">0.3155871</td>
+<td style="text-align: right;">2.07</td>
+<td style="text-align: right;">0.32</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">ferrari</td>
-<td style="text-align: right;">2.400041</td>
-<td style="text-align: right;">0.3216869</td>
+<td style="text-align: right;">2.40</td>
+<td style="text-align: right;">0.32</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">mercedes</td>
-<td style="text-align: right;">3.022391</td>
-<td style="text-align: right;">0.3576391</td>
+<td style="text-align: right;">3.02</td>
+<td style="text-align: right;">0.36</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">aston_martin</td>
-<td style="text-align: right;">6.418919</td>
-<td style="text-align: right;">0.5588273</td>
+<td style="text-align: right;">6.42</td>
+<td style="text-align: right;">0.56</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">alpine</td>
-<td style="text-align: right;">7.802715</td>
-<td style="text-align: right;">0.6613045</td>
+<td style="text-align: right;">7.80</td>
+<td style="text-align: right;">0.66</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">haas</td>
-<td style="text-align: right;">7.999139</td>
-<td style="text-align: right;">0.6748958</td>
+<td style="text-align: right;">8.00</td>
+<td style="text-align: right;">0.67</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">rb</td>
-<td style="text-align: right;">8.065155</td>
-<td style="text-align: right;">0.6701897</td>
+<td style="text-align: right;">8.07</td>
+<td style="text-align: right;">0.67</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">williams</td>
-<td style="text-align: right;">8.816069</td>
-<td style="text-align: right;">0.6332751</td>
+<td style="text-align: right;">8.82</td>
+<td style="text-align: right;">0.63</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">sauber</td>
-<td style="text-align: right;">9.123715</td>
-<td style="text-align: right;">0.5577566</td>
+<td style="text-align: right;">9.12</td>
+<td style="text-align: right;">0.56</td>
 </tr>
 </tbody>
 </table>
@@ -1247,7 +1237,7 @@ Figure&nbsp;8: Distribution of finishing position gaps between teammates by circ
 <span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>p_gap_1 <span class="sc">|&gt;</span></span>
 <span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(p_gap, <span class="at">n =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div id="tbl-position-gaps-medians" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -1271,70 +1261,70 @@ Table&nbsp;5: Circuits with highest probability of having teammates finishing to
 <td style="text-align: left;">suzuka</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">29</td>
-<td style="text-align: right;">0.4754098</td>
+<td style="text-align: right;">0.48</td>
 <td style="text-align: right;">4</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">albert_park</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">19</td>
-<td style="text-align: right;">0.4130435</td>
+<td style="text-align: right;">0.41</td>
 <td style="text-align: right;">3</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">rodriguez</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">26</td>
-<td style="text-align: right;">0.3939394</td>
+<td style="text-align: right;">0.39</td>
 <td style="text-align: right;">20</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">jeddah</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">10</td>
-<td style="text-align: right;">0.3846154</td>
+<td style="text-align: right;">0.38</td>
 <td style="text-align: right;">2</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">yas_marina</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">29</td>
-<td style="text-align: right;">0.3625000</td>
+<td style="text-align: right;">0.36</td>
 <td style="text-align: right;">24</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">imola</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">10</td>
-<td style="text-align: right;">0.3333333</td>
+<td style="text-align: right;">0.33</td>
 <td style="text-align: right;">7</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">hungaroring</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">26</td>
-<td style="text-align: right;">0.3250000</td>
+<td style="text-align: right;">0.32</td>
 <td style="text-align: right;">13</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">shanghai</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">15</td>
-<td style="text-align: right;">0.3061224</td>
+<td style="text-align: right;">0.31</td>
 <td style="text-align: right;">5</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">bahrain</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">25</td>
-<td style="text-align: right;">0.3048780</td>
+<td style="text-align: right;">0.30</td>
 <td style="text-align: right;">1</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">interlagos</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">19</td>
-<td style="text-align: right;">0.3015873</td>
+<td style="text-align: right;">0.30</td>
 <td style="text-align: right;">21</td>
 </tr>
 </tbody>
@@ -1617,6 +1607,7 @@ Table&nbsp;7: Suzuka’s placement in each season
 </figure>
 </div>
 </div>
+<p>However the fact that it was an early round in 2024 <strong>does</strong> mean that car performance will have changed over the season. Suzuka can only ever be a point-in-time assessment.</p>
 </section>
 <section id="are-we-sure-that-consecutive-finishes-arent-indicative-of-similar-driver-skill-levels" class="level5">
 <h5 class="anchored" data-anchor-id="are-we-sure-that-consecutive-finishes-arent-indicative-of-similar-driver-skill-levels">Are we sure that consecutive finishes aren’t indicative of similar driver skill levels?</h5>
@@ -1952,11 +1943,24 @@ Table&nbsp;9: Drivers’ results for Suzuka in 2023 and 2024
 </div>
 </div>
 </section>
+<section id="dont-certain-tracks-favour-certain-cars-e.g.-due-to-having-fewer-slow-corners" class="level5">
+<h5 class="anchored" data-anchor-id="dont-certain-tracks-favour-certain-cars-e.g.-due-to-having-fewer-slow-corners">Don’t certain tracks favour certain cars (e.g.&nbsp;due to having fewer slow corners)?</h5>
+<p>This is a valid objection. We can only really say that this reflects car performance at tracks like Suzuka. Suzuka is a high-speed, high-downforce track with more high-speed than low-speed corners. You can kind of tell by looking that only corners 2, 9, 11, and 14 are slow.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./suzuka.jpg" class="img-fluid figure-img"></p>
+<figcaption>Suzuka Circuit Layout</figcaption>
+</figure>
+</div>
+<p><em>Data and image from <a href="https://thef1formbook.wordpress.com/2016/10/06/suzuka-circuit-guide-2016/">the F1 Formbook</a>.</em></p>
+<p>So perhaps another way of looking at it is that low-speed corners are where drivers make the most difference. That aligns with the excellent <a href="https://www.the-race.com/formula-1/ferrari-f1-car-traits-lewis-hamilton-driving-style/">recent analysis by Mark Hughes</a> where he explains how drivers like Leclerc and Hamilton make up their time in slow corners.</p>
+<p>Naturally certain cars will also be better at slow corners, and that’s not represented at Suzuka. We might be able to gain a better understanding with sector times, but sadly I don’t have this data.</p>
+</section>
 </section>
 </section>
 <section id="suzuka-based-priors" class="level3">
 <h3 class="anchored" data-anchor-id="suzuka-based-priors">Suzuka-based priors</h3>
-<p>At this point I’m convinced enough that Suzuka is a clear indicator of relative car performance, so let’s take the position of each team’s fastest car round Suzuka as constructor performance priors. Luckily there weren’t any double-DNFs - at least one car from each team finished - so every team is represented.</p>
+<p>At this point I’m convinced enough that Suzuka is a useful indicator of relative car performance to be a prior, so let’s take the position of each team’s fastest car round Suzuka as constructor performance priors. Luckily there weren’t any double-DNFs - at least one car from each team finished - so every team is represented.</p>
 <p>The Stan model is the same, we’re just injecting different prior mus and SDs.</p>
 <div class="cell">
 <details class="code-fold">
@@ -2017,7 +2021,7 @@ Figure&nbsp;10: Posterior samples alongside the Suzuka-position priors.
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(constructorRef) <span class="sc">|&gt;</span></span>
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mu =</span> <span class="fu">mean</span>(position), <span class="at">sigma =</span> <span class="fu">sd</span>(position)) <span class="sc">|&gt;</span></span>
 <span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(mu) <span class="sc">|&gt;</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div id="tbl-mu-sig-fit-suzuka" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -2037,53 +2041,53 @@ Table&nbsp;10: Mean and SD from posterior sample, with Suzuka priors.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">red_bull</td>
-<td style="text-align: right;">2.011282</td>
-<td style="text-align: right;">0.3089284</td>
+<td style="text-align: right;">2.01</td>
+<td style="text-align: right;">0.31</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">mclaren</td>
-<td style="text-align: right;">2.048547</td>
-<td style="text-align: right;">0.3242159</td>
+<td style="text-align: right;">2.05</td>
+<td style="text-align: right;">0.32</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">ferrari</td>
-<td style="text-align: right;">2.420840</td>
-<td style="text-align: right;">0.3240061</td>
+<td style="text-align: right;">2.42</td>
+<td style="text-align: right;">0.32</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">mercedes</td>
-<td style="text-align: right;">3.393785</td>
-<td style="text-align: right;">0.3903559</td>
+<td style="text-align: right;">3.39</td>
+<td style="text-align: right;">0.39</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">aston_martin</td>
-<td style="text-align: right;">6.072469</td>
-<td style="text-align: right;">0.4866439</td>
+<td style="text-align: right;">6.07</td>
+<td style="text-align: right;">0.49</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">rb</td>
-<td style="text-align: right;">7.469760</td>
-<td style="text-align: right;">0.5611140</td>
+<td style="text-align: right;">7.47</td>
+<td style="text-align: right;">0.56</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">haas</td>
-<td style="text-align: right;">7.767024</td>
-<td style="text-align: right;">0.5808624</td>
+<td style="text-align: right;">7.77</td>
+<td style="text-align: right;">0.58</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">alpine</td>
-<td style="text-align: right;">8.554656</td>
-<td style="text-align: right;">0.6399741</td>
+<td style="text-align: right;">8.55</td>
+<td style="text-align: right;">0.64</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">sauber</td>
-<td style="text-align: right;">9.079208</td>
-<td style="text-align: right;">0.5212932</td>
+<td style="text-align: right;">9.08</td>
+<td style="text-align: right;">0.52</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">williams</td>
-<td style="text-align: right;">9.386296</td>
-<td style="text-align: right;">0.4412011</td>
+<td style="text-align: right;">9.39</td>
+<td style="text-align: right;">0.44</td>
 </tr>
 </tbody>
 </table>
@@ -2116,8 +2120,8 @@ transformed parameters {
   vector[n_drvs] lambda_drvs;
   
   // Apply constraints to ensure identifiability
-  lambda_ctrs = inv_logit(lambda_ctrs_raw);
-  lambda_drvs = inv_logit(lambda_drvs_raw);
+  lambda_ctrs = log(20) * inv_logit(lambda_ctrs_raw);
+  lambda_drvs = log(20) * inv_logit(lambda_drvs_raw);
 }
 model {
   lambda_ctrs_raw ~ normal(ctr_mus, ctr_sd);
@@ -2126,11 +2130,11 @@ model {
   for (k in 1 : n_obs) {
     int i = position_indices[k, 1];
     int j = position_indices[k, 2];
-    positions[k] ~ poisson(10/exp(1) * exp(lambda_ctrs[i] + lambda_drvs[j]));
+    positions[k] ~ poisson(exp(lambda_ctrs[i] + lambda_drvs[j]));
   }
 }
 </code></pre>
-<p>There are some crucial changes. First to ensure the model is identifiable, the raw skill parameters are constrained to [0, 1] with an inverse logistic transform. Second, I’ve tried to arrange it so that the skill parameters are interpretable in terms of positions gained/lost. The idea is that a negative skill for a car/driver means it is more likely to finish in a lower position (i.e.&nbsp;closer to first place).</p>
+<p>There is a crucial change. To ensure the model is identifiable, the raw skill parameters are constrained to [0, 1] with an inverse logistic transform. The transformed parameters are then summed and exponented to get the lambda for the Poisson distribution.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -2155,25 +2159,25 @@ model {
 <span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>sample_posterior2 <span class="ot">&lt;-</span> <span class="cf">function</span>(fit) {</span>
 <span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>  ctrs <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(ctr_drv_positions<span class="sc">$</span>constructorRef))</span>
 <span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>  drvs <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">unique</span>(ctr_drv_positions<span class="sc">$</span>driverRef))</span>
-<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>  df_ctrs <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">draws</span>(<span class="st">"lambda_ctrs_raw"</span>, <span class="at">format =</span> <span class="st">"draws_matrix"</span>) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>()</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>  df_ctrs <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">draws</span>(<span class="st">"lambda_ctrs"</span>, <span class="at">format =</span> <span class="st">"draws_matrix"</span>) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>()</span>
 <span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(df_ctrs) <span class="ot">&lt;-</span> ctrs</span>
 <span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>  df_drvs <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">draws</span>(<span class="st">"lambda_drvs_raw"</span>, <span class="at">format =</span> <span class="st">"draws_matrix"</span>) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>()</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>  df_drvs <span class="ot">&lt;-</span> fit<span class="sc">$</span><span class="fu">draws</span>(<span class="st">"lambda_drvs"</span>, <span class="at">format =</span> <span class="st">"draws_matrix"</span>) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>()</span>
 <span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(df_drvs) <span class="ot">&lt;-</span> drvs</span>
 <span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
 <span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">ctrs =</span> df_ctrs <span class="sc">|&gt;</span></span>
 <span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>      <span class="fu">pivot_longer</span>(</span>
 <span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>        <span class="fu">all_of</span>(ctrs),</span>
-<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>        <span class="at">names_to =</span> <span class="st">"constructorRef"</span>, <span class="at">values_to =</span> <span class="st">"position"</span></span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>        <span class="at">names_to =</span> <span class="st">"constructorRef"</span>, <span class="at">values_to =</span> <span class="st">"performance"</span></span>
 <span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>      ) <span class="sc">|&gt;</span></span>
-<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">as.double</span>(position)),</span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">performance =</span> <span class="fu">as.double</span>(performance)),</span>
 <span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">drvs =</span> df_drvs <span class="sc">|&gt;</span></span>
 <span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>      <span class="fu">pivot_longer</span>(</span>
 <span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>        <span class="fu">all_of</span>(drvs),</span>
-<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a>        <span class="at">names_to =</span> <span class="st">"driverRef"</span>, <span class="at">values_to =</span> <span class="st">"position"</span></span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a>        <span class="at">names_to =</span> <span class="st">"driverRef"</span>, <span class="at">values_to =</span> <span class="st">"performance"</span></span>
 <span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a>      ) <span class="sc">|&gt;</span></span>
-<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">position =</span> <span class="fu">as.double</span>(position))</span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">performance =</span> <span class="fu">as.double</span>(performance))</span>
 <span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a></span>
@@ -2183,7 +2187,7 @@ model {
 <span id="cb28-47"><a href="#cb28-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_drvs =</span> <span class="fu">n_distinct</span>(drvs),</span>
 <span id="cb28-48"><a href="#cb28-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_obs =</span> <span class="fu">nrow</span>(ctr_drv_positions),</span>
 <span id="cb28-49"><a href="#cb28-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">ctr_mus =</span> <span class="fl">0.2</span> <span class="sc">*</span> (<span class="sc">-</span><span class="dv">5</span> <span class="sc">+</span> suzuka_positions<span class="sc">$</span>position), <span class="co"># shift to centre on 0</span></span>
-<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">ctr_sd =</span> <span class="fl">0.2</span>,</span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">ctr_sd =</span> <span class="fl">0.67</span>, <span class="co"># picked a wide SD because car performance evolved over the season</span></span>
 <span id="cb28-51"><a href="#cb28-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">positions =</span> ctr_drv_positions<span class="sc">$</span>position,</span>
 <span id="cb28-52"><a href="#cb28-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">position_indices =</span> ctr_drv_positions <span class="sc">|&gt;</span> <span class="fu">select</span>(ctr_idx, drv_idx) <span class="sc">|&gt;</span> <span class="fu">as.matrix</span>()</span>
 <span id="cb28-53"><a href="#cb28-53" aria-hidden="true" tabindex="-1"></a>  )</span>
@@ -2197,7 +2201,7 @@ model {
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>posterior_ctrs <span class="ot">&lt;-</span> <span class="fu">sample_posterior2</span>(fit.c)<span class="sc">$</span>ctrs</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(posterior_ctrs) <span class="sc">+</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> performance, <span class="at">fill =</span> constructorRef) <span class="sc">+</span></span>
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># facet_wrap(~constructorRef) +</span></span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> ctr_colours<span class="sc">$</span>colour) <span class="sc">+</span></span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.2</span>, <span class="at">show.legend =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -2209,28 +2213,123 @@ model {
 <img src="f1_files/figure-html/fig-ctr-perf-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ctr-perf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;11: Constructor performance parameters determined by model. Lower is better.
+Figure&nbsp;11: Constructor performance parameters determined by model. Lower (left) is better.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>The model suggests - perhaps controversially - that the Red Bull was the fastest car, followed by Ferrari and <em>then</em> the McLaren. It suggests that being in one of those three, Mercedes, or Aston Martin, would gain you positions relative to the field and anything else you would lose positions, which does seem reasonable.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>posterior_ctrs <span class="sc">|&gt;</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(constructorRef) <span class="sc">|&gt;</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean_performance =</span> <span class="fu">mean</span>(performance), <span class="at">sd =</span> <span class="fu">sd</span>(performance)) <span class="sc">|&gt;</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(mean_performance) <span class="sc">|&gt;</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">rank =</span> <span class="fu">rank</span>(mean_performance)) <span class="sc">|&gt;</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div id="tbl-ctr-perf" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-ctr-perf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;11: Constructor performance means and SDs from the posterior.
+</figcaption>
+<div aria-describedby="tbl-ctr-perf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">constructorRef</th>
+<th style="text-align: right;">mean_performance</th>
+<th style="text-align: right;">sd</th>
+<th style="text-align: right;">rank</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">red_bull</td>
+<td style="text-align: right;">0.57</td>
+<td style="text-align: right;">0.19</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ferrari</td>
+<td style="text-align: right;">0.70</td>
+<td style="text-align: right;">0.21</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">mclaren</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">0.23</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">mercedes</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">0.26</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">aston_martin</td>
+<td style="text-align: right;">1.18</td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">haas</td>
+<td style="text-align: right;">1.31</td>
+<td style="text-align: right;">0.28</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">rb</td>
+<td style="text-align: right;">1.34</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">alpine</td>
+<td style="text-align: right;">1.55</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">williams</td>
+<td style="text-align: right;">1.62</td>
+<td style="text-align: right;">0.30</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sauber</td>
+<td style="text-align: right;">1.66</td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">10</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Note that the sampled parameter is now latent performance not positions, so the numbers don’t have a real-world meaning. What matters is relative performance, where a lower number is better.</p>
+<p>The model suggests - controversially, but with appropriate uncertainty - that the Red Bull was the fastest car, followed by Ferrari and <em>then</em> the McLaren. However the relative positioning of the other teams seems about right.</p>
 <p>Forgive me for not labelling all the drivers on this next plot, but there’s only so much plot fiddling I’m willing to do and it’s usually obvious which is which.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>posterior_drvs <span class="ot">&lt;-</span> <span class="fu">sample_posterior2</span>(fit.c)<span class="sc">$</span>drvs <span class="sc">|&gt;</span><span class="co">#| </span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(ctr_drvs) <span class="sc">|&gt;</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(driverRef) <span class="sc">|&gt;</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">x =</span> <span class="fu">mean</span>(position))</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(posterior_drvs) <span class="sc">+</span></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> position, <span class="at">fill =</span> driverRef, <span class="at">label =</span> driverRef) <span class="sc">+</span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>constructorRef) <span class="sc">+</span></span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> drv_colours<span class="sc">$</span>colour) <span class="sc">+</span></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.2</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">data=</span>posterior_drvs, <span class="at">mapping=</span><span class="fu">aes</span>(<span class="at">x=</span>x, <span class="at">y=</span><span class="fl">0.75</span>, <span class="at">angle=</span><span class="dv">90</span>), <span class="at">check_overlap =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>posterior_drvs <span class="ot">&lt;-</span> <span class="fu">sample_posterior2</span>(fit.c)<span class="sc">$</span>drvs <span class="sc">|&gt;</span> <span class="co">#|</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">merge</span>(ctr_drvs) <span class="sc">|&gt;</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(driverRef) <span class="sc">|&gt;</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">x =</span> <span class="fu">mean</span>(performance))</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(posterior_drvs) <span class="sc">+</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> performance, <span class="at">fill =</span> driverRef, <span class="at">label =</span> driverRef) <span class="sc">+</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>constructorRef) <span class="sc">+</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> drv_colours<span class="sc">$</span>colour) <span class="sc">+</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.2</span>, <span class="at">show.legend =</span> <span class="cn">FALSE</span>) <span class="sc">+</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">data =</span> posterior_drvs, <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> x, <span class="at">y =</span> <span class="fl">0.75</span>, <span class="at">angle =</span> <span class="dv">90</span>), <span class="at">check_overlap =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-drv-perf" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -2239,14 +2338,193 @@ Figure&nbsp;11: Constructor performance parameters determined by model. Lower is
 <img src="f1_files/figure-html/fig-drv-perf-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-drv-perf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;12: Driver performance parameters determined by model. Lower is better.
+Figure&nbsp;12: Driver performance parameters determined by model. Lower (left) is better.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>The model suggests that the top drivers performed similarly, with Verstappen fastest. Perez isn’t considered so slow: but this could be because I removed all DNFs, flattering Perez.</p>
-<p>Intriguingly, the model considers that Sauber was faster than its competitors but let down by its drivers.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>posterior_drvs <span class="sc">|&gt;</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(driverRef) <span class="sc">|&gt;</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean_performance =</span> <span class="fu">mean</span>(performance), <span class="at">sd =</span> <span class="fu">sd</span>(performance)) <span class="sc">|&gt;</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(mean_performance) <span class="sc">|&gt;</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">rank =</span> <span class="fu">rank</span>(mean_performance)) <span class="sc">|&gt;</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div id="tbl-drv-perf" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-drv-perf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;12: Driver performance means and SDs from the posterior.
+</figcaption>
+<div aria-describedby="tbl-drv-perf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">driverRef</th>
+<th style="text-align: right;">mean_performance</th>
+<th style="text-align: right;">sd</th>
+<th style="text-align: right;">rank</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">max_verstappen</td>
+<td style="text-align: right;">0.55</td>
+<td style="text-align: right;">0.20</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">leclerc</td>
+<td style="text-align: right;">0.68</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">norris</td>
+<td style="text-align: right;">0.71</td>
+<td style="text-align: right;">0.24</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">russell</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">0.26</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">colapinto</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hamilton</td>
+<td style="text-align: right;">0.83</td>
+<td style="text-align: right;">0.26</td>
+<td style="text-align: right;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">sainz</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">0.22</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">piastri</td>
+<td style="text-align: right;">0.88</td>
+<td style="text-align: right;">0.24</td>
+<td style="text-align: right;">8</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gasly</td>
+<td style="text-align: right;">0.89</td>
+<td style="text-align: right;">0.32</td>
+<td style="text-align: right;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">albon</td>
+<td style="text-align: right;">0.93</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ocon</td>
+<td style="text-align: right;">1.03</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hulkenberg</td>
+<td style="text-align: right;">1.06</td>
+<td style="text-align: right;">0.29</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">zhou</td>
+<td style="text-align: right;">1.06</td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">13</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bottas</td>
+<td style="text-align: right;">1.08</td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">alonso</td>
+<td style="text-align: right;">1.11</td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">15</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bearman</td>
+<td style="text-align: right;">1.12</td>
+<td style="text-align: right;">0.29</td>
+<td style="text-align: right;">16</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">tsunoda</td>
+<td style="text-align: right;">1.13</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">17</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">doohan</td>
+<td style="text-align: right;">1.16</td>
+<td style="text-align: right;">0.37</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">sargeant</td>
+<td style="text-align: right;">1.19</td>
+<td style="text-align: right;">0.31</td>
+<td style="text-align: right;">19</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">ricciardo</td>
+<td style="text-align: right;">1.20</td>
+<td style="text-align: right;">0.34</td>
+<td style="text-align: right;">20</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">kevin_magnussen</td>
+<td style="text-align: right;">1.25</td>
+<td style="text-align: right;">0.29</td>
+<td style="text-align: right;">21</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">lawson</td>
+<td style="text-align: right;">1.26</td>
+<td style="text-align: right;">0.35</td>
+<td style="text-align: right;">22</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">stroll</td>
+<td style="text-align: right;">1.36</td>
+<td style="text-align: right;">0.36</td>
+<td style="text-align: right;">23</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">perez</td>
+<td style="text-align: right;">1.49</td>
+<td style="text-align: right;">0.21</td>
+<td style="text-align: right;">24</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>The model suggests that the top drivers performed similarly, with Verstappen fastest. Poor Perez comes dead last, because the model has decided that the Red Bull was the fastest car.</p>
+<p>There are some obvious issues though. Alonso is considered only the 15th best performer out of 24, which is absurd. This could be because the Suzuka prior placed Aston Martin ahead of Mercedes whereas they actually finished the season well behind.</p>
+<p>There will also be some effect from the way I’ve simply excluded DNFs rather than penalising driver-fault DNFs.</p>
 <p>More on this later.</p>
 
 

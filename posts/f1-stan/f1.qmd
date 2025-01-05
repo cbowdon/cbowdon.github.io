@@ -10,7 +10,7 @@ code-fold: true
 
 For a bit of fun, let's try and model the performance of F1 drivers and constructors in the 2024 season using Bayesian models. The aim is to more to learn about using [Stan](https://mc-stan.org) than determine deep truths about F1, since there's far more to performance than we can easily model.
 
-We'll vaguely imitate the superb [f1-metrics](https://f1metrics.wordpress.com) model: there are latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga.
+We'll vaguely imitate the [f1-metrics](https://f1metrics.wordpress.com) model, which I used to eagerly await after each season. In this model there are latent variables of driver skill and car quality, which predict points/positions. However I never did get hold of the paper for that, and am instead following the amazing [Rasmus Bååth's blog](https://www.sumsar.net/blog/2013/07/modeling-match-results-in-la-liga-part-one/) where he models the latent skill of football teams in La Liga.
 
 I gathered CSVs of race data from the fantastic [Ergast](https://ergast.com/mrd/). The weapon of choice is R and the tidyverse, since nothing else is quite so ergonomic for this type of analysis. You can find the code behind the folds if you want to play along.
 
@@ -65,7 +65,7 @@ ctr_colours <- tribble(
   "ferrari", "#e80220",
   "mclaren", "#ff8001",
   "aston_martin", "#229971",
-  "alpine", "#0093cc",
+  "alpine", "#F363B9", # Should be "#0093cc" but there's too much blue
   "williams", "#63c4ff",
   "rb", "#6592ff",
   "sauber", "#52e252",
@@ -110,7 +110,7 @@ ggplot(f2024) +
 The model goes like this. Points are simulated as a draw from a Poisson distribution parameterised by the driver performance and constructor performance.
 
 $$
-\text{points} \sim \text{Poisson}(\text{perf}_{\text{drv}} + \text{perf}_{\text{ctr}})
+\text{points} \sim \text{Poisson}(e^{\text{perf}_{\text{drv}} + \text{perf}_{\text{ctr}}})
 $$
 
 Driver performance is simulated as a draw from a normal distribution.
@@ -249,6 +249,8 @@ plot_posterior <- function(fit) {
 plot_posterior(fit)
 ```
 
+On this plot lower x-values are better.
+
 The interesting thing is that this suggests the Red Bull was clearly the third-fastest car. I'm a little suspicious of that, because it claimed a sequence of 1-2s in the first third of the season. Let's take a closer look at that.
 
 The first thing to check is whether my dumb "max driver, 10 positions" model is problematic. Let's look at Red Bull's results.
@@ -265,7 +267,7 @@ f2024 |>
   merge(
     ctr_positions |> filter(constructorRef == "red_bull") |> select(round, position)
   ) |>
-  knitr::kable()
+  kable()
 ```
 
 Round three is clearly a mistake: how can Perez' 5th place become the 10th constructor position? Let's work through it again.
@@ -278,7 +280,7 @@ f2024 |>
   summarise(position = min(position)) |>
   mutate(reranked = rank(position)) |>
   filter(round == 3) |>
-  knitr::kable()
+  kable()
 ```
 
 `NA` strikes again! Forgot to add the crucial `na.rm` parameter to the min. Right, a do-over.
@@ -356,7 +358,7 @@ budgets <- tribble(
   mutate(
     norm_budget = 1 - budget / max(budget)
   )
-knitr::kable(budgets)
+kable(select(budgets, -norm_budget))
 ```
 
 Let's update our model and run Stan again.
@@ -386,7 +388,7 @@ sp |>
   group_by(constructorRef) |>
   summarise(mu = mean(position), sigma = sd(position)) |>
   arrange(mu) |>
-  knitr::kable()
+  kable(digits = 2)
 ```
 
 This model suggests there's very little nothing in it between Red Bull and McLaren, though the posterior distribution is wider for the top three teams than the others so there is more uncertainty.
@@ -485,7 +487,7 @@ p_gap_1 <- position_gaps |>
 
 p_gap_1 |>
   slice_max(p_gap, n = 10) |>
-  kable()
+  kable(digits = 2)
 ```
 
 How did the cars line up at Suzuka in 2024, noting that this was round 4 of a 24-round championship?
@@ -539,6 +541,8 @@ races |>
   kable()
 ```
 
+However the fact that it was an early round in 2024 **does** mean that car performance will have changed over the season. Suzuka can only ever be a point-in-time assessment.
+
 ##### Are we sure that consecutive finishes aren't indicative of similar driver skill levels?
 
 The top teams can also hire the best drivers, is it not possible that we're still seeing the drivers finishing in skill order? I.e. it's actually driver-limited, but the drivers happen to be mostly paired with similarly-fast drivers. Alonso and Stroll being the clear exception in the 2024 race results.
@@ -583,9 +587,21 @@ merge(s23, s24, all = TRUE) |>
   kable()
 ```
 
+##### Don't certain tracks favour certain cars (e.g. due to having fewer slow corners)?
+
+This is a valid objection. We can only really say that this reflects car performance at tracks like Suzuka. Suzuka is a high-speed, high-downforce track with more high-speed than low-speed corners. You can kind of tell by looking that only corners 2, 9, 11, and 14 are slow.
+
+![Suzuka Circuit Layout](./suzuka.jpg)
+
+_Data and image from [the F1 Formbook](https://thef1formbook.wordpress.com/2016/10/06/suzuka-circuit-guide-2016/)._
+
+So perhaps another way of looking at it is that low-speed corners are where drivers make the most difference. That aligns with the excellent [recent analysis by Mark Hughes](https://www.the-race.com/formula-1/ferrari-f1-car-traits-lewis-hamilton-driving-style/) where he explains how drivers like Leclerc and Hamilton make up their time in slow corners.
+
+Naturally certain cars will also be better at slow corners, and that's not represented at Suzuka. We might be able to gain a better understanding with sector times, but sadly I don't have this data.
+
 ### Suzuka-based priors
 
-At this point I'm convinced enough that Suzuka is a clear indicator of relative car performance, so let's take the position of each team's fastest car round Suzuka as constructor performance priors. Luckily there weren't any double-DNFs - at least one car from each team finished - so every team is represented.
+At this point I'm convinced enough that Suzuka is a useful indicator of relative car performance to be a prior, so let's take the position of each team's fastest car round Suzuka as constructor performance priors. Luckily there weren't any double-DNFs - at least one car from each team finished - so every team is represented.
 
 The Stan model is the same, we're just injecting different prior mus and SDs.
 
@@ -627,7 +643,7 @@ sp |>
   group_by(constructorRef) |>
   summarise(mu = mean(position), sigma = sd(position)) |>
   arrange(mu) |>
-  knitr::kable()
+  kable(digits = 2)
 ```
 
 # Reintroducing driver skill
@@ -638,7 +654,7 @@ Simple model achieved, let's push on to something more complex i.e. the original
 {{< include f1.c.stan >}}
 ```
 
-There are some crucial changes. First to ensure the model is identifiable, the raw skill parameters are constrained to [0, 1] with an inverse logistic transform. Second, I've tried to arrange it so that the skill parameters are interpretable in terms of positions gained/lost. The idea is that a negative skill for a car/driver means it is more likely to finish in a lower position (i.e. closer to first place).
+There is a crucial change. To ensure the model is identifiable, the raw skill parameters are constrained to [0, 1] with an inverse logistic transform. The transformed parameters are then summed and exponented to get the lambda for the Poisson distribution.
 
 ```{r}
 #| label: run-drv-ctr-model
@@ -663,25 +679,25 @@ ctr_drv_positions <- f2024 |>
 sample_posterior2 <- function(fit) {
   ctrs <- sort(unique(ctr_drv_positions$constructorRef))
   drvs <- sort(unique(ctr_drv_positions$driverRef))
-  df_ctrs <- fit$draws("lambda_ctrs_raw", format = "draws_matrix") |> as_tibble()
+  df_ctrs <- fit$draws("lambda_ctrs", format = "draws_matrix") |> as_tibble()
   colnames(df_ctrs) <- ctrs
 
-  df_drvs <- fit$draws("lambda_drvs_raw", format = "draws_matrix") |> as_tibble()
+  df_drvs <- fit$draws("lambda_drvs", format = "draws_matrix") |> as_tibble()
   colnames(df_drvs) <- drvs
 
   list(
     ctrs = df_ctrs |>
       pivot_longer(
         all_of(ctrs),
-        names_to = "constructorRef", values_to = "position"
+        names_to = "constructorRef", values_to = "performance"
       ) |>
-      mutate(position = as.double(position)),
+      mutate(performance = as.double(performance)),
     drvs = df_drvs |>
       pivot_longer(
         all_of(drvs),
-        names_to = "driverRef", values_to = "position"
+        names_to = "driverRef", values_to = "performance"
       ) |>
-      mutate(position = as.double(position))
+      mutate(performance = as.double(performance))
   )
 }
 
@@ -691,7 +707,7 @@ fit.c <- run_stan2(
     n_drvs = n_distinct(drvs),
     n_obs = nrow(ctr_drv_positions),
     ctr_mus = 0.2 * (-5 + suzuka_positions$position), # shift to centre on 0
-    ctr_sd = 0.2,
+    ctr_sd = 0.67, # picked a wide SD because car performance evolved over the season
     positions = ctr_drv_positions$position,
     position_indices = ctr_drv_positions |> select(ctr_idx, drv_idx) |> as.matrix()
   )
@@ -702,38 +718,66 @@ Let's first have a look at the constructor performance as determined by the mode
 
 ```{r}
 #| label: fig-ctr-perf
-#| fig-cap: Constructor performance parameters determined by model. Lower is better.
+#| fig-cap: Constructor performance parameters determined by model. Lower (left) is better.
 posterior_ctrs <- sample_posterior2(fit.c)$ctrs
 
 ggplot(posterior_ctrs) +
-  aes(x = position, fill = constructorRef) +
+  aes(x = performance, fill = constructorRef) +
   # facet_wrap(~constructorRef) +
   scale_fill_manual(values = ctr_colours$colour) +
   geom_density(alpha = 0.5, colour = "black", linewidth = 0.2, show.legend = TRUE)
 ```
 
-The model suggests - perhaps controversially - that the Red Bull was the fastest car, followed by Ferrari and _then_ the McLaren. It suggests that being in one of those three, Mercedes, or Aston Martin, would gain you positions relative to the field and anything else you would lose positions, which does seem reasonable.
+```{r}
+#| label: tbl-ctr-perf
+#| tbl-cap: Constructor performance means and SDs from the posterior.
+
+posterior_ctrs |>
+  group_by(constructorRef) |>
+  summarise(mean_performance = mean(performance), sd = sd(performance)) |>
+  arrange(mean_performance) |>
+  mutate(rank = rank(mean_performance)) |>
+  kable(digits = 2)
+```
+
+Note that the sampled parameter is now latent performance not positions, so the numbers don't have a real-world meaning. What matters is relative performance, where a lower number is better.
+
+The model suggests - controversially, but with appropriate uncertainty - that the Red Bull was the fastest car, followed by Ferrari and _then_ the McLaren. However the relative positioning of the other teams seems about right.
 
 Forgive me for not labelling all the drivers on this next plot, but there's only so much plot fiddling I'm willing to do and it's usually obvious which is which.
 
 ```{r}
 #| label: fig-drv-perf
-#| fig-cap: Driver performance parameters determined by model. Lower is better.
-posterior_drvs <- sample_posterior2(fit.c)$drvs |>#| 
+#| fig-cap: Driver performance parameters determined by model. Lower (left) is better.
+posterior_drvs <- sample_posterior2(fit.c)$drvs |> #|
   merge(ctr_drvs) |>
   group_by(driverRef) |>
-  mutate(x = mean(position))
+  mutate(x = mean(performance))
 
 ggplot(posterior_drvs) +
-  aes(x = position, fill = driverRef, label = driverRef) +
+  aes(x = performance, fill = driverRef, label = driverRef) +
   facet_wrap(~constructorRef) +
   scale_fill_manual(values = drv_colours$colour) +
   geom_density(alpha = 0.5, colour = "black", linewidth = 0.2, show.legend = FALSE) +
-  geom_text(data=posterior_drvs, mapping=aes(x=x, y=0.75, angle=90), check_overlap = TRUE)
+  geom_text(data = posterior_drvs, mapping = aes(x = x, y = 0.75, angle = 90), check_overlap = TRUE)
 ```
 
-The model suggests that the top drivers performed similarly, with Verstappen fastest. Perez isn't considered so slow: but this could be because I removed all DNFs, flattering Perez.
+```{r}
+#| label: tbl-drv-perf
+#| tbl-cap: Driver performance means and SDs from the posterior.
 
-Intriguingly, the model considers that Sauber was faster than its competitors but let down by its drivers.
+posterior_drvs |>
+  group_by(driverRef) |>
+  summarise(mean_performance = mean(performance), sd = sd(performance)) |>
+  arrange(mean_performance) |>
+  mutate(rank = rank(mean_performance)) |>
+  kable(digits = 2)
+```
+
+The model suggests that the top drivers performed similarly, with Verstappen fastest. Poor Perez comes dead last, because the model has decided that the Red Bull was the fastest car.
+
+There are some obvious issues though. Alonso is considered only the 15th best performer out of 24, which is absurd. This could be because the Suzuka prior placed Aston Martin ahead of Mercedes whereas they actually finished the season well behind.
+
+There will also be some effect from the way I've simply excluded DNFs rather than penalising driver-fault DNFs.
 
 More on this later.

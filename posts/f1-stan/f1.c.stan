@@ -16,8 +16,8 @@ transformed parameters {
   vector[n_drvs] lambda_drvs;
   
   // Apply constraints to ensure identifiability
-  lambda_ctrs = inv_logit(lambda_ctrs_raw);
-  lambda_drvs = inv_logit(lambda_drvs_raw);
+  lambda_ctrs = log(20) * inv_logit(lambda_ctrs_raw);
+  lambda_drvs = log(20) * inv_logit(lambda_drvs_raw);
 }
 model {
   lambda_ctrs_raw ~ normal(ctr_mus, ctr_sd);
@@ -26,6 +26,6 @@ model {
   for (k in 1 : n_obs) {
     int i = position_indices[k, 1];
     int j = position_indices[k, 2];
-    positions[k] ~ poisson(10/exp(1) * exp(lambda_ctrs[i] + lambda_drvs[j]));
+    positions[k] ~ poisson(exp(lambda_ctrs[i] + lambda_drvs[j]));
   }
 }
