@@ -254,22 +254,25 @@ window.Quarto = {
 
 
 
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
 <p>The aim of this post is to teach myself basic Bayesian methods. I’ll set up a toy example problem and solve it.</p>
 <p>Let’s assume we have a natural event that happens with a variable periodicity e.g.&nbsp;a woman’s menstrual cycle. I’m drawing from <a href="https://www.sumsar.net/blog/2015/11/a-bayesian-model-to-calculate-whether-my-wife-is-pregnant/">this excellent blog on predicting a pregnancy</a>, but doing a much simpler model because I am but a baby myself.</p>
 <p>The aim here is to see if we can find the mean period of the cycle given some samples and priors for the average cycle. First, priors from the blog linked above:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a normal distribution for the mean days between period starts</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>prior_mean_mu <span class="ot">&lt;-</span> <span class="fl">27.7</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>prior_mean_sd <span class="ot">&lt;-</span> <span class="fl">2.4</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># a half-normal distribution for the SD of days between period starts</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>prior_sd_mu <span class="ot">&lt;-</span> <span class="fl">1.6</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>prior_sd_sd <span class="ot">&lt;-</span> <span class="fl">2.05</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a normal distribution for the mean days between period starts</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>prior_mean_mu <span class="ot">&lt;-</span> <span class="fl">27.7</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>prior_mean_sd <span class="ot">&lt;-</span> <span class="fl">2.4</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># a half-normal distribution for the SD of days between period starts</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>prior_sd_mu <span class="ot">&lt;-</span> <span class="fl">1.6</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>prior_sd_sd <span class="ot">&lt;-</span> <span class="fl">2.05</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We will set the true mean and SD (the params, <span class="math inline">\(\theta\)</span>, that we’re looking for) and simulate some sample data, <span class="math inline">\(d\)</span>.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>true_mu <span class="ot">&lt;-</span> <span class="fl">26.3</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>true_sd <span class="ot">&lt;-</span> <span class="fl">1.9</span></span>
@@ -282,11 +285,12 @@ window.Quarto = {
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sum</span>(<span class="fu">dnorm</span>(sample_periods, mean_period, sd_period, <span class="at">log =</span> <span class="cn">TRUE</span>))</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>A little sanity check: the likelihood of the true parameters should be greater than the likelihood of the priors.</p>
+<p>A little sanity check: the likelihood of the true parameters should be greater than the likelihood of the priors, for a large enough dataset.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">log_likelihood</span>(sample_periods, true_mu, true_sd) <span class="sc">&gt;</span> <span class="fu">log_likelihood</span>(sample_periods, prior_mean_mu, prior_mean_sd)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ten_year_sample <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="dv">120</span>, true_mu, true_sd)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">log_likelihood</span>(ten_year_sample, true_mu, true_sd) <span class="sc">&gt;</span> <span class="fu">log_likelihood</span>(ten_year_sample, prior_mean_mu, prior_mean_sd)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] FALSE</code></pre>
+<pre><code>[1] TRUE</code></pre>
 </div>
 </div>
 <section id="importance-sampling-to-fit-the-model" class="level2">
@@ -305,7 +309,7 @@ window.Quarto = {
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(prior) <span class="sc">+</span></span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> mu_period) <span class="sc">+</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">alpha=</span><span class="fl">0.5</span>, <span class="at">colour=</span><span class="st">"black"</span>, <span class="at">linewidth=</span><span class="fl">0.1</span>, <span class="at">fill=</span><span class="st">"dodgerblue4"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 </div>
@@ -320,7 +324,7 @@ window.Quarto = {
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(prior) <span class="sc">+</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> sd_period) <span class="sc">+</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">alpha=</span><span class="fl">0.5</span>, <span class="at">colour=</span><span class="st">"black"</span>, <span class="at">linewidth=</span><span class="fl">0.1</span>, <span class="at">fill=</span><span class="st">"dodgerblue4"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 </div>
@@ -352,7 +356,8 @@ window.Quarto = {
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df) <span class="sc">+</span></span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">fill =</span> dist) <span class="sc">+</span></span>
 <span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(param), <span class="at">scales =</span> <span class="st">"free"</span>) <span class="sc">+</span></span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">alpha =</span> <span class="fl">0.8</span>, <span class="at">position =</span> <span class="st">"identity"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values=</span><span class="fu">c</span>(<span class="st">"dodgerblue1"</span>, <span class="st">"dodgerblue4"</span>)) <span class="sc">+</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">colour=</span><span class="st">"black"</span>, <span class="at">linewidth=</span><span class="fl">0.1</span>, <span class="at">position =</span> <span class="st">"identity"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 </div>
