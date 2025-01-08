@@ -1,0 +1,118 @@
+---
+title: "What's the best strategy for Traitors?"
+date: "2025-01-07"
+categories: [traitors, monte carlo, r]
+draft: true
+---
+
+Time to share a guilty secret: I love the voting and intrigue genre of reality TV. The Traitors (BBC) could be my favourite of them all. Yes, they stretch ten minutes of gameplay into sixty minutes of "Oh my god..." and "you know I love you, but...". And yes, there's massive thumb-shaped groove on the scales because the producers are never going to let the game end early. But all the same, it's such fun watching the players plot and scheme and make terrible decisions.
+
+Occasionally the show includes contestants who are expert game players. They tend to underwhelm - with the honourable exception being Kate in Traitors Australia - yet it makes me wonder about optimum strategies. What's more fun than playing a game? Making a model of the game!
+
+# Simple model
+
+The minimum players for werewolf is six, with two wolves. Let's model that and build up. We'll set some basic default strategies for the traitors and the faithful.
+
+```{r}
+set.seed(42)
+
+ganging_up <- function(n_players, n_traitors) {
+  # all vote for the same faithful
+  rep(n_traitors + 1, n_traitors)
+}
+
+random_votes <- function(n_players, n_traitors) {
+  # no clue, vote randomly
+  sample(1:n_players, size = n_players - n_traitors, replace = TRUE)
+}
+
+game <- function(
+    n_players = 6,
+    n_traitors = 2,
+    traitor_strategy = ganging_up,
+    faithful_strategy = random_votes) {
+  while (
+    # The game ends when all traitors are exiled; or
+    n_traitors > 0 &&
+      # there are as many traitors as players
+      n_players - n_traitors > n_traitors
+  ) {
+    # There's an implicit player index here:
+    #  c(traitor, traitor, faithful, faithful, ..., faithful)
+    # Traitors are always the leading elements in the index.
+
+    votes <- rep(0, n_players)
+
+    votes[1:n_traitors] <- traitor_strategy(n_players, n_traitors)
+    votes[(n_traitors + 1):n_players] <- faithful_strategy(n_players, n_traitors)
+
+    exiled <- which.max(tabulate(votes))
+
+    if (exiled <= n_traitors) {
+      n_traitors <- n_traitors - 1
+    }
+
+    n_players <- n_players - 1
+  }
+
+  list(n_players_remaining = n_players, n_traitors_remaining = n_traitors)
+}
+
+game()
+```
+
+That's it. All we need to do now is simulate a lot of games and analyse the results.
+
+```{r}
+#| warning: false
+library(tidyverse)
+
+sim_games <- function(..., .n_games = 1000) {
+  1:.n_games |>
+    map(\(x) game(...), .progress = TRUE) |>
+    bind_rows() |>
+    mutate(traitors_win = n_traitors_remaining > 0)
+}
+
+plot_game_results <- function(results, n_players, n_traitors) {
+  gridExtra::grid.arrange(
+    ggplot(results) +
+      aes(x = traitors_win, fill = traitors_win) +
+      geom_bar(show.legend = FALSE) +
+      labs(title = sprintf("Traitor vs faithful wins (%s players, %s traitors)", n_players, n_traitors)),
+    ggplot(results) +
+      aes(x = n_players_remaining, fill = traitors_win) +
+      geom_histogram(stat = "count") +
+      labs(title = "Detailed game results")
+  )
+}
+
+results <- sim_games(6, 2)
+plot_game_results(results, 6, 2)
+```
+
+That's resoundingly in favour of the traitors, but the picture is different when we change the balance to be the same as the show.
+
+```{r}
+results <- sim_games(22, 3, .n_games = 10000)
+plot_game_results(results, 22, 3)
+```
+
+The traitors still retain an edge, but much diminished because the relative power of their voting bloc is lower.
+
+But these are unrealistic strategies. Traitors voting so predictably would raise suspicion, and we might want to credit the faithful with a little more intuition. Although the initial round of voting is generally uninformed and random, evidence against the traitors should accumulate.
+
+To avoid being too obvious, the traitors could split their votes: the majority target one faithful, and the remainder vote for random other players (including other traitors, to avoid inadvertently revealing them). We could assume the traitors were competent enough to rotate the majority members.
+
+```{r}
+subtle_ganging_up <- function(n_players, n_traitors) {
+
+}
+```
+
+Do the traitors keep their statistical advantage if they have to be more subtle?
+
+```{r}
+results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_ganging_up)
+plot_game_results(results, 22, 3)
+```
