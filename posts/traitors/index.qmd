@@ -67,7 +67,7 @@ That's it. All we need to do now is simulate a lot of games and analyse the resu
 #| warning: false
 library(tidyverse)
 
-sim_games <- function(..., .n_games = 1000) {
+sim_games <- function(..., .n_games = 10000) {
   1:.n_games |>
     map(\(x) game(...), .progress = TRUE) |>
     bind_rows() |>
@@ -94,7 +94,7 @@ plot_game_results(results, 6, 2)
 That's resoundingly in favour of the traitors, but the picture is different when we change the balance to be the same as the show.
 
 ```{r}
-results <- sim_games(22, 3, .n_games = 10000)
+results <- sim_games(22, 3)
 plot_game_results(results, 22, 3)
 ```
 
@@ -102,11 +102,14 @@ The traitors still retain an edge, but much diminished because the relative powe
 
 But these are unrealistic strategies. Traitors voting so predictably would raise suspicion, and we might want to credit the faithful with a little more intuition. Although the initial round of voting is generally uninformed and random, evidence against the traitors should accumulate.
 
-To avoid being too obvious, the traitors could split their votes: the majority target one faithful, and the remainder vote for random other players (including other traitors, to avoid inadvertently revealing them). We could assume the traitors were competent enough to rotate the majority members.
+To avoid being too obvious, the traitors could randomise their votes: they tend to target one faithful but will vote for other players with low probability.
 
 ```{r}
-subtle_ganging_up <- function(n_players, n_traitors) {
-
+subtle_ganging_up <- function(n_players, n_traitors, vote_prob = 0.8) {
+  n_faithful <- n_players - n_traitors
+  weights <- rep((1 - vote_prob) / (n_faithful - 1), n_faithful)
+  weights[1] <- vote_prob
+  sample((n_traitors + 1):n_players, size = n_traitors, replace = TRUE, prob = weights)
 }
 ```
 
@@ -116,3 +119,5 @@ Do the traitors keep their statistical advantage if they have to be more subtle?
 results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_ganging_up)
 plot_game_results(results, 22, 3)
 ```
+
+Nope! Even if there's only a 20% probability of them randomising their vote, the proportion of simulated games won _tumbles_. Clearly if the traitors want to win, they should vote together.
