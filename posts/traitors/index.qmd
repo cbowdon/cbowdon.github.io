@@ -52,7 +52,7 @@ game <- function(
       n_traitors <- n_traitors - 1
     }
 
-    n_players <- n_players - 1
+    n_players <- n_players - 2 # EXILE! MURDER!
   }
 
   list(n_players_remaining = n_players, n_traitors_remaining = n_traitors)
@@ -91,21 +91,23 @@ results <- sim_games(6, 2)
 plot_game_results(results, 6, 2)
 ```
 
-That's resoundingly in favour of the traitors, but the picture is different when we change the balance to be the same as the show.
+That's resoundingly in favour of the traitors, and the picture isn't so different when we change the balance to be the same as the show.
 
 ```{r}
 results <- sim_games(22, 3)
 plot_game_results(results, 22, 3)
 ```
 
-The traitors still retain an edge, but much diminished because the relative power of their voting bloc is lower.
+The traitors' edge is diminished because the relative power of their voting bloc is lower, but they still win most of the time.
 
 But these are unrealistic strategies. Traitors voting so predictably would raise suspicion, and we might want to credit the faithful with a little more intuition. Although the initial round of voting is generally uninformed and random, evidence against the traitors should accumulate.
+
+# Sneakier traitors
 
 To avoid being too obvious, the traitors could randomise their votes: they tend to target one faithful but will vote for other players with low probability.
 
 ```{r}
-subtle_ganging_up <- function(n_players, n_traitors, vote_prob = 0.8) {
+subtle_ganging_up <- function(n_players, n_traitors, vote_prob = 0.67) {
   n_faithful <- n_players - n_traitors
   weights <- rep((1 - vote_prob) / (n_faithful - 1), n_faithful)
   weights[1] <- vote_prob
@@ -120,4 +122,27 @@ results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_g
 plot_game_results(results, 22, 3)
 ```
 
-Nope! Even if there's only a 20% probability of them randomising their vote, the proportion of simulated games won _tumbles_. Clearly if the traitors want to win, they should vote together.
+Yes, they are still strongly favoured. Faithfuls need to up their game.
+
+# Smarter faithfuls
+
+It seems to me that the faithfuls tend to first exile people least like themselves - quite worrying actually - but get smarter as the game progresses. Some figure it out earlier and this gradually propagates.  Let's model that as an increasing average probability of voting for a traitor.
+
+```{r}
+rising_accuracy <- function(n_players, n_traitors) {
+  base_prob <- n_traitors / n_players
+  hit_prob <- base_prob * 8^(1/n_players)  # increase by a factor that rises as game progresses
+  miss_prob <- 1 - hit_prob
+  weights <- rep(0, n_players)
+  weights[1:n_traitors] <- hit_prob / n_traitors
+  weights[(n_traitors + 1):n_players] <- miss_prob / (n_players - n_traitors)
+  sample(1:n_players, size = n_players - n_traitors, replace = TRUE, prob = weights)
+}
+```
+
+OK.
+
+```{r}
+results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_ganging_up, faithful_strategy=rising_accuracy)
+plot_game_results(results, 22, 3)
+```
