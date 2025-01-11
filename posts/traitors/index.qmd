@@ -3,15 +3,21 @@ title: "What's the best strategy for Traitors?"
 date: "2025-01-07"
 categories: [traitors, monte carlo, r]
 draft: true
+freeze: false
 ---
 
 Time to share a guilty secret: I love the voting and intrigue genre of reality TV. The Traitors (BBC) could be my favourite of them all. Yes, they stretch ten minutes of gameplay into sixty minutes of "Oh my god..." and "you know I love you, but...". And yes, there's massive thumb-shaped groove on the scales because the producers are never going to let the game end early. But all the same, it's such fun watching the players plot and scheme and make terrible decisions.
 
-Occasionally the show includes contestants who are expert game players. They tend to underwhelm - with the honourable exception being Kate in Traitors Australia - yet it makes me wonder about optimum strategies. What's more fun than playing a game? Making a model of the game!
+Occasionally the show includes contestants who are expert game players. They tend to underwhelm - with the honourable exception being Kate in Traitors Australia - yet it makes me wonder about optimum strategies. What's more fun than playing a game? Making a model of the game in R!
+
+```{r}
+#| echo: false
+library(knitr)
+```
 
 # Simple model
 
-The minimum players for werewolf is six, with two wolves. Let's model that and build up. We'll set some basic default strategies for the traitors and the faithful.
+The minimum players for Werewolf (the game on which Traitors is based) is six, with two wolves and four villagers. Let's model that and build up. We'll set some basic default strategies for the traitors and the faithful.
 
 ```{r}
 set.seed(42)
@@ -131,7 +137,7 @@ It seems to me that the faithfuls tend to first exile people least like themselv
 ```{r}
 rising_accuracy <- function(n_players, n_traitors) {
   base_prob <- n_traitors / n_players
-  hit_prob <- base_prob * 8^(1/n_players)  # increase by a factor that rises as game progresses
+  hit_prob <- base_prob * 8^(1 / n_players) # increase by a factor that rises as game progresses
   miss_prob <- 1 - hit_prob
   weights <- rep(0, n_players)
   weights[1:n_traitors] <- hit_prob / n_traitors
@@ -140,9 +146,52 @@ rising_accuracy <- function(n_players, n_traitors) {
 }
 ```
 
-OK.
+This evens things out significantly.
 
 ```{r}
-results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_ganging_up, faithful_strategy=rising_accuracy)
+results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_ganging_up, faithful_strategy = rising_accuracy)
 plot_game_results(results, 22, 3)
+```
+
+What can we do to make this more realistic though?
+
+# What are actual vote distributions like?
+
+Let's see how random the votes actually are. Happily, Traitors is a big enough phenomenon that people have recorded the players' votes online. [Here for example](https://thetraitors.fandom.com/wiki/The_Traitors_(Australia)/Season_1#Voting_History) are the votes from Australia's first season.
+
+```{r}
+# Some fixes were required: two players abstained from a vote, and one quit.
+# I converted these into pseudo-votes for an imaginary player.
+votes <- list(
+  c(20, 2, 1),
+  c(16, 2, 1, 1, 1),
+  c(4, 4, 3, 3, 2, 1, 1, 1),
+  c(11, 5, 2),
+  c(7, 6, 2, 1),
+  c(7, 5, 1, 1),
+  c(9, 3, 1),
+  c(9, 1, 1),
+  c(8, 2),
+  c(4, 1, 1, 1, 1),
+  c(5, 1, 1),
+  c(4, 1),
+  c(3, 1),
+  c(2, 1)
+) |>
+  # Zero-pad every round
+  lapply(\(v) {
+    round_votes <- rep(0, sum(v))
+    round_votes[1:length(v)] <- v
+    round_votes
+  })
+```
+
+We can guess by looking that these aren't drawn from a uniform distribution, and $\chi^2$ agrees.
+
+```{r}
+votes |>
+  head(10) |>   # the final rounds have too few votes to test
+  lapply(\(v) as.data.frame(chisq.test(v, simulate.p.value = TRUE)[c("statistic", "p.value")])) |>
+  bind_rows() |>
+  kable()
 ```
