@@ -2,6 +2,7 @@
 title: "What's the best strategy for Traitors?"
 date: "2025-01-07"
 categories: [traitors, monte carlo, r]
+draft: true
 freeze: false
 ---
 
