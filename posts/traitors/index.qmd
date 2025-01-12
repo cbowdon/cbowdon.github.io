@@ -37,7 +37,11 @@ random_faithful <- function(n_players, n_traitors) {
 
 random_traitors <- function(n_players, n_traitors) {
   # vote a single random faithful
-  target <- sample((n_traitors + 1):n_players, size = 1)
+  if (n_players - n_traitors == 1) {
+    target <- 2  # special case for 2 players 1 traitor
+  } else {
+    target <- sample((n_traitors + 1):n_players, size = 1)
+  }
   rep(target, n_traitors)
 }
 
@@ -63,7 +67,7 @@ game <- function(
 
     exiled <- which.max(tabulate(votes))
 
-    n_players <- n_players - 1  # EXILE!
+    n_players <- n_players - 1 # EXILE!
     if (exiled <= n_traitors) {
       n_traitors <- n_traitors - 1
     }
@@ -112,7 +116,7 @@ results <- sim_games(6, 2)
 plot_game_results(results, 6, 2)
 ```
 
-That's resoundingly in favour of the traitors, but the picture is different when we change the balance to be the same as the show.
+~~That's resoundingly in favour of the traitors, but the picture is different when we change the balance to be the same as the show.~~
 
 ```{r}
 #| label: fig-simulate-show-numbers
@@ -121,7 +125,7 @@ results <- sim_games(22, 3)
 plot_game_results(results, 22, 3)
 ```
 
-Now the game is much fairer, though the traitors still have a strong advantage.
+~~Now the game is much fairer, though the traitors still have a strong advantage.~~
 
 I had a little look at a paper on Mafia by [Migdał, 2024](https://arxiv.org/pdf/1009.1031), which includes this formula for traitor winning probability:
 
@@ -164,8 +168,6 @@ ggplot(tibble(n_players = 1:20, sim_prob = sim_probs)) +
   geom_line(data = tibble(n_players = 1:20, migdal_prob = migdal_probs), mapping = aes(y = migdal_prob)) +
   scale_y_continuous(limits = c(0, 1.5))
 ```
-
-Close, but curiously the traitors are more likely to lose on even player numbers in the simulation than the calculation. The biggest difference is probably from the win condition: Migdał uses the classic Mafia rules of the game continuing until only one group remains, whereas I've taken the show's rules of the traitors winning if they get down to the final two or ever outnumber the faithful.
 
 The sawtooth pattern is one of the interesting results of Migdał's paper: an odd number of players strongly favours the traitors, to the extent that having 8 faithful and 1 traitor gives the traitor a better win chance than having 3 faithful and 1 traitor, despite there being more than twice as many faithful in the former.
 
@@ -244,7 +246,7 @@ vote_prob <- colSums(mat) / nrow(mat)
 barplot(vote_prob)
 ```
 
-If we run this strategy, it works marginally worse than random votes. Oh dear. What can the faithful do to even the odds?
+~~If we run this strategy, it works marginally worse than random votes. Oh dear. What can the faithful do to even the odds?~~
 
 ```{r}
 #| label: herding-strat
@@ -258,7 +260,7 @@ results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = random_t
 plot_game_results(results, 22, 3)
 ```
 
-Well, they could perhaps have
+
 
 # Smart faithfuls
 
