@@ -37,11 +37,7 @@ random_faithful <- function(n_players, n_traitors) {
 
 random_traitors <- function(n_players, n_traitors) {
   # vote a single random faithful
-  if (n_players - n_traitors == 1) {
-    target <- 2  # special case for 2 players 1 traitor
-  } else {
-    target <- sample((n_traitors + 1):n_players, size = 1)
-  }
+  target <- sample((n_traitors + 1):n_players, size = 1)
   rep(target, n_traitors)
 }
 
@@ -62,7 +58,13 @@ game <- function(
     # DAY
     votes <- rep(0, n_players)
 
-    votes[1:n_traitors] <- traitor_strategy(n_players, n_traitors)
+    if (n_players - n_traitors == 1) {
+      # special case for 2 players 1 traitor
+      # coded here to avoid having to handle it repeatedly
+      votes[1:n_traitors] <- n_players
+    } else {
+      votes[1:n_traitors] <- traitor_strategy(n_players, n_traitors)
+    }
     votes[(n_traitors + 1):n_players] <- faithful_strategy(n_players, n_traitors)
 
     exiled <- which.max(tabulate(votes))
@@ -116,7 +118,7 @@ results <- sim_games(6, 2)
 plot_game_results(results, 6, 2)
 ```
 
-~~That's resoundingly in favour of the traitors, but the picture is different when we change the balance to be the same as the show.~~
+That's quite in favour of the traitors, but the picture is different when we change the balance to be the same as the show.
 
 ```{r}
 #| label: fig-simulate-show-numbers
@@ -125,7 +127,7 @@ results <- sim_games(22, 3)
 plot_game_results(results, 22, 3)
 ```
 
-~~Now the game is much fairer, though the traitors still have a strong advantage.~~
+Now the game is perfectly balanced.
 
 I had a little look at a paper on Mafia by [Migdał, 2024](https://arxiv.org/pdf/1009.1031), which includes this formula for traitor winning probability:
 
@@ -133,7 +135,7 @@ $$
 p(n, m) \propto \frac{m}{\sqrt{n}}
 $$
 
-Where $n$ is the number of players, $m$ is the number of traitors, and $p$ is the winning probability
+Where $n$ is the number of players, $m$ is the number of traitors, and $p$ is the winning probability.
 
 Migdał calculates the exact probabilities for games with a single traitor and a pseudo-random faithful vote strategy, so we can compare the simulation to the calculation.
 
@@ -170,6 +172,8 @@ ggplot(tibble(n_players = 1:20, sim_prob = sim_probs)) +
 ```
 
 The sawtooth pattern is one of the interesting results of Migdał's paper: an odd number of players strongly favours the traitors, to the extent that having 8 faithful and 1 traitor gives the traitor a better win chance than having 3 faithful and 1 traitor, despite there being more than twice as many faithful in the former.
+
+That has a useful implication for the producers of the Traitors: if they want to keep the game balanced, the timing of adding new players is crucial.
 
 # How good is our random vote assumption?
 
@@ -221,12 +225,12 @@ votes |>
   head(10) |> # the final rounds have too few votes to test
   lapply(\(v) as.data.frame(chisq.test(v, simulate.p.value = TRUE)[c("statistic", "p.value")])) |>
   bind_rows() |>
-  kable()
+  kable(digits = 5)
 ```
 
-It looks to me like the faithful actually herd together to whomp one or two unlucky players. Even if the targets are chosen at random - which looks likely - this helps nullify concerted voting by the traitors. If the traitors don't read the room and join the herd, they will stand out, making it risky to try to defend a targeted traitor or to pick their own target.
+It looks to me like the faithful do herd together to whomp one or two unlucky players. It's obviously not a pre-arranged strategy, just groupthink, but all the same quite likely.
 
-Let's model that strategy. We'll take the mean of the vote distributions as the probability of voting for target one, two, three, etc.
+Let's model the way the faithful play. We'll take the mean of the vote distributions as the probability of voting for target one, two, three, etc.
 
 ```{r}
 #| label: fig-est-multinomial
@@ -246,7 +250,7 @@ vote_prob <- colSums(mat) / nrow(mat)
 barplot(vote_prob)
 ```
 
-~~If we run this strategy, it works marginally worse than random votes. Oh dear. What can the faithful do to even the odds?~~
+We'll take the mean normalised vote counts as a multinomial distribution, so that our simulation reflects actual vote distributions.
 
 ```{r}
 #| label: herding-strat
@@ -260,11 +264,58 @@ results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = random_t
 plot_game_results(results, 22, 3)
 ```
 
-
+This isn't much worse than the fully random strategy, though it still gives the traitors a slight advantage. Could the faithfuls do better? Well yes, if they were any good at spotting traitors.
 
 # Smart faithfuls
 
+Let's grant the faithfuls a glimmer of intuition: they are twice as suspicious of traitors as faithfuls, i.e. a traitor is twice as likely to be the vote target as a faithful. We'll call that the _suspcicion_ factor.
 
+```{r}
+intuitive_herd <- function(n_players, n_traitors, suspicion_factor = 2) {
+  intuition <- rep(1, n_players)
+  intuition[1:n_traitors] <- suspicion_factor
+  intuition <- intuition / sum(intuition)
+  shuffled <- sample(n_players, n_players, prob = intuition)
+  sample(shuffled, size = n_players - n_traitors, replace = TRUE, prob = vote_prob[1:n_players])
+}
+
+results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = random_traitors, faithful_strategy = intuitive_herd)
+plot_game_results(results, 22, 3)
+```
+
+That tips the balance resoundingly in favour of the faithfuls, showing how fragile the traitors' position really is.
+
+```{r}
+#| label: fig-suspicion
+#| fig-cap: Traitor win probability as a function of suspicion.
+suspicion <- c(0.5, 1.0, 1.2, 1.5, 2.0, 5.0, 10.0)
+s_df <- suspicion |>
+  map(
+    \(s)
+    sim_games(
+      n_players = 22,
+      n_traitors = 3,
+      traitor_strategy = random_traitors,
+      faithful_strategy = function(...) intuitive_herd(..., suspicion_factor = s)
+    ) |>
+      mutate(suspicion = s),
+    .progress = TRUE
+  ) |>
+  bind_rows() |>
+  group_by(suspicion) |>
+  summarise(traitor_win_prob = mean(traitors_win))
+
+ggplot(s_df) +
+  aes(x=suspicion, y=traitor_win_prob) +
+  geom_line() +
+  scale_y_continuous(limits=c(0, 1)) +
+  labs(
+    x="Suspicion relative to faithful",
+    y="Traitors win probability"
+  )
+```
+
+The odds get exponentially worse the more the faithful suspect the traitors. And vice-versa: if the traitors are less-suspected than the faithful, they stand a strong chance of winning the game.
 
 # Smarter traitors
 
@@ -311,7 +362,8 @@ Yes, they are still strongly favoured. Faithfuls need to up their game.
 
 It seems to me that the faithfuls tend to first exile people least like themselves - quite worrying actually - but get smarter as the game progresses. Some figure it out earlier and this gradually propagates.  Let's model that as an increasing average probability of voting for a traitor.
 
-```{r}
+```
+#| label: rising-accuracy
 rising_accuracy <- function(n_players, n_traitors) {
   base_prob <- n_traitors / n_players
   hit_prob <- base_prob * 8^(1 / n_players) # increase by a factor that rises as game progresses
@@ -325,7 +377,8 @@ rising_accuracy <- function(n_players, n_traitors) {
 
 This evens things out significantly.
 
-```{r}
+```
+#| label: fig-rising-accuracy
 results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_concerted_vote, faithful_strategy = rising_accuracy)
 plot_game_results(results, 22, 3)
 ```
@@ -333,7 +386,7 @@ plot_game_results(results, 22, 3)
 What can we do to make this more realistic though?
 
 
-```{r}
+```
 herd_traitors <- function(n_players, n_traitors) {
   shuffled <- sample(n_players, n_players)
   sample(shuffled, size = n_traitors, replace = TRUE, prob = vote_prob[1:n_players])
@@ -345,7 +398,7 @@ plot_game_results(results, 22, 3)
 
 Let's add the rising accuracy back in too.
 
-```{r}
+```
 #| label: rising-accuracy-herd
 rising_accuracy_herd <- function(n_players, n_traitors) {
   base_prob <- n_traitors / n_players
