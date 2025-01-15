@@ -18,6 +18,9 @@ Occasionally the show includes contestants who are expert game players. They ten
 #  Plumbing and other distracting code is behind the folds.
 library(knitr)
 library(tidyverse)
+
+orange <- rgb(236 / 255, 137 / 255, 51 / 255)
+crimson <- rgb(89 / 255, 14 / 255, 5 / 255)
 ```
 
 # Simple model
@@ -97,21 +100,26 @@ sim_games <- function(..., .n_games = 10000) {
   1:.n_games |>
     map(\(x) game(...), .progress = TRUE) |>
     bind_rows() |>
-    mutate(traitors_win = n_traitors_remaining > 0)
+    mutate(
+      traitors_win = n_traitors_remaining > 0,
+      winner = ifelse(n_traitors_remaining > 0, "Traitors", "Faithful")
+    )
 }
 
 plot_game_results <- function(results, n_players, n_traitors) {
   traitor_win_prob <- mean(results$traitors_win)
 
   ggplot(results) +
-    aes(x = n_players_remaining, fill = traitors_win) +
-    geom_histogram() +
+    aes(x = winner, fill = winner) +
+    geom_bar() +
+    scale_fill_manual(values = c(crimson, orange)) +
     labs(title = sprintf(
       "%s players, %s traitors. Traitor win prob: %s",
       n_players,
       n_traitors,
       round(traitor_win_prob, digits = 2)
-    ))
+    )) +
+    theme_minimal()
 }
 
 results <- sim_games(6, 2)
@@ -306,12 +314,12 @@ s_df <- suspicion |>
   summarise(traitor_win_prob = mean(traitors_win))
 
 ggplot(s_df) +
-  aes(x=suspicion, y=traitor_win_prob) +
+  aes(x = suspicion, y = traitor_win_prob) +
   geom_line() +
-  scale_y_continuous(limits=c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1)) +
   labs(
-    x="Suspicion relative to faithful",
-    y="Traitors win probability"
+    x = "Suspicion relative to faithful",
+    y = "Traitors win probability"
   )
 ```
 
