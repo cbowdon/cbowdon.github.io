@@ -109,17 +109,27 @@ sim_games <- function(..., .n_games = 10000) {
 plot_game_results <- function(results, n_players, n_traitors) {
   traitor_win_prob <- mean(results$traitors_win)
 
-  ggplot(results) +
-    aes(x = winner, fill = winner) +
-    geom_bar() +
+  ggplot(
+    results |>
+      group_by(winner) |>
+      count()
+  ) +
+    aes(y = winner, x = n, fill = winner, label=winner) +
+    geom_bar(stat = "identity", colour = "black", orientation = "y", alpha=0.9) +
     scale_fill_manual(values = c(crimson, orange)) +
-    labs(title = sprintf(
-      "%s players, %s traitors. Traitor win prob: %s",
-      n_players,
-      n_traitors,
-      round(traitor_win_prob, digits = 2)
-    )) +
-    theme_minimal()
+    labs(
+      title = sprintf(
+        "Game result for %s players, %s traitors. Traitor win prob: %s",
+        n_players,
+        n_traitors,
+        round(traitor_win_prob, digits = 2)
+      ),
+      x = "Wins",
+      y = NULL,
+      fill = "Winner"
+    ) +
+    theme_minimal() +
+    theme(aspect.ratio = 0.5)
 }
 
 results <- sim_games(6, 2)
@@ -315,12 +325,13 @@ s_df <- suspicion |>
 
 ggplot(s_df) +
   aes(x = suspicion, y = traitor_win_prob) +
-  geom_line() +
+  geom_area(fill = orange, colour = "black") +
   scale_y_continuous(limits = c(0, 1)) +
   labs(
     x = "Suspicion relative to faithful",
     y = "Traitors win probability"
-  )
+  ) +
+  theme_minimal()
 ```
 
 The odds get exponentially worse the more the faithful suspect the traitors. And vice-versa: if the traitors are less-suspected than the faithful, they stand a strong chance of winning the game.
