@@ -6,7 +6,7 @@ draft: true
 freeze: false
 ---
 
-Time to share a guilty secret: I love the voting and intrigue genre of reality TV. The Traitors (BBC) could be my favourite of them all. Yes, they stretch ten minutes of gameplay into sixty minutes of "Oh my god..." and "you know I love you, but...". And yes, there's massive thumb-shaped groove on the scales because the producers are never going to let the game end early. But all the same, it's such fun watching the players plot and scheme and make terrible decisions.
+Three years in, I am still absolutely hooked on The Traitors (the TV series). Sure they stretch ten minutes of gameplay into sixty minutes of "you know I love you, but..." and the weirdly maddening attempts to make "yourself" a polite version of "you". (Etymology nerds will be screaming that "you" is already the polite form of "thou".) And yes, there's massive thumb-shaped groove on the scales because the producers are never going to let the game end early. But all the same, it's such fun watching the players plot and scheme and make terrible decisions.
 
 Occasionally the show includes contestants who are expert game players. They tend to underwhelm - with the honourable exception being Kate in Traitors Australia - yet it makes me wonder about optimum strategies. What's more fun than playing a game? Making a model of the game in R!
 
@@ -19,30 +19,18 @@ Occasionally the show includes contestants who are expert game players. They ten
 library(knitr)
 library(tidyverse)
 
+set.seed(42) # trad
+
 orange <- rgb(236 / 255, 137 / 255, 51 / 255)
-crimson <- rgb(89 / 255, 14 / 255, 5 / 255)
+crimson <- rgb(89 / 255, 14 / 255, 50 / 255)
 ```
 
 # Simple model
 
-The minimum players for Werewolf (the game on which Traitors is based) is six, with two wolves and four villagers. There is no recruitment and there are no shields. Let's model this simple version and build up. We'll set some basic default strategies for the traitors and the faithful.
+The minimum players for Werewolf, a.k.a. Mafia (the game on which Traitors is based) is six, with four villagers and two wolves. In this version of the game there is no recruitment and there are no shields. Let's model this simple version and build up from there. We'll set some basic default strategies for the traitors and the faithful.
 
 ```{r}
 #| label: game-setup
-
-set.seed(42)
-
-random_faithful <- function(n_players, n_traitors) {
-  # vote for a single random player
-  target <- sample(1:n_players, size = 1)
-  rep(target, n_players - n_traitors)
-}
-
-random_traitors <- function(n_players, n_traitors) {
-  # vote a single random faithful
-  target <- sample((n_traitors + 1):n_players, size = 1)
-  rep(target, n_traitors)
-}
 
 game <- function(
     n_players = 6,
@@ -70,10 +58,10 @@ game <- function(
     }
     votes[(n_traitors + 1):n_players] <- faithful_strategy(n_players, n_traitors)
 
-    exiled <- which.max(tabulate(votes))
+    banished <- which.max(tabulate(votes))
 
-    n_players <- n_players - 1 # EXILE!
-    if (exiled <= n_traitors) {
+    n_players <- n_players - 1 # BANISHMENT!
+    if (banished <= n_traitors) {
       n_traitors <- n_traitors - 1
     }
 
@@ -86,6 +74,18 @@ game <- function(
   }
 
   list(n_players_remaining = n_players, n_traitors_remaining = n_traitors)
+}
+
+random_faithful <- function(n_players, n_traitors) {
+  # vote for a single random player
+  target <- sample(1:n_players, size = 1)
+  rep(target, n_players - n_traitors)
+}
+
+random_traitors <- function(n_players, n_traitors) {
+  # vote a single random faithful
+  target <- sample((n_traitors + 1):n_players, size = 1)
+  rep(target, n_traitors)
 }
 
 game()
@@ -114,8 +114,8 @@ plot_game_results <- function(results, n_players, n_traitors) {
       group_by(winner) |>
       count()
   ) +
-    aes(y = winner, x = n, fill = winner, label=winner) +
-    geom_bar(stat = "identity", colour = "black", orientation = "y", alpha=0.9) +
+    aes(y = winner, x = n, fill = winner, label = winner) +
+    geom_bar(stat = "identity", colour = "black", orientation = "y", alpha = 0.9) +
     scale_fill_manual(values = c(crimson, orange)) +
     labs(
       title = sprintf(
@@ -145,9 +145,9 @@ results <- sim_games(22, 3)
 plot_game_results(results, 22, 3)
 ```
 
-Now the game is perfectly balanced.
+Now the game is nearly perfectly balanced.
 
-I had a little look at a paper on Mafia by [Migdał, 2024](https://arxiv.org/pdf/1009.1031), which includes this formula for traitor winning probability:
+To check this simulation is on the right track, I had a little look at a paper on Mafia by [Migdał, 2024](https://arxiv.org/pdf/1009.1031), which includes this formula for traitor winning probability:
 
 $$
 p(n, m) \propto \frac{m}{\sqrt{n}}
@@ -156,6 +156,14 @@ $$
 Where $n$ is the number of players, $m$ is the number of traitors, and $p$ is the winning probability.
 
 Migdał calculates the exact probabilities for games with a single traitor and a pseudo-random faithful vote strategy, so we can compare the simulation to the calculation.
+
+The formula in this case is:
+
+$$
+p(n, 1) = \frac{(n -1)!!}{n!!}
+$$
+
+$n!!$ is the double factorial of $n$, i.e. $1 x 3 x ... x n$ if $n$ is odd and $2 x 4 x ... n$ if $n$ is even.
 
 ```{r}
 #| label: fig-sim-comparison
@@ -191,46 +199,104 @@ ggplot(tibble(n_players = 1:20, sim_prob = sim_probs)) +
 
 The sawtooth pattern is one of the interesting results of Migdał's paper: an odd number of players strongly favours the traitors, to the extent that having 8 faithful and 1 traitor gives the traitor a better win chance than having 3 faithful and 1 traitor, despite there being more than twice as many faithful in the former.
 
-That has a useful implication for the producers of the Traitors: if they want to keep the game balanced, the timing of adding new players is crucial.
+That has a useful implication for the producers of the Traitors: if they want to keep the game balanced, the timing of adding new players is crucial. I suspect they already know this.
 
 # How good is our random vote assumption?
 
-Let's see how random the votes actually are. Happily, Traitors is a big enough phenomenon that people have recorded the players' votes online. [Here for example](https://thetraitors.fandom.com/wiki/The_Traitors_(Australia)/Season_1#Voting_History) are the votes from Australia's first season.
+Let's see how random the votes actually are. Happily, Traitors is a big enough phenomenon that people have recorded the players' votes online. [Here for example](https://thetraitors.fandom.com/wiki/The_Traitors_(Australia)/Season_1#Voting_History) are the votes from Australia's first season. Below the fold is some code for manipulating the copy-pasted votes into a dataframe.
 
 ```{r}
-#| label: pad
+#| label: real-votes
 #| code-fold: true
+
+# Some fixes were required: in Aus two players abstained from a vote, and one quit.
+# I converted these into pseudo-votes for an imaginary player.
+
+votes <- list(
+  # Aus 1
+  list(
+    c(20, 2, 1),
+    c(16, 2, 1, 1, 1),
+    c(4, 4, 3, 3, 2, 1, 1, 1),
+    c(11, 5, 2),
+    c(7, 6, 2, 1),
+    c(7, 5, 1, 1),
+    c(9, 3, 1),
+    c(9, 1, 1),
+    c(8, 2),
+    c(4, 1, 1, 1, 1),
+    c(5, 1, 1),
+    c(4, 1),
+    c(3, 1),
+    c(2, 1)
+  ),
+
+  # UK 1
+  list(
+    c(11, 8),
+    c(8, 6, 3),
+    c(11, 4),
+    c(9, 4),
+    c(7, 3, 1),
+    c(7, 1, 1),
+    c(6, 2),
+    c(4, 2),
+    c(3, 2),
+    c(1, 3),
+    c(3, 0)
+  ),
+
+  # UK 2
+  list(
+    c(17, 1, 1),
+    c(10, 6, 1),
+    c(7, 6, 2, 1),
+    c(7, 4, 1, 1, 1),
+    c(6, 5, 2, 1),
+    c(7, 3, 2, 1),
+    c(6, 2, 2),
+    c(4, 2, 1, 1),
+    c(4, 2),
+    c(4, 1),
+    c(2, 2),
+    c(3, 1),
+    c(3, 0)
+  ),
+
+  # US
+  list(
+    c(15, 2, 2, 1, 1),
+    c(4, 4, 4, 3, 1, 1, 1, 1),
+    c(7, 6, 3),
+    c(14, 1, 1, 1, 1),
+    c(12, 2, 1, 1),
+    c(7, 3, 2, 1, 1),
+    c(9, 2, 1),
+    c(7, 4),
+    c(6, 2, 1),
+    c(6, 1, 1),
+    c(4, 1, 1),
+    c(4, 1),
+    c(4, 0),
+    c(3, 1),
+    c(1, 2),
+    c(2, 1)
+  )
+)
 
 pad <- function(v, new_length, value) {
   v2 <- rep(value, new_length)
   v2[1:length(v)] <- v
   v2
 }
-```
 
-```{r}
-#| label: aussie-votes
-
-# Some fixes were required: two players abstained from a vote, and one quit.
-# I converted these into pseudo-votes for an imaginary player.
-votes <- list(
-  c(20, 2, 1),
-  c(16, 2, 1, 1, 1),
-  c(4, 4, 3, 3, 2, 1, 1, 1),
-  c(11, 5, 2),
-  c(7, 6, 2, 1),
-  c(7, 5, 1, 1),
-  c(9, 3, 1),
-  c(9, 1, 1),
-  c(8, 2),
-  c(4, 1, 1, 1, 1),
-  c(5, 1, 1),
-  c(4, 1),
-  c(3, 1),
-  c(2, 1)
-) |>
-  # Zero-pad every round
-  lapply(\(v) pad(v, sum(v), 0))
+votes_df <- tibble(v= flatten(votes)) |>
+  rowwise() |>
+  filter(sum(v) > 5) |>  # ignore the finals, which are a little different
+  mutate(
+    n_players = sum(v),
+    v = list(pad(v, n_players, 0)),  # pad 0s for with each player that didn't receive a vote
+  )
 ```
 
 We can guess by looking that these aren't drawn from a uniform distribution, and $\chi^2$ agrees.
@@ -239,27 +305,26 @@ We can guess by looking that these aren't drawn from a uniform distribution, and
 #| label: tbl-unnecessary-chisq
 #| tbl-cap: Completely unnecessary $\chi^2$ goodness-of-fit tests.
 
-votes |>
-  head(10) |> # the final rounds have too few votes to test
-  lapply(\(v) as.data.frame(chisq.test(v, simulate.p.value = TRUE)[c("statistic", "p.value")])) |>
-  bind_rows() |>
+votes_df |>
+  mutate(p.value = chisq.test(v, simulate.p.value = TRUE)["p.value"]) |>
+  unnest(p.value) |>
   kable(digits = 5)
 ```
 
-It looks to me like the faithful do herd together to whomp one or two unlucky players. It's obviously not a pre-arranged strategy, just groupthink, but all the same quite likely.
+It looks to me like the faithful do herd together to whomp one or two unlucky players. Sometimes this is pre-arranged, sometimes it's just groupthink ("I've just got nothing to go on, so I put yourself...").
 
-Let's model the way the faithful play. We'll take the mean of the vote distributions as the probability of voting for target one, two, three, etc.
+Let's implement a voting strategy that's closer to this reality. We'll take the mean of the vote distributions as the probability of voting for target one, two, three, etc, to form a multinomial distribution, so that our simulation reflects actual vote distributions.
 
 ```{r}
 #| label: fig-est-multinomial
 #| fig-cap: Mean of normalised vote counts across each round.
-n_rounds <- length(votes)
-n_players <- length(votes[[1]])
+n_rounds <- nrow(votes_df)
+n_players <- max(votes_df$n_players)
 
 mat <- matrix(0, nrow = n_rounds, ncol = n_players)
 
 for (i in 1:n_rounds) {
-  v <- votes[[i]]
+  v <- votes_df$v[[i]]
   mat[i, 1:length(v)] <- v / sum(v)
 }
 
@@ -268,7 +333,7 @@ vote_prob <- colSums(mat) / nrow(mat)
 barplot(vote_prob)
 ```
 
-We'll take the mean normalised vote counts as a multinomial distribution, so that our simulation reflects actual vote distributions.
+In a typical round, we'd expect about 62% of players to vote for player A, and 23% for player B, etc. This doesn't relate to the probability of player A or B being traitors, just the expected vote split.
 
 ```{r}
 #| label: herding-strat
@@ -282,39 +347,41 @@ results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = random_t
 plot_game_results(results, 22, 3)
 ```
 
-This isn't much worse than the fully random strategy, though it still gives the traitors a slight advantage. Could the faithfuls do better? Well yes, if they were any good at spotting traitors.
+Having a split vote isn't much worse than the fully random strategy, though it still gives the traitors a slight advantage. Could the faithfuls do better? Well yes, if they were any good at spotting traitors.
 
-# Smart faithfuls
+# Smarter faithfuls
 
-Let's grant the faithfuls a glimmer of intuition: they are twice as suspicious of traitors as faithfuls, i.e. a traitor is twice as likely to be the vote target as a faithful. We'll call that the _suspcicion_ factor.
+Let's grant the faithfuls a glimmer of intuition: they are twice as suspicious of traitors as faithfuls, i.e. a traitor is twice as likely to be the vote target as a faithful. We'll call that the _suspicion_ factor, where a value of 1 means a traitor is equally suspicious as any other player to the faithfuls.
+
+ We can model this with a suspicion vector, which is the (normalised) level of suspicion for each player.
 
 ```{r}
-intuitive_herd <- function(n_players, n_traitors, suspicion_factor = 2) {
-  intuition <- rep(1, n_players)
-  intuition[1:n_traitors] <- suspicion_factor
-  intuition <- intuition / sum(intuition)
-  shuffled <- sample(n_players, n_players, prob = intuition)
+suspicious_herd <- function(n_players, n_traitors, suspicion_factor = 2) {
+  suspicion <- rep(1, n_players)
+  suspicion[1:n_traitors] <- suspicion_factor
+  suspicion <- suspicion / sum(suspicion)
+  shuffled <- sample(n_players, n_players, prob = suspicion)
   sample(shuffled, size = n_players - n_traitors, replace = TRUE, prob = vote_prob[1:n_players])
 }
 
-results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = random_traitors, faithful_strategy = intuitive_herd)
+results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = random_traitors, faithful_strategy = suspicious_herd)
 plot_game_results(results, 22, 3)
 ```
 
-That tips the balance resoundingly in favour of the faithfuls, showing how fragile the traitors' position really is.
+That puts the balance resoundingly in favour of the faithfuls, showing how fragile the traitors' position really is. We can explore how the traitors' win probability depends on how savvy the faithful are.
 
 ```{r}
 #| label: fig-suspicion
 #| fig-cap: Traitor win probability as a function of suspicion.
-suspicion <- c(0.5, 1.0, 1.2, 1.5, 2.0, 5.0, 10.0)
-s_df <- suspicion |>
+suspicions <- c(0.5, 1.0, 1.2, 1.5, 2.0, 5.0, 10.0)
+s_df <- suspicions |>
   map(
     \(s)
     sim_games(
       n_players = 22,
       n_traitors = 3,
       traitor_strategy = random_traitors,
-      faithful_strategy = function(...) intuitive_herd(..., suspicion_factor = s)
+      faithful_strategy = function(...) suspicious_herd(..., suspicion_factor = s)
     ) |>
       mutate(suspicion = s),
     .progress = TRUE
@@ -326,6 +393,7 @@ s_df <- suspicion |>
 ggplot(s_df) +
   aes(x = suspicion, y = traitor_win_prob) +
   geom_area(fill = orange, colour = "black") +
+  scale_x_continuous(breaks=seq(0, 10, 1)) +
   scale_y_continuous(limits = c(0, 1)) +
   labs(
     x = "Suspicion relative to faithful",
@@ -338,100 +406,4 @@ The odds get exponentially worse the more the faithful suspect the traitors. And
 
 # Smarter traitors
 
-What if the traitors vote as a bloc?
-
-```{r}
-concerted_vote <- function(n_players, n_traitors) {
-  # all vote for the same faithful
-  rep(n_traitors + 1, n_traitors)
-}
-```
-
-The traitors' edge is diminished because the relative power of their voting bloc is lower, but they still win most of the time.
-
-But this is an unrealistic strategy. Traitors voting so predictably would raise suspicion, and we might want to credit the faithful with a little more intuition. Although the initial round of voting is generally uninformed and random, evidence against the traitors should accumulate.
-
-# Sneakier traitors
-
-To avoid being too obvious, the traitors could randomise their votes: they tend to target one faithful but will vote for other players with low probability.
-
-```{r}
-#| label: subtle-concerted-vote
-
-subtle_concerted_vote <- function(n_players, n_traitors, vote_prob = 0.67) {
-  n_faithful <- n_players - n_traitors
-  weights <- rep((1 - vote_prob) / (n_faithful - 1), n_faithful)
-  weights[1] <- vote_prob
-  sample((n_traitors + 1):n_players, size = n_traitors, replace = TRUE, prob = weights)
-}
-```
-
-Do the traitors keep their statistical advantage if they have to be more subtle?
-
-```{r}
-#| label: fig-subtle-concerted-vote
-
-results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_concerted_vote)
-plot_game_results(results, 22, 3)
-```
-
-Yes, they are still strongly favoured. Faithfuls need to up their game.
-
-# Smarter faithfuls
-
-It seems to me that the faithfuls tend to first exile people least like themselves - quite worrying actually - but get smarter as the game progresses. Some figure it out earlier and this gradually propagates.  Let's model that as an increasing average probability of voting for a traitor.
-
-```
-#| label: rising-accuracy
-rising_accuracy <- function(n_players, n_traitors) {
-  base_prob <- n_traitors / n_players
-  hit_prob <- base_prob * 8^(1 / n_players) # increase by a factor that rises as game progresses
-  miss_prob <- 1 - hit_prob
-  weights <- rep(0, n_players)
-  weights[1:n_traitors] <- hit_prob / n_traitors
-  weights[(n_traitors + 1):n_players] <- miss_prob / (n_players - n_traitors)
-  sample(1:n_players, size = n_players - n_traitors, replace = TRUE, prob = weights)
-}
-```
-
-This evens things out significantly.
-
-```
-#| label: fig-rising-accuracy
-results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_concerted_vote, faithful_strategy = rising_accuracy)
-plot_game_results(results, 22, 3)
-```
-
-What can we do to make this more realistic though?
-
-
-```
-herd_traitors <- function(n_players, n_traitors) {
-  shuffled <- sample(n_players, n_players)
-  sample(shuffled, size = n_traitors, replace = TRUE, prob = vote_prob[1:n_players])
-}
-
-results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = herd_traitors, faithful_strategy = random_herd)
-plot_game_results(results, 22, 3)
-```
-
-Let's add the rising accuracy back in too.
-
-```
-#| label: rising-accuracy-herd
-rising_accuracy_herd <- function(n_players, n_traitors) {
-  base_prob <- n_traitors / n_players
-  hit_prob <- base_prob * 8^(1 / n_players) # increase by a factor that rises as game progresses
-  miss_prob <- 1 - hit_prob
-  weights <- rep(0, n_players)
-  weights[1:n_traitors] <- hit_prob / n_traitors
-  weights[(n_traitors + 1):n_players] <- miss_prob / (n_players - n_traitors)
-  shuffled <- sample(n_players, size = n_players, replace = FALSE, prob = weights)
-  sample(shuffled, size = n_players - n_traitors, replace = TRUE, prob = vote_prob[1:n_players])
-}
-
-results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = subtle_concerted_vote, faithful_strategy = rising_accuracy_herd)
-plot_game_results(results, 22, 3)
-```
-
-It's much better, yet surprisingly worse than the unherded version. I guess that's because the random aspect of herding is undoing some of the increased accuracy.
+Naturally the traitors will try to influence faithfuls towards other faithfuls. (Or other traitors, but let's leave _that_ strategy aside for now.) We could model that as the traitors being able to increase the suspicion level of other players.
