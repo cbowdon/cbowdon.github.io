@@ -96,9 +96,9 @@ That's it. All we need to do now is simulate a lot of games and analyse the resu
 ```{r}
 #| label: fig-simulate-games
 
-sim_games <- function(..., .n_games = 10000) {
+sim_games <- function(..., .game = game, .n_games = 10000) {
   1:.n_games |>
-    map(\(x) game(...), .progress = TRUE) |>
+    map(\(x) .game(...), .progress = TRUE) |>
     bind_rows() |>
     mutate(
       traitors_win = n_traitors_remaining > 0,
@@ -290,12 +290,12 @@ pad <- function(v, new_length, value) {
   v2
 }
 
-votes_df <- tibble(v= flatten(votes)) |>
+votes_df <- tibble(v = flatten(votes)) |>
   rowwise() |>
-  filter(sum(v) > 5) |>  # ignore the finals, which are a little different
+  filter(sum(v) > 5) |> # ignore the finals, which are a little different
   mutate(
     n_players = sum(v),
-    v = list(pad(v, n_players, 0)),  # pad 0s for with each player that didn't receive a vote
+    v = list(pad(v, n_players, 0)), # pad 0s for with each player that didn't receive a vote
   )
 ```
 
@@ -356,15 +356,76 @@ Let's grant the faithfuls a glimmer of intuition: they are twice as suspicious o
  We can model this with a suspicion vector, which is the (normalised) level of suspicion for each player.
 
 ```{r}
-suspicious_herd <- function(n_players, n_traitors, suspicion_factor = 2) {
-  suspicion <- rep(1, n_players)
-  suspicion[1:n_traitors] <- suspicion_factor
-  suspicion <- suspicion / sum(suspicion)
-  shuffled <- sample(n_players, n_players, prob = suspicion)
+#| label: game-2
+game2 <- function(
+    n_players = 6,
+    n_traitors = 2,
+    traitors_influence = identity,
+    faithfuls_influence = identity,
+    traitors_strategy = random_traitors,
+    faithfuls_strategy = suspicious_herd) {
+  while (TRUE) {
+    # There's an implicit player index here:
+    #  c(traitor, traitor, faithful, faithful, ..., faithful)
+    # Traitors are always the leading elements in the index.
+
+    if (n_traitors == 0 || n_players - n_traitors < n_traitors) {
+      break
+    }
+
+    # DAY
+    suspicions <- rep(1, n_players) |>
+      traitors_influence() |>
+      faithfuls_influence()
+    suspicions <- suspicions / sum(suspicions)
+
+    votes <- rep(0, n_players)
+
+    if (n_players - n_traitors == 1) {
+      # special case for 2 players 1 traitor
+      # coded here to avoid having to handle it repeatedly
+      votes[1:n_traitors] <- n_players
+    } else {
+      votes[1:n_traitors] <- traitors_strategy(suspicions, n_players, n_traitors)
+    }
+    votes[(n_traitors + 1):n_players] <- faithfuls_strategy(suspicions, n_players, n_traitors)
+
+    banished <- which.max(tabulate(votes))
+
+    n_players <- n_players - 1 # BANISHMENT!
+    if (banished <= n_traitors) {
+      n_traitors <- n_traitors - 1
+    }
+
+    if (n_traitors == 0 || n_players - n_traitors < n_traitors) {
+      break
+    }
+
+    # NIGHT
+    n_players <- n_players - 1 # MURDER!
+  }
+
+  list(n_players_remaining = n_players, n_traitors_remaining = n_traitors)
+}
+
+random_faithful <- function(suspicions, n_players, n_traitors) {
+  # vote for a single random player
+  target <- sample(1:n_players, size = 1)
+  rep(target, n_players - n_traitors)
+}
+
+random_traitors <- function(suspicions, n_players, n_traitors) {
+  # as before: vote a single random faithful
+  target <- sample((n_traitors + 1):n_players, size = 1)
+  rep(target, n_traitors)
+}
+
+suspicious_herd <- function(suspicions, n_players, n_traitors) {
+  shuffled <- sample(n_players, size = n_players, prob = suspicions)
   sample(shuffled, size = n_players - n_traitors, replace = TRUE, prob = vote_prob[1:n_players])
 }
 
-results <- sim_games(n_players = 22, n_traitors = 3, traitor_strategy = random_traitors, faithful_strategy = suspicious_herd)
+results <- sim_games(n_players = 22, n_traitors = 3, .game = game2)
 plot_game_results(results, 22, 3)
 ```
 
@@ -393,7 +454,7 @@ s_df <- suspicions |>
 ggplot(s_df) +
   aes(x = suspicion, y = traitor_win_prob) +
   geom_area(fill = orange, colour = "black") +
-  scale_x_continuous(breaks=seq(0, 10, 1)) +
+  scale_x_continuous(breaks = seq(0, 10, 1)) +
   scale_y_continuous(limits = c(0, 1)) +
   labs(
     x = "Suspicion relative to faithful",
@@ -407,3 +468,11 @@ The odds get exponentially worse the more the faithful suspect the traitors. And
 # Smarter traitors
 
 Naturally the traitors will try to influence faithfuls towards other faithfuls. (Or other traitors, but let's leave _that_ strategy aside for now.) We could model that as the traitors being able to increase the suspicion level of other players.
+
+
+```{r}
+random_traitors2 <- function(suspicions, n_players, n_traitors) {
+  shuffled <- sample(n_players, size = n_players, prob = suspicions)
+  sample(shuffled, size = n_traitors, replace = TRUE, prob = vote_prob[1:n_players])
+}
+```
