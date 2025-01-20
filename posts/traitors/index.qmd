@@ -1,15 +1,14 @@
 ---
-title: "Can we predict who wins the Traitors?"
+title: "Can we predict who wins the Traitors with an R simulation?"
 date: "2025-01-19"
 categories: [traitors, monte carlo, r]
-freeze: false
 ---
 
-Three years in, I am still absolutely hooked on The Traitors (the TV series). Sure, yes, they stretch ten minutes of gameplay into sixty minutes of "you know I love you, but..." and the weirdly maddening attempts to make "yourself" a polite version of "you". And yes, there's massive thumb-shaped groove on the scales because the producers are never going to let the game end early. But all the same, it's such fun watching the players plot and scheme and make terrible, terrible decisions.
+Three years in, I am still absolutely hooked on the Traitors (the TV series). Sure, yes, they stretch ten minutes of gameplay into sixty minutes of "you know I love you, but..." and the weirdly maddening attempts to make "yourself" a polite version of "you". And yes, there's massive thumb-shaped groove on the scales because the producers are never going to let the game end early. But all the same, it's such fun watching the players plot and scheme and make terrible, terrible decisions.
 
-Occasionally the show includes contestants who are expert game players. Frankly they tend to underwhelm - with the honourable exception being Kate in Traitors Australia - yet it makes me wonder about optimum strategies. And what's more fun than playing a game? Making a model of the game in R!
+Occasionally the show includes contestants who are expert game players. Frankly they tend to underwhelm - with the honourable exception being Kate in Traitors Australia - yet it makes me wonder about optimum strategies. And what's more fun than playing a game? **Making a model of the game in R!**
 
-Here we go, starting with a simple model and building up to more realistic strategies. If you're here just for some insights into The Traitors, you can skip over the code without missing much of the logic.
+Here we go, starting with a simple model and building up to more realistic strategies. If you're here just for some insights into the Traitors, you can skip over the code without missing much of the logic.
 
 ```{r}
 #| label: deps
@@ -467,7 +466,7 @@ results <- sim_games(faithfuls_strategy = random_herd2, .game = game2)
 plot_game_results(results, 22, 3)
 ```
 
-Also the same. But now let's grant the faithfuls some strong intuition, twice as much suspicion on traitors as faithfuls. To support different levels of suspicion we can use a higher-order function.
+Also the same. But now let's grant the faithfuls some strong intuition, twice as much suspicion on traitors as faithfuls. To support different levels of suspicion we can use a closure.
 
 ```{r}
 #| label: suspicion-fn
