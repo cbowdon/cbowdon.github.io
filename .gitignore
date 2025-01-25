@@ -4,3 +4,6 @@
 
 /.quarto/
 *.bin
+.env
+
+posts.json
