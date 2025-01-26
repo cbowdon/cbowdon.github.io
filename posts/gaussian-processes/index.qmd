@@ -18,7 +18,7 @@ $$
 y \sim N(f(x), \sigma^2)
 $$
 
-We don't know $f(x)$, so we imagine that there's some distribution $GP$ that generates functions and the $f(x)$ we've observed is one function drawn from that distribution. $GP$ (the Gaussian Process) is parameterised by a mean, $\mu$ and a kernel, $K$.
+We don't know $f(x)$, so we imagine that there's some distribution $GP$ that generates functions and the $f(x)$ we've observed is one function drawn from that distribution. $GP$ (the Gaussian Process) is parameterised by a mean, $\mu$ and a kernel, $K$. It's a multivariate normal distribution, i.e. the normal distribution generalised to multiple dimensions.
 
 $$
 f(x) \sim GP(\mu, K)
@@ -90,16 +90,25 @@ df6 <- data.frame(
 )
 ```
 
-We intend to predict the values of $y$ at some other $x$ beyond the ones we've observed.
-
-We model it all in Stan.
-
-```
-{{< include f1.stan >}}
-```
-
+We intend to predict the values of $y$ at some other $x$ beyond the ones we've observed, to see what $f(x)$ might look like.
 
 ```{r}
+x_pred <- seq(-5, 5, by=0.1)
+```
+
+Then we model it all in Stan. Personally I find Stan models easier to read in the order `model`, `data`, `parameters`.
+
+```
+{{< include gp.stan >}}
+``` 
+
+The `model` section gives the high-level view of what we're doing here: simulating those equations from earlier. The main thing to understand is that the domain of GP is both the $x$ observations and the additional points. We're interested in the model's uncertainty about what $f$ looks like at the points we haven't observed.
+
+Here's the R code to run that model. I prefer to use `CmdStanR` - [see here](../using-stan-from-r/) for more on that and some general tips.
+
+```{r}
+#| label: run-stan
+#| echo: false
 library(cmdstanr)
 check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
 
@@ -110,14 +119,43 @@ samples <- model$sample(
     n_data = nrow(df6),
     x_data = as.array(df6$x),
     y_data = as.array(df6$y),
-
     sigma = 0.1,
-
-    n_pred = length(-5:5),
-    x_pred = -5:5,
-
+    n_pred = length(x_pred),
+    x_pred = x_pred,
     alpha = 1,
     lambda = 1
-  )
+  ),
+  parallel_chains = 4
 )
+
+samples
 ```
+
+The R-hat and ESS summaries tell you if the model has converged. This one has. Let's now plot the draws of $f(x)$ from $GP$.
+
+```{r}
+#| label: fig-draws
+x_vals <- c(df6$x, x_pred)
+
+draws <- samples$draws(format = "draws_matrix") |>
+  as_tibble() |>
+  # Every row is a draw, which we number
+  mutate(draw = 1:n()) |>
+  # Since each column is an observation f(x) for x indices, we pivot
+  pivot_longer(starts_with("f"), names_to = "x", values_to = "y") |>
+  # And map the x index back to an x value
+  mutate(
+    idx = as.numeric(str_extract(x, "[0-9]+")),
+    x = x_vals[idx],
+    y = as.numeric(y)
+  )
+
+ggplot() +
+  geom_line(data = draws, mapping = aes(x = x, y = y, group = draw), alpha = 0.01) +
+  geom_point(data = df6, mapping = aes(x = x, y = y), colour = "red") +
+  geom_text(data = mutate(df6, n=rank(x)), mapping=aes(x=x, y=y, label=n), nudge_x = 0, nudge_y = 1.1) +
+  geom_segment(data = df6, mapping=aes(x=x, y=y, yend=y + 1), linetype="dashed") +
+  theme_minimal()
+```
+
+The observations are shown as red points, and I've numbered them for ease of reference. You can see the predictions of $f(x)$ (the black lines) don't deviate far from the observations, and some intervals between observations are very well-defined too. However for certain intervals they take a wide variety of lines, such as the interval crossing $x=0$. This is intuitive: imagine asking a group of humans to draw a smooth line between the points. Most of them would draw the same lines directly between points 2-3 and 4-5, but there would be much disagreement about what point to turn at between 3-4.

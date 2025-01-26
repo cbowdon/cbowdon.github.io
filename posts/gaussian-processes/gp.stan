@@ -16,12 +16,14 @@ data {
   real lambda;
 }
 transformed data {
+  // We join the x observations and desired x prediction points
   int n = n_data + n_pred;
   
   array[n] real x;
   x[1 : n_data] = x_data;
   x[(n_data + 1): n] = x_pred;
   
+  // We calculate the Kernel values for all x
   matrix[n, n] K;
   K = gp_exp_quad_cov(x, alpha, lambda);
   
@@ -35,8 +37,11 @@ parameters {
   vector[n] f;
 }
 model {
-  // Likelihood
+  // Likelihood is tested against the observations
   y_data ~ normal(f[1 : n_data], sigma);
-  // GP prior
+
+  // f is sampled from GP
+  // The domain of the GP prior is all x
+  // We assume the mean is always 0
   f ~ multi_normal(rep_vector(0, n), K);
 }
