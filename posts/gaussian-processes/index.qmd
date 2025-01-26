@@ -35,9 +35,12 @@ $$
 K(x, x') = \alpha^2 e^{\frac{(x - x')^2}{2\lambda}}
 $$
 
-## Visualising some samples of $f(x)$
+## Visualising $f(x)$ samples for different kernels
+
+If we implement the kernel and draw from $GP$, we can see some potential functions. Each draw from $GP$ will give us a vector of $f(x)$ for the input $x$ vector. We get a discrete approximation of the continuous function.
 
 ```{r}
+#| label: fig-kernels
 #| warning: false
 set.seed(42)
 library(tidyverse)
@@ -57,48 +60,65 @@ sq_exp_cov <- function(x, lambda, alpha) {
   K
 }
 
-
 x <- 0:100
-alpha <- 1
-lambda <- 25
 
-K <- sq_exp_cov(x, lambda, alpha)
+GP <- function(alpha, lambda, n_samples = 10) {
+  K <- sq_exp_cov(x, lambda, alpha)
+  mat <- MASS::mvrnorm(
+    n_samples,
+    mu = rep(0, length(x)), # Set the average level of the process to 0
+    Sigma = K
+  )
+  t(mat) |>
+    data.frame() |>
+    mutate(alpha = alpha, lambda = lambda, x = x) |>
+    pivot_longer(c(-x, -alpha, -lambda), names_to = "sample", values_to = "y")
+}
 
-GP <- function(n_samples) MASS::mvrnorm(n_samples, mu = rep(0, length(x)), Sigma = K)
+grd <- expand.grid(alpha = c(0.5, 1, 2), lambda = c(1, 10, 100))
+samples <- map2(grd$alpha, grd$lambda, GP) |> bind_rows()
 
-samples <- GP(10) |>
-  t() |>
-  data.frame() |>
-  mutate(x = x) |>
-  pivot_longer(c(-x), names_to = "sample", values_to = "y")
+labeller <- function(variable, value) {
+  if (variable == "alpha") {
+    sprintf("α = %s", value)
+  } else {
+    sprintf("λ = %s", value)
+  }
+}
 
 ggplot(samples) +
   aes(x = x, y = y, group = sample, colour = sample) +
+  facet_wrap(~ alpha * ~lambda, labeller = labeller) +
   geom_line(show.legend = FALSE) +
   labs(title = "Samples of f(x) from GP") +
   theme_minimal()
 ```
 
+Varying $\alpha$ and $\lambda$ gives us an idea of how these hyperparameters change the functions we draw. $\alpha$ controls the standard deviation and $\lambda$ controls the correlation between $x$ points.
+
 # Gaussian Process Regression - using data to refine $GP$
 
-We've observed some (noisy) data from a mystery function.
+Imagine we've observed some (noisy) data from a mystery function.
 
 ```{r}
+#| label: df6
 df6 <- data.frame(
   x = c(-2.76, 2.46, -1.52, -4.34, 4.54, 1),
   y = c(-0.81, -0.85, 0.76, -0.41, -1.48, 0.2)
 )
 ```
 
-We intend to predict the values of $y$ at some other $x$ beyond the ones we've observed, to see what $f(x)$ might look like.
+We intend to predict the values of $y$ at some other $x$ beyond the ones we've observed, to see what $f(x)$ might look like. We'll choose [-5, 5] as the domain.
 
 ```{r}
-x_pred <- seq(-5, 5, by=0.1)
+#| label: x-pred
+x_pred <- seq(-5, 5, by = 0.25)
+# you'll get a smoother approximation for smaller increments, but at increase computation cost
 ```
 
 Then we model it all in Stan. Personally I find Stan models easier to read in the order `model`, `data`, `parameters`.
 
-```
+```stan
 {{< include gp.stan >}}
 ``` 
 
@@ -125,13 +145,14 @@ samples <- model$sample(
     alpha = 1,
     lambda = 1
   ),
-  parallel_chains = 4
+  parallel_chains = 4,
+  show_messages = FALSE # disabled to avoid polluting the blog post, should be TRUE
 )
 
 samples
 ```
 
-The R-hat and ESS summaries tell you if the model has converged. This one has. Let's now plot the draws of $f(x)$ from $GP$.
+The R-hat and ESS summaries tell you if the model has converged. This one has. Let's now plot the draws of $f(x)$ from the $GP$ posterior.
 
 ```{r}
 #| label: fig-draws
@@ -153,9 +174,45 @@ draws <- samples$draws(format = "draws_matrix") |>
 ggplot() +
   geom_line(data = draws, mapping = aes(x = x, y = y, group = draw), alpha = 0.01) +
   geom_point(data = df6, mapping = aes(x = x, y = y), colour = "red") +
-  geom_text(data = mutate(df6, n=rank(x)), mapping=aes(x=x, y=y, label=n), nudge_x = 0, nudge_y = 1.1) +
-  geom_segment(data = df6, mapping=aes(x=x, y=y, yend=y + 1), linetype="dashed") +
+  geom_text(data = mutate(df6, n = rank(x)), mapping = aes(x = x, y = y, label = n), nudge_x = 0, nudge_y = 1.1) +
+  geom_segment(data = df6, mapping = aes(x = x, y = y, yend = y + 1), linetype = "dashed") +
   theme_minimal()
 ```
 
 The observations are shown as red points, and I've numbered them for ease of reference. You can see the predictions of $f(x)$ (the black lines) don't deviate far from the observations, and some intervals between observations are very well-defined too. However for certain intervals they take a wide variety of lines, such as the interval crossing $x=0$. This is intuitive: imagine asking a group of humans to draw a smooth line between the points. Most of them would draw the same lines directly between points 2-3 and 4-5, but there would be much disagreement about what point to turn at between 3-4.
+
+## The effect of noise
+
+In that model $\sigma$ controls the amount of noise we believe we have on the observations. Increasing that number will increase the uncertainty of the model, and correspondingly will make it more likely the MCMC simulation diverges.
+
+## Optimising with Cholesky decomposition
+
+We can speed up the simulation with a trick call Cholesky decomposition. We decompose $K = LL^T$  and reparameterise $f = \mu + L\eta$. If $\eta$ is normally distributed with mean zero and unit variance, this is equivalent.
+
+```stan
+{{< include gp.stan >}}
+``` 
+
+```{r}
+#| label: cholesky
+model <- cmdstan_model(stan_file = "gp-cholesky.stan", exe = "gp-cholesky.stan.bin")
+
+samples <- model$sample(
+  list(
+    n_data = nrow(df6),
+    x_data = as.array(df6$x),
+    y_data = as.array(df6$y),
+    sigma = 0.1,
+    n_pred = length(x_pred),
+    x_pred = x_pred,
+    alpha = 1,
+    lambda = 1
+  ),
+  parallel_chains = 4,
+  show_messages = FALSE # disabled to avoid polluting the blog post, should be TRUE
+)
+
+samples
+```
+
+If we run that version convergence is much faster.
