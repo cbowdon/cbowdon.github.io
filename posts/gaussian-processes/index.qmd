@@ -6,9 +6,9 @@ draft: true
 freeze: false
 ---
 
-I stumbled upon Gaussian Processes when looking into how the MIPRO prompt optimisation algorithm works, and it is a most fascinating idea. There's something about this way of modelling the world that really appeals to me.
+I stumbled upon Gaussian Processes when looking into how the MIPRO prompt optimisation algorithm works, and it is really fascinating. It's a very nifty application of Bayesian modelling to analyse functions where we are low on data points.
 
-This post is just following [this lesson](https://carpentries-incubator.github.io/statistical-probabilistic-programming-r/instructor/gaussian-processes.html).
+This post is based on [a great lesson by Carpentries](https://carpentries-incubator.github.io/statistical-probabilistic-programming-r/instructor/gaussian-processes.html), which is part of a longer series on probabilistic programming in R. Very worth checking out if you want to know more.
 
 # WTH are Gaussian Processes?
 
@@ -24,18 +24,15 @@ $$
 f(x) \sim GP(\mu, K)
 $$
 
-
-What's the point of this? Well it allows us to use our Bayesian toolbox (hello [Stan](https://mc-stan.org)) to refine our estimate of $GP$, and so the samples we draw from a posterior of $GP$ are closer to the true $f(x)$.
+What's the point of this? Well it allows us to use our Bayesian toolbox (hello again [Stan](https://mc-stan.org)) to refine our estimate of $GP$, and so the samples we draw from a posterior of $GP$ are closer to the true $f(x)$.
 
 ## The Kernel $K$
 
-$K$ is the covariance of the Gaussian Process. There's some art to what function is chosen for $K$, but I don't want to get hung up on that at this point. Suffice it to say that the popular choice is squared exponential covariance, which is parameterised by $\alpha$ and $\lambda$.
+$K$ is the most interesting parameter, being the covariance of the Gaussian Process. There's some art to what function is chosen for $K$, though I don't want to get hung up on that at this point. Suffice it to say that the popular choice is squared exponential covariance, which is parameterised by $\alpha$ and $\lambda$.
 
 $$
 K(x, x') = \alpha^2 e^{\frac{(x - x')^2}{2\lambda}}
 $$
-
-## Visualising $f(x)$ samples for different kernels
 
 If we implement the kernel and draw from $GP$, we can see some potential functions. Each draw from $GP$ will give us a vector of $f(x)$ for the input $x$ vector. We get a discrete approximation of the continuous function.
 
@@ -146,13 +143,14 @@ samples <- model$sample(
     lambda = 1
   ),
   parallel_chains = 4,
+  max_treedepth = 20,
   show_messages = FALSE # disabled to avoid polluting the blog post, should be TRUE
 )
 
 samples
 ```
 
-The R-hat and ESS summaries tell you if the model has converged. This one has. Let's now plot the draws of $f(x)$ from the $GP$ posterior.
+The R-hat and ESS summaries tell you if the model has converged. This one has, but I had to double the maximum treedepth. Let's now plot the draws of $f(x)$ from the $GP$ posterior.
 
 ```{r}
 #| label: fig-draws
@@ -216,3 +214,29 @@ samples
 ```
 
 If we run that version convergence is much faster.
+
+# OK but why?
+
+What's the benefit of this approach? It's pretty trivial to fit a polynomial or a spline to our data to get some idea of the shape of the function. The polynomial is no good for extrapolation, but neither is the Gaussian Process approach.
+
+```{r}
+#| label: fig-poly
+x <- df6$x
+y <- df6$y
+polyfit <- lm(y ~ poly(x, degree=4))
+p_y <- predict(polyfit, data.frame(x=-5:5))
+
+ggplot() +
+    aes(x=x, y=y) +
+    geom_point(data=df6, colour="red") +
+    geom_line(data=data.frame(x=-5:5, y=p_y), stat="smooth") +
+    theme_minimal()
+```
+
+I can think of three benefits to using a Gaussian Process:
+
+1. You can visualize the uncertainty around certain regions of the function.
+2. You can use the samples to answer questions like "what's the probability that $f(0) > 0$" or "what's the probability that the maximum sits between $f(-1)$ and $f(1)$".
+3. You can provide an informative prior, if you have some understanding of what the function should look like already.
+
+These are all the typical benefits to a Bayesian approach. Number two is used in MIPRO prompt optimisation, to determine which region to evaluate next. (Though to be clear my level of understanding with MIPRO is "skimmed the paper, think I can use it" rather than anything impressive.)
