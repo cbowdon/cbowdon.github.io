@@ -28,6 +28,10 @@ website:
             href: https://github.com/cbowdon/TsMonad
           - text: daemons.el
             href: https://github.com/cbowdon/daemons.el
+      - text: Blogroll
+        menu:
+          - text: R-bloggers
+            href: https://www.r-bloggers.com
       - text: About
         href: about.qmd
   google-analytics: G-QC160P51EN
