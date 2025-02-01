@@ -2,11 +2,9 @@
 title: "Gaussian Processes in R"
 date: "2025-01-25"
 categories: [gaussian, bayesian, stan, r]
-draft: true
-freeze: false
 ---
 
-I stumbled upon Gaussian Processes when looking into how the MIPRO prompt optimisation algorithm works, and it is really fascinating. It's a very nifty application of Bayesian modelling to analyse functions where we are low on data points.
+I stumbled upon Gaussian Processes when looking into how the MIPRO prompt optimisation algorithm works and felt compelled to learn more about it. It's a very nifty application of Bayesian modelling to analyse functions where data points are hard to get.
 
 This post is based on [a great lesson by Carpentries](https://carpentries-incubator.github.io/statistical-probabilistic-programming-r/instructor/gaussian-processes.html), which is part of a longer series on probabilistic programming in R. Very worth checking out if you want to know more.
 
@@ -236,7 +234,20 @@ ggplot() +
 I can think of three benefits to using a Gaussian Process:
 
 1. You can visualize the uncertainty around certain regions of the function.
-2. You can use the samples to answer questions like "what's the probability that $f(0) > 0$" or "what's the probability that the maximum sits between $f(-1)$ and $f(1)$".
+2. You can use the samples to answer questions like "what's the probability that $f(0) > 0$" or "what's the expected value and variance of $f(1.5)$".
 3. You can provide an informative prior, if you have some understanding of what the function should look like already.
 
 These are all the typical benefits to a Bayesian approach. Number two is used in MIPRO prompt optimisation, to determine which region to evaluate next. (Though to be clear my level of understanding with MIPRO is "skimmed the paper, think I can use it" rather than anything impressive.)
+
+# Wrapping up
+
+So we've seen:
+
+- what Gaussian Processes are
+- how to they are parameterised by a kernel, and the hyperparameters affect the process
+- how to sample functions from a GP
+- how to model a GP and estimate its posterior with Stan (a GP regression)
+- how to optimise the computation with a Cholesky decomposition
+- why this is more interesting/useful than a simple polynomial fit
+
+Where next? The next thing to figure out is Bayesian Optimisation itself, which adds an _acquisition function_ into the mix. That is a cost function that will decide what regions to explore to discover the maximum of the function. But that will have to wait for another day.

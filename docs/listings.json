@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/gaussian-processes/index.html",
       "/posts/traitors/index.html",
       "/posts/f1-stan/f1.html",
       "/posts/using-stan-from-r/index.html",
