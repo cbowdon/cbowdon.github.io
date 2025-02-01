@@ -79,7 +79,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 
 <link rel="stylesheet" href="styles.css">
 <meta property="og:title" content="About – Chris Bowdon">
-<meta property="og:description" content="">
+<meta property="og:description" content="Chris Bowdon’s blog">
 <meta property="og:site_name" content="Chris Bowdon">
 </head>
 
@@ -142,6 +142,11 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
     <a class="nav-link" href="https://github.com/cbowdon"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="./index.xml"> <i class="bi bi-rss" role="img">
 </i> 
 <span class="menu-text"></span></a>
   </li>  
@@ -275,7 +280,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
+      var filterRegex = new RegExp("https:\/\/cbowdon\.github\.io");
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }

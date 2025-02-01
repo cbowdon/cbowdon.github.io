@@ -4,11 +4,15 @@ project:
 
 website:
   title: "Chris Bowdon"
+  site-url: https://cbowdon.github.io
+  description: "Chris Bowdon's blog"
   navbar:
     search: true
     right:
       - icon: github
         href: https://github.com/cbowdon
+      - icon: rss
+        href: index.xml
     left:
       - text: Posts
         href: index.qmd

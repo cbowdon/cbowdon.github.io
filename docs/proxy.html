@@ -113,7 +113,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 
 <link rel="stylesheet" href="styles.css">
 <meta property="og:title" content="Working with (around) proxies – Chris Bowdon">
-<meta property="og:description" content="">
+<meta property="og:description" content="Chris Bowdon’s blog">
 <meta property="og:site_name" content="Chris Bowdon">
 </head>
 
@@ -179,6 +179,11 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 </i> 
 <span class="menu-text"></span></a>
   </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="./index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -231,7 +236,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 <section id="python-2" class="level2">
 <h2 class="anchored" data-anchor-id="python-2">Python 2</h2>
 <p>This works in Python 2.6 and 2.7. In Python 3 the principles are the same but <code>urllib</code> has been reorganized.</p>
-<div id="4290f012" class="cell">
+<div id="436ada15" class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>  <span class="im">import</span> logging</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="im">import</span> ssl</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="im">import</span> urllib2</span>
@@ -420,7 +425,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
+      var filterRegex = new RegExp("https:\/\/cbowdon\.github\.io");
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
