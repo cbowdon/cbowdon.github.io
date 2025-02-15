@@ -7,10 +7,10 @@ categories: [dinosaurs, r]
 I ought to be spending this weekend working on a risk intelligence LLM, but I've stumbled across something that brings my inner child immense joy and such things cannot be ignored. It is this 2019 paper ["An Older and Exceptionally Large Adult Specimen of Tyrannosaurus rex"](https://anatomypubs.onlinelibrary.wiley.com/doi/10.1002/ar.24118) by Persons et al. First it's cool to see paleontology in action, instead of filtered through talking head documentaries. Second, the diligent authors have personally measured 12 T. rex specimens, which is a decent chunk of the [29 discovered to-date](https://en.wikipedia.org/wiki/Specimens_of_Tyrannosaurus), and so we have a cool dataset to play with.
 
 ```{r}
-#| warning: false
 #| label: tbl-dataset
 #| tbl-cap: T. rex bone measurements in millimetres (Table 1 from Persons et al 2019).
 #| code-fold: true
+#| warning: false
 library(tidyverse)
 library(knitr)
 
@@ -22,6 +22,10 @@ kable(t.rex, format.args = list(decimal.mark = ".", big.mark = ","))
 We can also add "Goliath", the exciting 2024 specimen. Bear in mind that Persons didn't personally measure this fossil, so that's a source of potential error.
 
 ```{r}
+#| label: tbl-goliath
+#| tbl-cap: Reported measurements for the Goliath specimen.
+#| code-fold: true
+#| warning: false
 campione.body.mass.kg <- function(min.femoral.circ.mm) 10**((2.754 * log10(min.femoral.circ.mm) - 0.683) - 3)
 
 goliath <- read_tsv("t.rex-goliath.tsv", col_types = "ccnnnnnnnnnnnnnnn") |>
@@ -31,6 +35,7 @@ goliath <- read_tsv("t.rex-goliath.tsv", col_types = "ccnnnnnnnnnnnnnnn") |>
   )
 
 t.rex <- bind_rows(t.rex, goliath)
+kable(select(goliath, Specimens, `Femur length`, `Femur circumference`, `Body mass (kg)`))
 ```
 
 The most interesting bone is the femur, being as it's more likely to be present and is used to estimate body mass. The equation used is from [Campione et al 2014](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12226).
