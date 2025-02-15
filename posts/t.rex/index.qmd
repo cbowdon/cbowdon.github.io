@@ -15,19 +15,36 @@ library(tidyverse)
 library(knitr)
 
 t.rex <- read_tsv("t.rex-persons.tsv", col_types = "ccnnnnnnnnnnnnnnn") |>
-  mutate(Morph = factor(Morph, levels=c("Robust", "Gracile")))
+  mutate(Morph = factor(Morph, levels = c("Robust", "Gracile")))
 kable(t.rex, format.args = list(decimal.mark = ".", big.mark = ","))
 ```
 
-The most interesting bone is the femur, being as it's more likely to be present and is used to estimate body mass. An interesting thing about T. rex is that there are two morphs, _gracile_ and _robust_, which I understand to be layman's terms for "elf-like" and "chonky bois".
+We can also add "Goliath", the exciting 2024 specimen. Bear in mind that Persons didn't personally measure this fossil, so that's a source of potential error.
 
+```{r}
+campione.body.mass.kg <- function(min.femoral.circ.mm) 10**((2.754 * log10(min.femoral.circ.mm) - 0.683) - 3)
+
+goliath <- read_tsv("t.rex-goliath.tsv", col_types = "ccnnnnnnnnnnnnnnn") |>
+  mutate(
+    Morph = factor(Morph, levels = c("Robust", "Gracile")),
+    `Body mass (kg)` = campione.body.mass.kg(`Femur circumference`)
+  )
+
+t.rex <- bind_rows(t.rex, goliath)
+```
+
+The most interesting bone is the femur, being as it's more likely to be present and is used to estimate body mass. The equation used is from [Campione et al 2014](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12226).
+
+An interesting thing about T. rex is that there are two morphs, _gracile_ and _robust_, which I understand to be layman's terms for "elf-like" and "chonky bois". From the data I've found on Goliath (some [social media posts](https://www.instagram.com/p/DF-XdPuvXG0/?img_index=1)) there isn't a definitive answer on Goliath's morph yet.
 
 ```{r}
 ggplot(t.rex) +
   aes(x = `Femur length`, y = `Femur circumference`, colour = Morph, label = Specimens) +
-  geom_point() +
-  geom_label(nudge_y = 10) +
-  scale_x_continuous(limits=c(1000, 1400)) +
-  scale_y_continuous(limits=c(400, 650)) +
+  geom_label(nudge_y = 10, na.rm = TRUE) +
+  geom_point(na.rm = TRUE) +
+  scale_x_continuous(limits = c(1000, 1400)) +
+  scale_y_continuous(limits = c(400, 700)) +
   theme_minimal()
 ```
+
+Looking at this scatterplot it's not obvious if Goliath should be gracile or robust. We need more features. Unfortunately, the T. rex data is sparse, so we need to impute the data.
