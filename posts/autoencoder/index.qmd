@@ -1,0 +1,98 @@
+---
+title: "Autoencoders"
+date: "2025-01-25"
+categories: [autoencoder, r]
+freeze: false
+draft: true
+---
+
+In this post I am reproducing the code [here](https://www.r-bloggers.com/2018/07/pca-vs-autoencoders-for-dimensionality-reduction/).
+
+```{r}
+#| warning: false
+library(DAAG)
+library(knitr)
+library(tidyverse)
+
+# Data from the Australian Institute of Sport
+ais |>
+  head() |>
+  kable()
+```
+
+Standardise the data.
+
+```{r}
+minmax <- function(x) (x - min(x)) / (max(x) - min(x))
+x_train <- apply(ais[, 1:11], MARGIN = 2, FUN = minmax)
+```
+
+What does PCA look like?
+
+```{r}
+pca <- prcomp(x_train)
+
+# Cumsum of how much the components capture the variance
+qplot(x = 1:11, y = cumsum(pca$sdev) / sum(pca$sdev), geom = "line")
+
+# Scatterplot
+ggplot(as_tibble(pca$x)) +
+  aes(x = PC1, y = PC2, col = ais$sex) +
+  geom_point()
+```
+
+Skip the 3D plot. And now, autoencoder. 
+
+## Dependency hell
+
+Neural networks in R requires the `keras` package. This calls Python's Keras via Reticulate. I had a hell of a time with this, but eventually managed to cobble together a working environment by:
+
+- Running R in a Conda environment (I prefer this anyway, because I trust Conda to separate my environments).
+- Installing `r-keras` into that environment with `conda install -c conda-forge r-keras`.
+- Installing `keras3` via `install.package` (necessary because Tensorflow changed their API and it errors with `r-keras`).
+- Rejecting the call to create a default Python environment for Reticulate.
+
+I get some annoying but tolerable warnings. A major annoyance is that it won't use Metal to accelerate the computations. I tried switching to Pytorch only to find it doesn't work on the integrated GPU either and they are abandoning their Conda channel.
+
+```{r}
+library(keras3)
+
+x_train_mat <- as.matrix(x_train)
+model <- keras_model_sequential(input_shape = ncol(x_train_mat)) |>
+  layer_dense(units = 6, activation = "tanh", name = "11x6") |>
+  layer_dense(units = 2, activation = "tanh", name = "bottleneck") |>
+  layer_dense(units = 6, activation = "tanh", name = "2x6") |>
+  layer_dense(units = ncol(x_train_mat), name = "6x11")
+
+summary(model)
+```
+
+Now we compile and fit the model. The Keras API is pseudo-functional: it looks functional but it actually mutates the original object. 😐
+
+```{r}
+compile(model, loss = "mean_squared_error", optimizer = "adam")
+
+fit(model, x = x_train_mat, y = x_train_mat, epochs = 2000, verbose = 1)
+
+mse.ae2 <- evaluate(model, x_train_mat, x_train_mat)
+mse.ae2
+```
+
+All we fit the model to do is predict its original inputs, but since we have that bottleneck in there it is actually learning a 2D representation that it can map to and from.
+
+Now we can extract the bottleneck layer and use it as a predictor.
+
+```{r}
+encoder <- keras_model(
+  inputs = model$inputs,
+  outputs = get_layer(model, name = "bottleneck")$output
+)
+
+preds <- predict(encoder, x_train_mat)
+
+ggplot(as.data.frame(preds)) +
+  aes(x = V1, y = V2, colour = ais$sex) +
+  geom_point()
+```
+
+This works. I cannot bear to go further with this project because the R-keras experience is so awful.
