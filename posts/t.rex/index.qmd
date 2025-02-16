@@ -4,7 +4,7 @@ date: "2025-02-15"
 categories: [dinosaurs, r]
 ---
 
-I ought to be spending this weekend working on a risk intelligence LLM, but I've stumbled across something that brings my inner child immense joy and such things cannot be ignored. It is this 2019 paper ["An Older and Exceptionally Large Adult Specimen of Tyrannosaurus rex"](https://anatomypubs.onlinelibrary.wiley.com/doi/10.1002/ar.24118) by Persons et al. First it's cool to see paleontology in action, instead of filtered through talking head documentaries. Second, the diligent authors have personally measured 12 T. rex specimens, which is a decent chunk of the [29 or-so specimens discovered to-date](https://en.wikipedia.org/wiki/Specimens_of_Tyrannosaurus), and so we have a cool dataset to play with.
+I ought to be spending this weekend working on a risk intelligence thing for work, but I've stumbled across something that brings my inner child immense joy and such things cannot be ignored. It is this 2019 paper ["An Older and Exceptionally Large Adult Specimen of Tyrannosaurus rex"](https://anatomypubs.onlinelibrary.wiley.com/doi/10.1002/ar.24118) by Persons et al. First it's cool to see paleontology in action, instead of filtered through talking head documentaries. Second, the diligent authors have personally measured 12 T. rex specimens, which is a decent chunk of the [29 or-so specimens discovered to-date](https://en.wikipedia.org/wiki/Specimens_of_Tyrannosaurus), and so we have a cool dataset to play with.
 
 ```{r}
 #| label: tbl-dataset
@@ -40,9 +40,9 @@ t.rex <- bind_rows(t.rex, goliath)
 kable(select(goliath, Specimen, `Femur length`, `Femur circumference`, `Body mass (kg)`))
 ```
 
-The most interesting bone is the femur, being as it's more likely to be present and is used to estimate body mass. The equation used is from [Campione et al 2014](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12226).
+The most interesting bone is the femur, being as it's more likely to be present and is used to estimate body mass. The equation used is from [Campione et al 2014](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12226). Bear in mind they suggest a 25% prediction error.
 
-An interesting thing about T. rex is that there are two morphs, _gracile_ and _robust_, which I understand to be layman's terms for "elven" and "chonky".
+An interesting thing about T. rex is that there are two morphs, _gracile_ and _robust_, which I understand to be layman's terms for "elven" and "chonky". Let's see if that's visible in the femur measurements.
 
 ```{r}
 #| label: fig-femurs
@@ -58,3 +58,60 @@ ggplot(t.rex) +
 ```
 
 Looking at this scatterplot, there's a linear relationship between length and circumference, and Goliath sits neatly on it. (Too neatly? Hmm. Should it even be linear? Wouldn't the square-cube law suggest femurs should get thicker faster than they get longer?) However it's not obvious if Goliath should be gracile or robust. In fact, it's not particularly clear from the femurs alone why some are gracile and some robust; CM 9380 (Holotype) and MOR 555 (Wankel) are very close, for example. We need more features. Unfortunately, the T. rex data are very sparse, so we need to impute missing values.
+
+Tibia length is relatively complete, can we use that?
+
+```{r}
+#| label: fig-tibias-femur-length
+#| fig-cap: Femur length and tibia length for T. rex specimens.
+#| code-fold: true
+#| warning: false
+
+ggplot(t.rex) +
+  aes(x = `Femur length`, y = `Tibia length`, colour = Morph) +
+  geom_point() +
+  scale_x_continuous(limits = c(1000, 1400)) +
+  scale_y_continuous(limits = c(900, 1200)) +
+  theme_minimal()
+```
+
+The relationship between fibia length and tibia length is surprisingly not very informative.
+
+```{r}
+#| label: fig-tibias-femur-circumference
+#| fig-cap: Femur circumference and tibia length for T. rex specimens.
+#| code-fold: true
+#| warning: false
+
+ggplot(t.rex) +
+  aes(x = `Femur circumference`, y = `Tibia length`, colour = Morph) +
+  geom_point() +
+  scale_x_continuous(limits = c(400, 700)) +
+  scale_y_continuous(limits = c(900, 1200)) +
+  theme_minimal()
+```
+
+Femur circumference relates a little better. Let's try a dead simple linear model to predict the missing femur lengths. We can include body mass, which is a function of femur circumference, to try and capture some of the knowledge from that model.
+
+```{r}
+#| label: lm
+reg <- lm(`Femur length` ~ `Femur circumference` * `Body mass (kg)` + `Tibia length`, data = t.rex, subset = !is.na(t.rex$`Tibia length`) & !is.na(`Femur length`))
+summary(reg)
+```
+
+It's not great, though slightly better than the other combinations I tried and probably the best we could do with such a small dataset. The additional imputed femur length (RTMP 81.12.1) is feasible enough.
+
+```{r}
+#| label: tbl-with-pred
+#| tbl-cap: Imputed femur length for RTMP 81.12.1.
+#| code-fold: true
+
+preds <- predict(reg, newdata = t.rex)
+
+t.rex |>
+  mutate(`Femur length` = coalesce(`Femur length`, preds)) |>
+  select(`Specimen`, `Morph`, `Femur length`, `Femur circumference`, `Tibia length`, `Body mass (kg)`) |>
+  kable()
+```
+
+I'm not sure what else to do with this. Must be tough being a paleontologist, working with so little direct data!
