@@ -4,7 +4,7 @@ date: "2025-02-15"
 categories: [dinosaurs, r]
 ---
 
-I ought to be spending this weekend working on a risk intelligence LLM, but I've stumbled across something that brings my inner child immense joy and such things cannot be ignored. It is this 2019 paper ["An Older and Exceptionally Large Adult Specimen of Tyrannosaurus rex"](https://anatomypubs.onlinelibrary.wiley.com/doi/10.1002/ar.24118) by Persons et al. First it's cool to see paleontology in action, instead of filtered through talking head documentaries. Second, the diligent authors have personally measured 12 T. rex specimens, which is a decent chunk of the [29 discovered to-date](https://en.wikipedia.org/wiki/Specimens_of_Tyrannosaurus), and so we have a cool dataset to play with.
+I ought to be spending this weekend working on a risk intelligence LLM, but I've stumbled across something that brings my inner child immense joy and such things cannot be ignored. It is this 2019 paper ["An Older and Exceptionally Large Adult Specimen of Tyrannosaurus rex"](https://anatomypubs.onlinelibrary.wiley.com/doi/10.1002/ar.24118) by Persons et al. First it's cool to see paleontology in action, instead of filtered through talking head documentaries. Second, the diligent authors have personally measured 12 T. rex specimens, which is a decent chunk of the [29 or-so specimens discovered to-date](https://en.wikipedia.org/wiki/Specimens_of_Tyrannosaurus), and so we have a cool dataset to play with.
 
 ```{r}
 #| label: tbl-dataset
@@ -15,11 +15,13 @@ library(tidyverse)
 library(knitr)
 
 t.rex <- read_tsv("t.rex-persons.tsv", col_types = "ccnnnnnnnnnnnnnnn") |>
+  rename(Specimen = Specimens) |>
   mutate(Morph = factor(Morph, levels = c("Robust", "Gracile")))
+
 kable(t.rex, format.args = list(decimal.mark = ".", big.mark = ","))
 ```
 
-We can also add "Goliath", the exciting 2024 specimen. Bear in mind that Persons didn't personally measure this fossil, so that's a source of potential error.
+We can also add "Goliath", the exciting 2024 specimen. Bear in mind that Persons didn't personally measure this fossil, so that's a source of potential error. I took the measurements from the few [social media posts](https://www.instagram.com/p/DF-XdPuvXG0/?img_index=1) about the fossil. The lack of information on this specimen seems strange to me, I even wonder if it's a hoax. It wouldn't be the first time.
 
 ```{r}
 #| label: tbl-goliath
@@ -35,16 +37,19 @@ goliath <- read_tsv("t.rex-goliath.tsv", col_types = "ccnnnnnnnnnnnnnnn") |>
   )
 
 t.rex <- bind_rows(t.rex, goliath)
-kable(select(goliath, Specimens, `Femur length`, `Femur circumference`, `Body mass (kg)`))
+kable(select(goliath, Specimen, `Femur length`, `Femur circumference`, `Body mass (kg)`))
 ```
 
 The most interesting bone is the femur, being as it's more likely to be present and is used to estimate body mass. The equation used is from [Campione et al 2014](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12226).
 
-An interesting thing about T. rex is that there are two morphs, _gracile_ and _robust_, which I understand to be layman's terms for "elf-like" and "chonky bois". From the data I've found on Goliath (some [social media posts](https://www.instagram.com/p/DF-XdPuvXG0/?img_index=1)) there isn't a definitive answer on Goliath's morph yet.
+An interesting thing about T. rex is that there are two morphs, _gracile_ and _robust_, which I understand to be layman's terms for "elven" and "chonky".
 
 ```{r}
+#| label: fig-femurs
+#| fig-cap: Femur circumference and length for T. rex specimens.
+#| code-fold: true
 ggplot(t.rex) +
-  aes(x = `Femur length`, y = `Femur circumference`, colour = Morph, label = Specimens) +
+  aes(x = `Femur length`, y = `Femur circumference`, colour = Morph, label = Specimen) +
   geom_label(nudge_y = 10, na.rm = TRUE) +
   geom_point(na.rm = TRUE) +
   scale_x_continuous(limits = c(1000, 1400)) +
@@ -52,4 +57,4 @@ ggplot(t.rex) +
   theme_minimal()
 ```
 
-Looking at this scatterplot it's not obvious if Goliath should be gracile or robust. We need more features. Unfortunately, the T. rex data is sparse, so we need to impute the data.
+Looking at this scatterplot, there's a linear relationship between length and circumference, and Goliath sits neatly on it. (Too neatly? Hmm. Should it even be linear? Wouldn't the square-cube law suggest femurs should get thicker faster than they get longer?) However it's not obvious if Goliath should be gracile or robust. In fact, it's not particularly clear from the femurs alone why some are gracile and some robust; CM 9380 (Holotype) and MOR 555 (Wankel) are very close, for example. We need more features. Unfortunately, the T. rex data are very sparse, so we need to impute missing values.
