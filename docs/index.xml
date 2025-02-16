@@ -9,8 +9,1084 @@
 <link>https://cbowdon.github.io/</link>
 <atom:link href="https://cbowdon.github.io/index.xml" rel="self" type="application/rss+xml"/>
 <description>Chris Bowdon&#39;s blog</description>
-<generator>quarto-1.6.40</generator>
-<lastBuildDate>Sat, 25 Jan 2025 00:00:00 GMT</lastBuildDate>
+<generator>quarto-1.6.32</generator>
+<lastBuildDate>Sat, 15 Feb 2025 00:00:00 GMT</lastBuildDate>
+<item>
+  <title>T. rex size distributions</title>
+  <link>https://cbowdon.github.io/posts/t.rex/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>I ought to be spending this weekend working on a risk intelligence LLM, but I’ve stumbled across something that brings my inner child immense joy and such things cannot be ignored. It is this 2019 paper <a href="https://anatomypubs.onlinelibrary.wiley.com/doi/10.1002/ar.24118">“An Older and Exceptionally Large Adult Specimen of Tyrannosaurus rex”</a> by Persons et al.&nbsp;First it’s cool to see paleontology in action, instead of filtered through talking head documentaries. Second, the diligent authors have personally measured 12 T. rex specimens, which is a decent chunk of the <a href="https://en.wikipedia.org/wiki/Specimens_of_Tyrannosaurus">29 or-so specimens discovered to-date</a>, and so we have a cool dataset to play with.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyverse)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(knitr)</span>
+<span id="cb1-3"></span>
+<span id="cb1-4">t.rex <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_tsv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"t.rex-persons.tsv"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">col_types =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ccnnnnnnnnnnnnnnn"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rename</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Specimen =</span> Specimens) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Morph =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">factor</span>(Morph, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">levels =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Robust"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Gracile"</span>)))</span>
+<span id="cb1-7"></span>
+<span id="cb1-8"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">kable</span>(t.rex, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">format.args =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">decimal.mark =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"."</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">big.mark =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">","</span>))</span></code></pre></div>
+</details>
+<div id="tbl-dataset" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-dataset-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: T. rex bone measurements in millimetres (Table 1 from Persons et al 2019).
+</figcaption>
+<div aria-describedby="tbl-dataset-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 7%">
+<col style="width: 2%">
+<col style="width: 8%">
+<col style="width: 6%">
+<col style="width: 7%">
+<col style="width: 4%">
+<col style="width: 4%">
+<col style="width: 6%">
+<col style="width: 7%">
+<col style="width: 4%">
+<col style="width: 6%">
+<col style="width: 4%">
+<col style="width: 6%">
+<col style="width: 6%">
+<col style="width: 5%">
+<col style="width: 7%">
+<col style="width: 5%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Specimen</th>
+<th style="text-align: left;">Morph</th>
+<th style="text-align: right;">Dentary tooth row length</th>
+<th style="text-align: right;">Scapula blade width</th>
+<th style="text-align: right;">Manual p.&nbsp;I-1 length</th>
+<th style="text-align: right;">Ilium length</th>
+<th style="text-align: right;">Femur length</th>
+<th style="text-align: right;">Femur circumference</th>
+<th style="text-align: right;">Proximal femur width</th>
+<th style="text-align: right;">Tibia length</th>
+<th style="text-align: right;">Tibia shaft width</th>
+<th style="text-align: right;">Fibula length</th>
+<th style="text-align: right;">Fibula shaft width</th>
+<th style="text-align: right;">Astragalus height</th>
+<th style="text-align: right;">Astragalus width</th>
+<th style="text-align: right;">Pedal p.&nbsp;IV-1 length</th>
+<th style="text-align: right;">Body mass (kg)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">RSM P2523.8</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">595</td>
+<td style="text-align: right;">74.8</td>
+<td style="text-align: right;">98.5</td>
+<td style="text-align: right;">1,545</td>
+<td style="text-align: right;">1,333</td>
+<td style="text-align: right;">590</td>
+<td style="text-align: right;">426</td>
+<td style="text-align: right;">1,140</td>
+<td style="text-align: right;">184</td>
+<td style="text-align: right;">995</td>
+<td style="text-align: right;">62</td>
+<td style="text-align: right;">328</td>
+<td style="text-align: right;">310</td>
+<td style="text-align: right;">184</td>
+<td style="text-align: right;">8,870</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CM 9380 (AMNH 973)</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">508</td>
+<td style="text-align: right;">73.0</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1,540</td>
+<td style="text-align: right;">1,269</td>
+<td style="text-align: right;">534</td>
+<td style="text-align: right;">399</td>
+<td style="text-align: right;">1,166</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">1,025</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">145</td>
+<td style="text-align: right;">6,740</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">FMNH PR2081</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">585</td>
+<td style="text-align: right;">68.0</td>
+<td style="text-align: right;">78.0</td>
+<td style="text-align: right;">1,525</td>
+<td style="text-align: right;">1,321</td>
+<td style="text-align: right;">580</td>
+<td style="text-align: right;">380</td>
+<td style="text-align: right;">1,140</td>
+<td style="text-align: right;">160</td>
+<td style="text-align: right;">1,030</td>
+<td style="text-align: right;">59</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">154</td>
+<td style="text-align: right;">8,462</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MOR 1125</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">492</td>
+<td style="text-align: right;">65.7</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1,150</td>
+<td style="text-align: right;">515</td>
+<td style="text-align: right;">370</td>
+<td style="text-align: right;">1,060</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">915</td>
+<td style="text-align: right;">53</td>
+<td style="text-align: right;">280</td>
+<td style="text-align: right;">295</td>
+<td style="text-align: right;">170</td>
+<td style="text-align: right;">6,100</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RTMP 81.12.1, NMC 9950</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">495</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1,095</td>
+<td style="text-align: right;">155</td>
+<td style="text-align: right;">985</td>
+<td style="text-align: right;">65</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">140</td>
+<td style="text-align: right;">5,469</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">BHI 3033</td>
+<td style="text-align: left;">Gracile</td>
+<td style="text-align: right;">575</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1,540</td>
+<td style="text-align: right;">1,350</td>
+<td style="text-align: right;">505</td>
+<td style="text-align: right;">350</td>
+<td style="text-align: right;">1,065</td>
+<td style="text-align: right;">158</td>
+<td style="text-align: right;">945</td>
+<td style="text-align: right;">55</td>
+<td style="text-align: right;">325</td>
+<td style="text-align: right;">280</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">5,779</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MOR 555</td>
+<td style="text-align: left;">Gracile</td>
+<td style="text-align: right;">635</td>
+<td style="text-align: right;">65.0</td>
+<td style="text-align: right;">89.0</td>
+<td style="text-align: right;">1,470</td>
+<td style="text-align: right;">1,280</td>
+<td style="text-align: right;">520</td>
+<td style="text-align: right;">370</td>
+<td style="text-align: right;">1,150</td>
+<td style="text-align: right;">170</td>
+<td style="text-align: right;">1,035</td>
+<td style="text-align: right;">56</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">235</td>
+<td style="text-align: right;">176</td>
+<td style="text-align: right;">6,264</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MOR 980</td>
+<td style="text-align: left;">Gracile</td>
+<td style="text-align: right;">546</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1,397</td>
+<td style="text-align: right;">1,232</td>
+<td style="text-align: right;">483</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">5,112</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RTMP 81.6.1</td>
+<td style="text-align: left;">Gracile</td>
+<td style="text-align: right;">530</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1,210</td>
+<td style="text-align: right;">460</td>
+<td style="text-align: right;">270</td>
+<td style="text-align: right;">1,030</td>
+<td style="text-align: right;">160</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">52</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">107</td>
+<td style="text-align: right;">4,469</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">BM R8040 (AMNH 5881)</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">480</td>
+<td style="text-align: right;">330</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">124</td>
+<td style="text-align: right;">5,025</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MOR 009</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">90.0</td>
+<td style="text-align: right;">1,180</td>
+<td style="text-align: right;">1,100</td>
+<td style="text-align: right;">469</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1,105</td>
+<td style="text-align: right;">140</td>
+<td style="text-align: right;">930</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">4,714</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">USNM 6183</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1,040</td>
+<td style="text-align: right;">426</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">910</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">3,617</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>We can also add “Goliath”, the exciting 2024 specimen. Bear in mind that Persons didn’t personally measure this fossil, so that’s a source of potential error. I took the measurements from the few <a href="https://www.instagram.com/p/DF-XdPuvXG0/?img_index=1">social media posts</a> about the fossil. The lack of information on this specimen seems strange to me, I even wonder if it’s a hoax. It wouldn’t be the first time.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">campione.body.mass.kg <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(min.femoral.circ.mm) <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>((<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.754</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">log10</span>(min.femoral.circ.mm) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.683</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)</span>
+<span id="cb2-2"></span>
+<span id="cb2-3">goliath <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_tsv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"t.rex-goliath.tsv"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">col_types =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ccnnnnnnnnnnnnnnn"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(</span>
+<span id="cb2-5">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Morph =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">factor</span>(Morph, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">levels =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Robust"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Gracile"</span>)),</span>
+<span id="cb2-6">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Body mass (kg)</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">campione.body.mass.kg</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur circumference</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>)</span>
+<span id="cb2-7">  )</span>
+<span id="cb2-8"></span>
+<span id="cb2-9">t.rex <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(t.rex, goliath)</span>
+<span id="cb2-10"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">kable</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(goliath, Specimen, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur circumference</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Body mass (kg)</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>))</span></code></pre></div>
+</details>
+<div id="tbl-goliath" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-goliath-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Reported measurements for the Goliath specimen.
+</figcaption>
+<div aria-describedby="tbl-goliath-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Specimen</th>
+<th style="text-align: right;">Femur length</th>
+<th style="text-align: right;">Femur circumference</th>
+<th style="text-align: right;">Body mass (kg)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Goliath</td>
+<td style="text-align: right;">1371</td>
+<td style="text-align: right;">648</td>
+<td style="text-align: right;">11483.59</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>The most interesting bone is the femur, being as it’s more likely to be present and is used to estimate body mass. The equation used is from <a href="https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.12226">Campione et al 2014</a>. Bear in mind they suggest a 25% prediction error.</p>
+<p>An interesting thing about T. rex is that there are two morphs, <em>gracile</em> and <em>robust</em>, which I understand to be layman’s terms for “elven” and “chonky”. Let’s see if that’s visible in the femur measurements.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(t.rex) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur circumference</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> Morph, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">label =</span> Specimen) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_label</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">nudge_y =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_point</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_x_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limits =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1400</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limits =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">400</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">700</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>()</span></code></pre></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-femurs" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-femurs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://cbowdon.github.io/posts/t.rex/index_files/figure-html/fig-femurs-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-femurs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Femur circumference and length for T. rex specimens.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Looking at this scatterplot, there’s a linear relationship between length and circumference, and Goliath sits neatly on it. (Too neatly? Hmm. Should it even be linear? Wouldn’t the square-cube law suggest femurs should get thicker faster than they get longer?) However it’s not obvious if Goliath should be gracile or robust. In fact, it’s not particularly clear from the femurs alone why some are gracile and some robust; CM 9380 (Holotype) and MOR 555 (Wankel) are very close, for example. We need more features. Unfortunately, the T. rex data are very sparse, so we need to impute missing values.</p>
+<p>Tibia length is relatively complete, can we use that?</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(t.rex) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Tibia length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> Morph) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_point</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_x_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limits =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1400</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limits =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">900</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1200</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb4-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>()</span></code></pre></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-tibias-femur-length" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-tibias-femur-length-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://cbowdon.github.io/posts/t.rex/index_files/figure-html/fig-tibias-femur-length-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tibias-femur-length-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Femur length and tibia length for T. rex specimens.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The relationship between fibia length and tibia length is surprisingly not very informative.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(t.rex) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur circumference</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Tibia length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> Morph) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_point</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_x_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limits =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">400</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">700</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limits =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">900</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1200</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb5-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>()</span></code></pre></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-tibias-femur-circumference" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-tibias-femur-circumference-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://cbowdon.github.io/posts/t.rex/index_files/figure-html/fig-tibias-femur-circumference-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-tibias-femur-circumference-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Femur circumference and tibia length for T. rex specimens.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Femur circumference relates a little better. Let’s try a dead simple linear model. We can include body mass, which is a function of femur circumference, to try and capture some of the knowledge from that model.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1">reg <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lm</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur circumference</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Body mass (kg)</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Tibia length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> t.rex, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">subset =</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.na</span>(t.rex<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Tibia length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.na</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>))</span>
+<span id="cb6-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summary</span>(reg)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = `Femur length` ~ `Femur circumference` * `Body mass (kg)` + 
+    `Tibia length`, data = t.rex, subset = !is.na(t.rex$`Tibia length`) &amp; 
+    !is.na(`Femur length`))
+
+Residuals:
+       1        2        3        4        6        7        9       11 
+  -2.758   10.381    3.116 -116.353   97.051   30.241   49.109  -69.132 
+      12 
+  -1.655 
+
+Coefficients:
+                                         Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)                            -1.136e+04  2.430e+04  -0.467    0.665
+`Femur circumference`                   5.020e+01  1.037e+02   0.484    0.654
+`Body mass (kg)`                       -3.832e+00  8.868e+00  -0.432    0.688
+`Tibia length`                         -2.585e-01  8.777e-01  -0.294    0.783
+`Femur circumference`:`Body mass (kg)`  3.317e-03  8.054e-03   0.412    0.702
+
+Residual standard error: 88.3 on 4 degrees of freedom
+Multiple R-squared:  0.6787,    Adjusted R-squared:  0.3574 
+F-statistic: 2.112 on 4 and 4 DF,  p-value: 0.2433</code></pre>
+</div>
+</div>
+<p>It’s not great, though slightly better than the other combinations I tried and probably the best we could do with such a small dataset. The prediction is feasible enough.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1">preds <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">predict</span>(reg, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">newdata =</span> t.rex)</span>
+<span id="cb8-2"></span>
+<span id="cb8-3">t.rex <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb8-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">coalesce</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, preds)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb8-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Specimen</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Morph</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Femur circumference</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Tibia length</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Body mass (kg)</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb8-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">kable</span>()</span></code></pre></div>
+</details>
+<div id="tbl-with-pred" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-with-pred-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: Imputed femur length for RTMP 81.12.1.
+</figcaption>
+<div aria-describedby="tbl-with-pred-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 8%">
+<col style="width: 14%">
+<col style="width: 21%">
+<col style="width: 14%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Specimen</th>
+<th style="text-align: left;">Morph</th>
+<th style="text-align: right;">Femur length</th>
+<th style="text-align: right;">Femur circumference</th>
+<th style="text-align: right;">Tibia length</th>
+<th style="text-align: right;">Body mass (kg)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">RSM P2523.8</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">1333.000</td>
+<td style="text-align: right;">590</td>
+<td style="text-align: right;">1140</td>
+<td style="text-align: right;">8870.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CM 9380 (AMNH 973)</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">1269.000</td>
+<td style="text-align: right;">534</td>
+<td style="text-align: right;">1166</td>
+<td style="text-align: right;">6740.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">FMNH PR2081</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">1321.000</td>
+<td style="text-align: right;">580</td>
+<td style="text-align: right;">1140</td>
+<td style="text-align: right;">8462.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MOR 1125</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">1150.000</td>
+<td style="text-align: right;">515</td>
+<td style="text-align: right;">1060</td>
+<td style="text-align: right;">6100.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RTMP 81.12.1, NMC 9950</td>
+<td style="text-align: left;">Robust</td>
+<td style="text-align: right;">1230.292</td>
+<td style="text-align: right;">495</td>
+<td style="text-align: right;">1095</td>
+<td style="text-align: right;">5469.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">BHI 3033</td>
+<td style="text-align: left;">Gracile</td>
+<td style="text-align: right;">1350.000</td>
+<td style="text-align: right;">505</td>
+<td style="text-align: right;">1065</td>
+<td style="text-align: right;">5779.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MOR 555</td>
+<td style="text-align: left;">Gracile</td>
+<td style="text-align: right;">1280.000</td>
+<td style="text-align: right;">520</td>
+<td style="text-align: right;">1150</td>
+<td style="text-align: right;">6264.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MOR 980</td>
+<td style="text-align: left;">Gracile</td>
+<td style="text-align: right;">1232.000</td>
+<td style="text-align: right;">483</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">5112.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RTMP 81.6.1</td>
+<td style="text-align: left;">Gracile</td>
+<td style="text-align: right;">1210.000</td>
+<td style="text-align: right;">460</td>
+<td style="text-align: right;">1030</td>
+<td style="text-align: right;">4469.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">BM R8040 (AMNH 5881)</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">480</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">5025.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">MOR 009</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">1100.000</td>
+<td style="text-align: right;">469</td>
+<td style="text-align: right;">1105</td>
+<td style="text-align: right;">4714.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">USNM 6183</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">1040.000</td>
+<td style="text-align: right;">426</td>
+<td style="text-align: right;">910</td>
+<td style="text-align: right;">3617.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Goliath</td>
+<td style="text-align: left;">NA</td>
+<td style="text-align: right;">1371.000</td>
+<td style="text-align: right;">648</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">11483.59</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>I’m not sure what else to do with this.</p>
+
+
+
+ ]]></description>
+  <category>dinosaurs</category>
+  <category>r</category>
+  <guid>https://cbowdon.github.io/posts/t.rex/</guid>
+  <pubDate>Sat, 15 Feb 2025 00:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Gaussian Processes in R</title>
   <link>https://cbowdon.github.io/posts/gaussian-processes/</link>
