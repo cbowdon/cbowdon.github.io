@@ -20,7 +20,7 @@
 
 
 
-<p>I ought to be spending this weekend working on a risk intelligence LLM, but I’ve stumbled across something that brings my inner child immense joy and such things cannot be ignored. It is this 2019 paper <a href="https://anatomypubs.onlinelibrary.wiley.com/doi/10.1002/ar.24118">“An Older and Exceptionally Large Adult Specimen of Tyrannosaurus rex”</a> by Persons et al.&nbsp;First it’s cool to see paleontology in action, instead of filtered through talking head documentaries. Second, the diligent authors have personally measured 12 T. rex specimens, which is a decent chunk of the <a href="https://en.wikipedia.org/wiki/Specimens_of_Tyrannosaurus">29 or-so specimens discovered to-date</a>, and so we have a cool dataset to play with.</p>
+<p>I ought to be spending this weekend working on a risk intelligence thing for work, but I’ve stumbled across something that brings my inner child immense joy and such things cannot be ignored. It is this 2019 paper <a href="https://anatomypubs.onlinelibrary.wiley.com/doi/10.1002/ar.24118">“An Older and Exceptionally Large Adult Specimen of Tyrannosaurus rex”</a> by Persons et al.&nbsp;First it’s cool to see paleontology in action, instead of filtered through talking head documentaries. Second, the diligent authors have personally measured 12 T. rex specimens, which is a decent chunk of the <a href="https://en.wikipedia.org/wiki/Specimens_of_Tyrannosaurus">29 or-so specimens discovered to-date</a>, and so we have a cool dataset to play with.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -764,7 +764,7 @@ Figure&nbsp;3: Femur circumference and tibia length for T. rex specimens.
 </div>
 </div>
 </div>
-<p>Femur circumference relates a little better. Let’s try a dead simple linear model. We can include body mass, which is a function of femur circumference, to try and capture some of the knowledge from that model.</p>
+<p>Femur circumference relates a little better. Let’s try a dead simple linear model to predict the missing femur lengths. We can include body mass, which is a function of femur circumference, to try and capture some of the knowledge from that model.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1">reg <span class="ot" style="color: #003B4F;
 background-color: null;
@@ -858,7 +858,7 @@ Multiple R-squared:  0.6787,    Adjusted R-squared:  0.3574
 F-statistic: 2.112 on 4 and 4 DF,  p-value: 0.2433</code></pre>
 </div>
 </div>
-<p>It’s not great, though slightly better than the other combinations I tried and probably the best we could do with such a small dataset. The prediction is feasible enough.</p>
+<p>It’s not great, though slightly better than the other combinations I tried and probably the best we could do with such a small dataset. The additional imputed femur length (RTMP 81.12.1) is feasible enough.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -1077,7 +1077,7 @@ Table&nbsp;3: Imputed femur length for RTMP 81.12.1.
 </figure>
 </div>
 </div>
-<p>I’m not sure what else to do with this.</p>
+<p>I’m not sure what else to do with this. Must be tough being a paleontologist, working with so little direct data!</p>
 
 
 
