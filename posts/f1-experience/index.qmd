@@ -1,0 +1,50 @@
+---
+title: "Is experience the biggest predictor of F1 teammate battles?"
+date: "2025-04-03"
+categories: [r, f1]
+warning: false
+code-fold: true
+freeze: false
+---
+
+Liam Lawson's pre-doomed stint in the Red Bull seat has just finished and Tsunoda is in. Will Tsunoda fare any better?
+
+```{r} 
+library(tidyverse)
+library(knitr)
+
+results <- read_csv("data/results.csv", col_select = c("raceId", "driverId", "constructorId", "rank"), show_col_types = FALSE)
+races <- read_csv("data/races.csv", col_select = c("raceId", "year", "round"), show_col_types = FALSE)
+drivs <- read_csv("data/drivers.csv", col_select = c("driverId", "driverRef", "code"), show_col_types = FALSE)
+ctors <- read_csv("data/constructors.csv", col_select = c("constructorId", "constructorRef"), show_col_types = FALSE)
+
+raw.df <- results |>
+  mutate(rank = if_else(rank == "\\N", NA, rank)) |>
+  merge(races) |>
+  merge(drivs) |>
+  merge(ctors)
+
+raw.df |>
+  filter(code == "TSU") |>
+  group_by(year) |>
+  count()
+```
+
+Let's first measure the experience of a driver in terms of number of races.
+
+```{r}
+#| label: tbl-n-starts
+#| tbl-cap: Number of race starts for drivers who raced in 2024.
+df <- raw.df |>
+  group_by(driverId) |>
+  arrange(year, raceId) |>
+  mutate(raced = 1) |>
+  mutate(n.race.starts = cumsum(raced))
+
+df |>
+  group_by(driverId, driverRef, code) |>
+  summarise(n.race.starts = max(n.race.starts), last.raced.year = max(year)) |>
+  filter(last.raced.year == 2024) |>
+  arrange(desc(n.race.starts)) |>
+  kable()
+```
