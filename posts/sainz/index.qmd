@@ -8,11 +8,13 @@ The MAJOR story of F1's 2025 season is of course the match-up between Sainz and 
 
 So far (after two races) Sainz seems to have been on Albon's pace in practice but binned it in Melbourne and struggled with set up in Shanghai. So I got curious about how he did against his previous team mates when he joined the team.
 
+Once again I've made use of data from the excellent Ergast API and processed it with R - unfold for details.
+
 ```{r}
 #| warning: false
-#| echo: false
 #| label: fig-sainz-advantage
 #| fig-cap: Sainz' advantage in seconds over teammates on joining a team (positive advantage means Sainz was faster).
+#| code-fold: true
 library(tidyverse)
 library(forcats)
 
