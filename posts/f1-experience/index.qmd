@@ -15,16 +15,21 @@ Given that Lawson had just 11 races under his belt prior to this season, whereas
 library(tidyverse)
 library(knitr)
 
-results <- read_csv("data/results.csv", col_select = c("raceId", "driverId", "constructorId", "rank", "laps", "milliseconds"), show_col_types = FALSE)
-races <- read_csv("data/races.csv", col_select = c("raceId", "year", "round"), show_col_types = FALSE)
-drivs <- read_csv("data/drivers.csv", col_select = c("driverId", "driverRef", "code"), show_col_types = FALSE)
+results <- read_csv("data/results.csv", col_select = c("raceId", "driverId", "constructorId", "positionOrder", "laps", "milliseconds"), col_types = "iiidii", na = "\\N", show_col_types = FALSE)
+races <- read_csv("data/races.csv", col_select = c("raceId", "year", "round"), col_types = "iii", show_col_types = FALSE)
+drivs <- read_csv("data/drivers.csv", col_select = c("driverId", "driverRef", "code"), na = "\\N", show_col_types = FALSE)
 ctors <- read_csv("data/constructors.csv", col_select = c("constructorId", "constructorRef"), show_col_types = FALSE)
 
+race.cars <- races |>
+  merge(results) |>
+  group_by(year, round) |>
+  summarise(n.cars = n())
+
 raw.df <- results |>
-  mutate(rank = if_else(rank == "\\N", NA, rank)) |>
   merge(races) |>
   merge(drivs) |>
-  merge(ctors)
+  merge(ctors) |>
+  merge(race.cars)
 
 raw.df |>
   filter(code == "TSU") |>
@@ -43,13 +48,13 @@ driver.seasons <- raw.df |>
   group_by(driverId) |>
   mutate(n.seasons = 1, n.seasons = cumsum(n.seasons))
 
-df <- raw.df |>
+driver.experience <- raw.df |>
   group_by(driverId) |>
   arrange(year, raceId) |>
-  mutate(n.starts = 1, n.race.starts = cumsum(n.starts), n.laps = cumsum(laps)) |>
+  mutate(n.starts = 1, n.starts = cumsum(n.starts), n.laps = cumsum(laps)) |>
   merge(driver.seasons)
 
-df |>
+driver.experience |>
   group_by(driverId, driverRef, code) |>
   filter(max(year) == 2024) |>
   summarise(n.starts = max(n.starts), n.laps = max(n.laps), n.seasons = max(n.seasons)) |>
@@ -65,8 +70,21 @@ With each measure calculated for each driver for each race, we can look at how t
 
 
 ```{r}
-df |>
-  # perhaps we just allocate a car 1 and car 2 for every race?
+pairs <- driver.experience |>
   group_by(year, round, constructorId) |>
-  mutate(car = 1, car = cumsum(car))
+  arrange(positionOrder) |>
+  summarise(
+    positions.ahead = last(positionOrder) - first(positionOrder),
+    n.laps.diff = first(n.laps) - last(n.laps),
+    n.starts.diff = first(n.starts) - last(n.starts),
+    n.seasons.diff = first(n.seasons) - last(n.seasons)
+  ) |>
+  pivot_longer(starts_with("n") & ends_with("diff"))
+
+ggplot(pairs) +
+  aes(x = value, y = positions.ahead, group = name) +
+  facet_wrap(~name, scales = "free_x") +
+  geom_point(alpha = 0.1) +
+  stat_smooth() +
+  theme_minimal()
 ```
