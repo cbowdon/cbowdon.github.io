@@ -7,13 +7,15 @@ code-fold: true
 freeze: false
 ---
 
-Liam Lawson's pre-doomed stint in the Red Bull seat has just finished and Tsunoda is in. Will Tsunoda fare any better?
+It's just before round three of the 2025 F1 season, Suzuka. Liam Lawson's pre-doomed stint in the Red Bull seat has just finished and Tsunoda is in. Will he fare any better?
+
+Given that Lawson had just 11 races under his belt prior to this season, whereas Tsunoda has 90, I strongly suspect that he will. I _think_ that experience is at least as big a factor in driver performance as natural ability. Let's explore that!
 
 ```{r} 
 library(tidyverse)
 library(knitr)
 
-results <- read_csv("data/results.csv", col_select = c("raceId", "driverId", "constructorId", "rank"), show_col_types = FALSE)
+results <- read_csv("data/results.csv", col_select = c("raceId", "driverId", "constructorId", "rank", "laps", "milliseconds"), show_col_types = FALSE)
 races <- read_csv("data/races.csv", col_select = c("raceId", "year", "round"), show_col_types = FALSE)
 drivs <- read_csv("data/drivers.csv", col_select = c("driverId", "driverRef", "code"), show_col_types = FALSE)
 ctors <- read_csv("data/constructors.csv", col_select = c("constructorId", "constructorRef"), show_col_types = FALSE)
@@ -30,21 +32,41 @@ raw.df |>
   count()
 ```
 
-Let's first measure the experience of a driver in terms of number of races.
+There are three ways we could measure the experience of a driver: number of race starts, number of laps raced, and seasons endured.
 
 ```{r}
 #| label: tbl-n-starts
-#| tbl-cap: Number of race starts for drivers who raced in 2024.
+#| tbl-cap: Number of race starts, laps raced, and seasons endured for drivers who raced in 2024.
+driver.seasons <- raw.df |>
+  distinct(driverId, year) |>
+  arrange(driverId, year) |>
+  group_by(driverId) |>
+  mutate(n.seasons = 1, n.seasons = cumsum(n.seasons))
+
 df <- raw.df |>
   group_by(driverId) |>
   arrange(year, raceId) |>
-  mutate(raced = 1) |>
-  mutate(n.race.starts = cumsum(raced))
+  mutate(n.starts = 1, n.race.starts = cumsum(n.starts), n.laps = cumsum(laps)) |>
+  merge(driver.seasons)
 
 df |>
   group_by(driverId, driverRef, code) |>
-  summarise(n.race.starts = max(n.race.starts), last.raced.year = max(year)) |>
-  filter(last.raced.year == 2024) |>
-  arrange(desc(n.race.starts)) |>
+  filter(max(year) == 2024) |>
+  summarise(n.starts = max(n.starts), n.laps = max(n.laps), n.seasons = max(n.seasons)) |>
+  arrange(desc(n.starts)) |>
   kable()
+```
+
+Race starts is the most typical measure of driver experience. You might extend the idea of experience accumulating race by race to experience accumulating lap by lap, which would be particularly helpful to distinguish drivers in their earliest stages for whom every complete race is a significant chunk of experience. We might also consider whether the number of different cars raced helps, which is the same as the number of seasons except for those rare occasions when a driver jumps into two different cars in one seasons.
+
+For now I'm going to ignore career breaks to simplify things. However we definitely saw that Schumacher, Ocon, and Alonso underperformed after their breaks.
+
+With each measure calculated for each driver for each race, we can look at how the difference in experience measure relates to teammate battle outcomes. For each pairing, for each race, we will calculate the finishing positions difference vs each experience measure.
+
+
+```{r}
+df |>
+  # perhaps we just allocate a car 1 and car 2 for every race?
+  group_by(year, round, constructorId) |>
+  mutate(car = 1, car = cumsum(car))
 ```
