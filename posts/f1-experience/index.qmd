@@ -1,5 +1,5 @@
 ---
-title: "Is experiencults the biggest predictor of F1 teammate battles?"
+title: "Is experience the biggest predictor of F1 teammate battles?"
 date: "2025-04-03"
 categories: [r, f1]
 warning: false
@@ -10,7 +10,7 @@ draft: true
 
 It's just before round three of the 2025 F1 season, Suzuka. Liam Lawson's pre-doomed stint in the Red Bull seat has just finished and Tsunoda is in. Will he fare any better?
 
-Given that Lawson had just 11 races under his belt prior to this season, whereas Tsunoda has 90, I strongly suspect that he will. I _think_ that experiencults is at least as big a factor in driver performance as natural ability. Let's explore that!
+Given that Lawson had just 11 races under his belt prior to this season, whereas Tsunoda has 90, I strongly suspect that he will. I _think_ that experience is at least as big a factor in driver performance as natural ability. Let's explore that!
 
 ```{r} 
 library(tidyverse)
@@ -33,7 +33,7 @@ raw.df <- results |>
   merge(race.cars)
 ```
 
-There are three ways we could measure the experiencults of a driver: number of race starts, number of laps raced, and seasons endured.
+There are three ways we could measure the experience of a driver: number of race starts, number of laps raced, and seasons endured.
 
 ```{r}
 #| label: tbl-n-starts
@@ -56,72 +56,92 @@ drivers.2024 <- driver.results |>
   summarise(n.starts = max(n.starts), n.laps = max(n.laps), n.seasons = max(n.seasons)) |>
   arrange(desc(n.starts))
 
-drivers.2024 |> kable()
+drivers.2024 |> kable(format.args = list(big.mark = ","))
 ```
 
-Race starts is the most typical measure of driver experiencults. You might extend the idea of experiencults accumulating race by race to experiencults accumulating lap by lap, which would be particularly helpful to distinguish drivers in their earliest stages for whom every complete race is a significant chunk of experiencults. We might also consider whether the number of different cars raced helps, which is the same as the number of seasons except for those rare occasions when a driver jumps into two different cars in one seasons.
+Race starts is the most typical measure of driver experience. You might extend the idea of experience accumulating race by race to experience accumulating lap by lap, which would be particularly helpful to distinguish drivers in their earliest stages for whom every complete race is a significant chunk of experience. We might also consider whether the number of different cars raced helps, which is the same as the number of seasons except for those rare occasions when a driver jumps into two different cars in one seasons.
 
 For now I'm going to ignore career breaks to simplify things. However we definitely saw that Schumacher, Ocon, and Alonso underperformed after their breaks.
 
-With each measure calculated for each driver for each race, we can look at how the difference in experiencults measure relates to teammate battle outcomes. For each pairing, for each race, we will calculate the finishing positions difference vs each experiencults measure.
+With each measure calculated for each driver for each race, we can look at how the difference in experience measure relates to teammate battle outcomes. For each pairing, for each race, we will calculate who finished ahead and each experience measure at the time.
 
 
 ```{r}
 #| label: fig-scatter
-#| fig-caption: Positions ahead of teammate against different measures of experiencults.
-pairs <- driver.results |>
+#| fig-caption: Frequency of finishing ahead of junior teammate by different measures of experience.
+teammate.diffs <- driver.results |>
   filter(year >= 2010) |> # modern era
   group_by(year, round, constructorId) |>
-  arrange(positionOrder) |>
-  summarise(
-    finished.ahead = first(positionOrder) < last(positionOrder),
-    n.positions.ahead = last(positionOrder) - first(positionOrder),
-    n.laps.diff = first(n.laps) - last(n.laps),
-    n.starts.diff = first(n.starts) - last(n.starts),
-    n.seasons.diff = first(n.seasons) - last(n.seasons)
-  )
+  mutate(
+    finished.ahead = positionOrder == min(positionOrder),
+    seniority = if_else(n.laps == max(n.laps), 1, -1),
+    n.laps.diff = seniority * (max(n.laps) - min(n.laps)),
+    n.starts.diff = seniority * (max(n.starts) - min(n.starts)),
+    n.seasons.diff = seniority * (max(n.seasons) - min(n.seasons))
+  ) |>
+  filter(seniority > 0) |>
+  arrange(year, round, constructorId) |>
+  ungroup()
 
-ggplot(pairs |> pivot_longer(starts_with("n") & ends_with("diff"))) +
-  aes(x = value, y = n.positions.ahead, group = name) +
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  facet_wrap(~name, scales = "free_x") +
-  geom_point(alpha = 0.025) +
-  theme_minimal()
-
-
-ggplot(pairs |> mutate(n.starts.diff = scale(n.starts.diff))) +
-  aes(x = n.starts.diff) +
-  geom_histogram() +
-  facet_wrap(~finished.ahead) +
+ggplot(pivot_longer(teammate.diffs, ends_with("diff"), names_to = "metric")) +
+  aes(x = value, fill = finished.ahead) +
+  facet_wrap(~metric, scales = "free") +
+  geom_histogram(position = "fill", bins = 10) +
+  geom_hline(yintercept = 0.50, linetype = "dashed") +
+  scale_fill_manual(values = c("#ffeecc", "steelblue")) +
+  labs(
+    x = "Experience advantage over junior team mate",
+    y = "Frequency of finishing ahead",
+    fill = "Finished ahead"
+  ) +
   theme_minimal()
 ```
 
-When plotted we can discern a slight apparent relationship. Let's try a logistic regression to get the odds ratios. There's no obvious difference between the different experience measures, so let's go with the conventional number of starts metric. We'll assume that it must have a nonlinear component and include the year and constructor as fixed effects. Sadly I can't separate out natural talent, but to an extent experience is a function of natural talent: those with more talent are generally welcome to drive for longer.
+There's a clear advantage to greater experience. How exactly we measure it doesn't seem to make much difference, so we can stick to measuring experience in terms of race starts.
+
+Now let's try a logistic regression to get the odds ratios. We'll include the year and constructor as fixed effects. Sadly I can't separate out natural talent, but to an extent experience is a function of natural talent: those with more talent are generally welcome to drive for longer.
+
+It's quite likely that the effect of difference in experience is nonlinear (e.g. 2 races might be twice as good as 1 race, but 200 races is only slightly better than 100 races) so let's include a nonlinear term.
 
 ```{r}
-model <- glm(
-  finished.ahead ~ I(n.starts.diff^2) + factor(year) + factor(constructorId),
+model.data <- mutate(teammate.diffs, n.starts.diff = scale(n.starts.diff))
+
+model.2 <- glm(
+  finished.ahead ~ I(n.starts.diff^2) + n.starts.diff + factor(year) + factor(constructorId),
   family = "binomial",
-  data = pairs, # mutate(pairs, n.starts.diff = scale(n.starts.diff)),
-  control = list(maxit = 250)
+  data = model.data,
+  control = list(maxit = 100)
 )
 ```
 
-If we compare that to a null model without the experience variable, we see it is significant.
+If we compare these to a null model without the experience variable, we see that it is significant. A version without the nonlinear term had a P-value of 0.14, so not significant.
 
 ```{r}
-null.model <- glm(finished.ahead ~ factor(year) + factor(constructorId), family = "binomial", data = pairs)
-
-anova(null.model, model)
+null.model <- glm(finished.ahead ~ factor(year) + factor(constructorId), family = "binomial", data = model.data)
+anova(null.model, model.2)
 ```
 
-We can interpret the model coefficients as an odds ratio.
+We can interpret the model coefficients as an odds ratio, though we need to remember that this data is standard-scaled.
 
 ```{r}
-odds.ratio <- exp(coefficients(model)["I(n.starts.diff^2)"])
+beta1 <- coefficients(model.2)["n.starts.diff"]
+beta2 <- coefficients(model.2)["I(n.starts.diff^2)"]
 
-sprintf("Odds ratio: %s (i.e. every start increases odds of finishing ahead by %s%%)", round(odds.ratio, 3), round(100 * (odds.ratio - 1), 2))
+# We have to undo scaling
+scaled <- scale(teammate.diffs$n.starts.diff)
+mu <- attr(scaled, "scaled:center")
+sigma <- attr(scaled, "scaled:scale")
+
+model.odds.ratio <- function(n.starts.diff) {
+  scaled.increase <- (n.starts.diff + 1 - mu) / sigma
+  scaled.val <- (n.starts.diff - mu) / sigma
+  exp(beta1 * (scaled.increase - scaled.val) + beta2 * (scaled.increase^2 - scaled.val^2))
+}
+
+#predict(model.2, model.data, type="link")
 ```
+
+TODO rewrite:
 
 That's a fairly weak odds ratio, but remember odds ratios compound. If we apply that to the 2025 grid (as of Suzuka FP2) we get some interesting numbers.
 
