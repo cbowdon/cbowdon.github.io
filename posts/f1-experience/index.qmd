@@ -1,15 +1,16 @@
 ---
-title: "Is experience the biggest predictor of F1 teammate battles?"
+title: "Is experiencults the biggest predictor of F1 teammate battles?"
 date: "2025-04-03"
 categories: [r, f1]
 warning: false
 code-fold: true
 freeze: false
+draft: true
 ---
 
 It's just before round three of the 2025 F1 season, Suzuka. Liam Lawson's pre-doomed stint in the Red Bull seat has just finished and Tsunoda is in. Will he fare any better?
 
-Given that Lawson had just 11 races under his belt prior to this season, whereas Tsunoda has 90, I strongly suspect that he will. I _think_ that experience is at least as big a factor in driver performance as natural ability. Let's explore that!
+Given that Lawson had just 11 races under his belt prior to this season, whereas Tsunoda has 90, I strongly suspect that he will. I _think_ that experiencults is at least as big a factor in driver performance as natural ability. Let's explore that!
 
 ```{r} 
 library(tidyverse)
@@ -30,14 +31,9 @@ raw.df <- results |>
   merge(drivs) |>
   merge(ctors) |>
   merge(race.cars)
-
-raw.df |>
-  filter(code == "TSU") |>
-  group_by(year) |>
-  count()
 ```
 
-There are three ways we could measure the experience of a driver: number of race starts, number of laps raced, and seasons endured.
+There are three ways we could measure the experiencults of a driver: number of race starts, number of laps raced, and seasons endured.
 
 ```{r}
 #| label: tbl-n-starts
@@ -48,43 +44,134 @@ driver.seasons <- raw.df |>
   group_by(driverId) |>
   mutate(n.seasons = 1, n.seasons = cumsum(n.seasons))
 
-driver.experience <- raw.df |>
+driver.results <- raw.df |>
   group_by(driverId) |>
   arrange(year, raceId) |>
   mutate(n.starts = 1, n.starts = cumsum(n.starts), n.laps = cumsum(laps)) |>
   merge(driver.seasons)
 
-driver.experience |>
+drivers.2024 <- driver.results |>
   group_by(driverId, driverRef, code) |>
   filter(max(year) == 2024) |>
   summarise(n.starts = max(n.starts), n.laps = max(n.laps), n.seasons = max(n.seasons)) |>
-  arrange(desc(n.starts)) |>
-  kable()
+  arrange(desc(n.starts))
+
+drivers.2024 |> kable()
 ```
 
-Race starts is the most typical measure of driver experience. You might extend the idea of experience accumulating race by race to experience accumulating lap by lap, which would be particularly helpful to distinguish drivers in their earliest stages for whom every complete race is a significant chunk of experience. We might also consider whether the number of different cars raced helps, which is the same as the number of seasons except for those rare occasions when a driver jumps into two different cars in one seasons.
+Race starts is the most typical measure of driver experiencults. You might extend the idea of experiencults accumulating race by race to experiencults accumulating lap by lap, which would be particularly helpful to distinguish drivers in their earliest stages for whom every complete race is a significant chunk of experiencults. We might also consider whether the number of different cars raced helps, which is the same as the number of seasons except for those rare occasions when a driver jumps into two different cars in one seasons.
 
 For now I'm going to ignore career breaks to simplify things. However we definitely saw that Schumacher, Ocon, and Alonso underperformed after their breaks.
 
-With each measure calculated for each driver for each race, we can look at how the difference in experience measure relates to teammate battle outcomes. For each pairing, for each race, we will calculate the finishing positions difference vs each experience measure.
+With each measure calculated for each driver for each race, we can look at how the difference in experiencults measure relates to teammate battle outcomes. For each pairing, for each race, we will calculate the finishing positions difference vs each experiencults measure.
 
 
 ```{r}
-pairs <- driver.experience |>
+#| label: fig-scatter
+#| fig-caption: Positions ahead of teammate against different measures of experiencults.
+pairs <- driver.results |>
+  filter(year >= 2010) |> # modern era
   group_by(year, round, constructorId) |>
   arrange(positionOrder) |>
   summarise(
-    positions.ahead = last(positionOrder) - first(positionOrder),
+    finished.ahead = first(positionOrder) < last(positionOrder),
+    n.positions.ahead = last(positionOrder) - first(positionOrder),
     n.laps.diff = first(n.laps) - last(n.laps),
     n.starts.diff = first(n.starts) - last(n.starts),
     n.seasons.diff = first(n.seasons) - last(n.seasons)
-  ) |>
-  pivot_longer(starts_with("n") & ends_with("diff"))
+  )
 
-ggplot(pairs) +
-  aes(x = value, y = positions.ahead, group = name) +
+ggplot(pairs |> pivot_longer(starts_with("n") & ends_with("diff"))) +
+  aes(x = value, y = n.positions.ahead, group = name) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
   facet_wrap(~name, scales = "free_x") +
-  geom_point(alpha = 0.1) +
-  stat_smooth() +
+  geom_point(alpha = 0.025) +
+  theme_minimal()
+
+
+ggplot(pairs |> mutate(n.starts.diff = scale(n.starts.diff))) +
+  aes(x = n.starts.diff) +
+  geom_histogram() +
+  facet_wrap(~finished.ahead) +
   theme_minimal()
 ```
+
+When plotted we can discern a slight apparent relationship. Let's try a logistic regression to get the odds ratios. There's no obvious difference between the different experience measures, so let's go with the conventional number of starts metric. We'll assume that it must have a nonlinear component and include the year and constructor as fixed effects. Sadly I can't separate out natural talent, but to an extent experience is a function of natural talent: those with more talent are generally welcome to drive for longer.
+
+```{r}
+model <- glm(
+  finished.ahead ~ I(n.starts.diff^2) + factor(year) + factor(constructorId),
+  family = "binomial",
+  data = pairs, # mutate(pairs, n.starts.diff = scale(n.starts.diff)),
+  control = list(maxit = 250)
+)
+```
+
+If we compare that to a null model without the experience variable, we see it is significant.
+
+```{r}
+null.model <- glm(finished.ahead ~ factor(year) + factor(constructorId), family = "binomial", data = pairs)
+
+anova(null.model, model)
+```
+
+We can interpret the model coefficients as an odds ratio.
+
+```{r}
+odds.ratio <- exp(coefficients(model)["I(n.starts.diff^2)"])
+
+sprintf("Odds ratio: %s (i.e. every start increases odds of finishing ahead by %s%%)", round(odds.ratio, 3), round(100 * (odds.ratio - 1), 2))
+```
+
+That's a fairly weak odds ratio, but remember odds ratios compound. If we apply that to the 2025 grid (as of Suzuka FP2) we get some interesting numbers.
+
+```{r}
+#| label: tbl-odds-ratios
+#| tbl-cap: Odds ratio of more experienced driver finishing ahead in each 2025 team version.
+drivers.2025 <- tribble(
+  ~driverRef, ~code, ~constructorRef, ~version,
+  "norris", "NOR", "mclaren", 1,
+  "piastri", "PIA", "mclaren", 1,
+  "leclerc", "LEC", "ferrari", 1,
+  "hamilton", "HAM", "ferrari", 1,
+  "max_verstappen", "VER", "red_bull", 1,
+  "lawson", "LAW", "red_bull", 1,
+  "max_verstappen", "VER", "red_bull", 2,
+  "tsunoda", "TSU", "red_bull", 2,
+  "russell", "RUS", "mercedes", 1,
+  "antonelli", "ANT", "mercedes", 1,
+  "alonso", "ALO", "aston_martin", 1,
+  "stroll", "STR", "aston_martin", 1,
+  "sainz", "SAI", "williams", 1,
+  "albon", "ALB", "williams", 1,
+  "gasly", "GAS", "alpine", 1,
+  "doohan", "DOO", "alpine", 1,
+  "tsunoda", "TSU", "racing_bulls", 1,
+  "hadjar", "HAD", "racing_bulls", 1,
+  "lawson", "LAW", "racing_bulls", 2,
+  "hadjar", "HAD", "racing_bulls", 2,
+  "ocon", "OCO", "haas", 1,
+  "bearman", "BEA", "haas", 1,
+  "hulkenberg", "HUL", "sauber", 1,
+  "bortoleto", "BOR", "sauber", 1
+)
+
+drivers.2025 |>
+  merge(drivers.2024, all.x = TRUE) |>
+  mutate(n.starts = coalesce(n.starts, 0)) |>
+  group_by(constructorRef, version) |>
+  arrange(desc(n.starts)) |>
+  summarise(
+    pairing = sprintf("%s - %s", first(code), last(code)),
+    n.starts.diff = first(n.starts) - last(n.starts),
+    odds.ratio = odds.ratio^n.starts.diff
+  ) |>
+  arrange(desc(n.starts.diff)) |>
+  kable(digits = 2)
+```
+
+This tells us that based on experience alone, Alonso is 2.5 times as likely to finish ahead as Stroll is. It's an intuitive result - in fact they all are, with a couple of exceptions: in our current sample of _two_ grands prix, Hamilton and Sainz are below expectation. But of course both have just made big moves and aren't yet settled in their new cars.
+
+It's a bit of a surprise that the McLaren boys are the second most equally experienced teammates on the grid, after Racing Bulls version 2.
+
+What next? We could include the experience level of the two drivers directly (rather than the diff) because it's likely that driving ability develops nonlinearly with experience e.g. two races being twice as good as one, but two hundred races not being twice as good as one hundred.
