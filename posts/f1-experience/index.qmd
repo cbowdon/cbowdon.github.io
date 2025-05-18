@@ -99,7 +99,7 @@ ggplot(pivot_longer(teammate.diffs, ends_with("diff"), names_to = "metric")) +
 
 There's a clear advantage to greater experience. How exactly we measure it doesn't seem to make much difference, so we can stick to measuring experience in terms of race starts.
 
-Now let's try a logistic regression to get the odds ratios. We'll include the year and constructor as fixed effects. Sadly I can't separate out natural talent, but to an extent experience is a function of natural talent: those with more talent are generally welcome to drive for longer.
+Now let's try a logistic regression. We'll include the year and constructor as fixed effects. Sadly I can't separate out natural talent, but to an extent experience is a function of natural talent: those with more talent are generally welcome to drive for longer.
 
 It's quite likely that the effect of difference in experience is nonlinear (e.g. 2 races might be twice as good as 1 race, but 200 races is only slightly better than 100 races) so let's include a nonlinear term.
 
