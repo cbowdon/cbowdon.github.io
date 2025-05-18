@@ -2,15 +2,17 @@
 title: "How fast Carlos Sainz Jr learns"
 date: "2025-03-14"
 categories: [f1, r]
+code-fold: true
 ---
 
 The MAJOR story of F1's 2025 season is of course the match-up between Sainz and Albon (sorry, did something happen at Ferrari?). Albon's current level is quite a mystery, because since going up against Verstappen as a rookie he has only ever had rookie team mates himself. Sainz on the other hand has been measured against some of the best drivers on the grid and shown himself to be almost on their level.
 
 So far (after two races) Sainz seems to have been on Albon's pace in practice but binned it in Melbourne and struggled with set up in Shanghai. So I got curious about how he did against his previous team mates when he joined the team.
 
+As usual the analysis is with R + tidyverse + Ergast data and hidden behind the code folds for those who like to see it.
+
 ```{r}
 #| warning: false
-#| echo: false
 #| label: fig-sainz-advantage
 #| fig-cap: Sainz' advantage in seconds over teammates on joining a team (positive advantage means Sainz was faster).
 library(tidyverse)
@@ -91,3 +93,38 @@ ggplot(quali.diffs) +
 There's important context here. In Toro Rosso and McLaren, Sainz was teamed with rookies: it was only against Hulkenberg and Leclerc where Sainz stepped into a team with an established driver and had catching up to do. Furthermore, the switch to Renault happened near the end of 2017, so I've included his 2018 season with Renault too.
 
 With that context in mind, it's difficult to draw firm conclusions. It took Sainz about seven races to be competitive with Hulkenberg, if we assume his first round with Renault was a bit lucky. The most relevant experience to his new seat in Williams is against Leclerc in 2021, where it took Sainz three races to qualify ahead and wasn't until the sixth race that he looked to really be on terms with Leclerc. It's not a lot of evidence, but I'll make a prediction anyway: Sainz will gain a consistent advantage over Albon from round six. I'm 90% confident given Albon's performance relative to Colapinto that Sainz will get the upper hand eventually. You can check me on this in a few weeks time!
+
+## Imola update
+
+Sainz has both over- and under-performed my predictions. Since the fourth round (which was the fifth qualifying, accounting for the sprint) he has consistently out-qualified Albon. He hasn't managed to convert that into finishing ahead quite so consistently, but it's harder to pin that on performance. In Imola he lost out because as the lead driver he pitted first on what turned out to be the wrong tyre strategy, for example, though he caused his own problems in other races.
+
+I've plotted qualifing results below rather than lap times just out of laziness, since I haven't found a replacement for Ergast yet and couldn't be bothered to look up and type out every session time. Forgive me.
+
+```{r}
+#| warning: false
+#| label: fig-sainz-learns
+#| fig-cap: Sainz has had the upper hand over Albon in qualifying since round 4.
+library(knitr)
+
+quali.2025 <- tribble(
+  ~Race, ~ALB, ~SAI,
+  "Australia", 6, 10,
+  "China", 10, 15,
+  "Japan", 9, 12,
+  "Bahrain", 15, 8,
+  "Saudi Arabia", 11, 6,
+  "Miami", 7, 6,
+  "Emilia-Romagna", 7, 6
+) |>
+  mutate(Round = row_number()) |>
+  pivot_longer(c(ALB, SAI), names_to="Driver", values_to="Qualifying Result")
+
+ggplot(quali.2025) +
+  aes(x=Round, y=`Qualifying Result`, group=Driver, colour=Driver) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(limits=c(20, 1), transform = "reverse") +
+  theme_minimal()
+```
+
+It'll be fun to see if he keeps this going to develop a points lead, or if he plateaus, or if Albon ups his game to fight back. Given that Williams won't be developing their 2025 car any more from this point, one of the typical variables of driver performance (the changing car) as been removed. This gives us a clearer than usual picture of their relative performance. It's going to be fascinating!

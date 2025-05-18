@@ -10,7 +10,7 @@
 <atom:link href="https://cbowdon.github.io/index.xml" rel="self" type="application/rss+xml"/>
 <description>Chris Bowdon&#39;s blog</description>
 <generator>quarto-1.6.32</generator>
-<lastBuildDate>Thu, 13 Mar 2025 16:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 14 Mar 2025 00:00:00 GMT</lastBuildDate>
 <item>
   <title>How fast Carlos Sainz Jr learns</title>
   <link>https://cbowdon.github.io/posts/sainz/</link>
@@ -22,7 +22,535 @@
 
 <p>The MAJOR story of F1’s 2025 season is of course the match-up between Sainz and Albon (sorry, did something happen at Ferrari?). Albon’s current level is quite a mystery, because since going up against Verstappen as a rookie he has only ever had rookie team mates himself. Sainz on the other hand has been measured against some of the best drivers on the grid and shown himself to be almost on their level.</p>
 <p>So far (after two races) Sainz seems to have been on Albon’s pace in practice but binned it in Melbourne and struggled with set up in Shanghai. So I got curious about how he did against his previous team mates when he joined the team.</p>
+<p>As usual the analysis is with R + tidyverse + Ergast data and hidden behind the code folds for those who like to see it.</p>
 <div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyverse)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(forcats)</span>
+<span id="cb1-3"></span>
+<span id="cb1-4">colours <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tribble</span>(</span>
+<span id="cb1-5">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>constructorName, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>colour,</span>
+<span id="cb1-6">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Ferrari"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#e80220"</span>,</span>
+<span id="cb1-7">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"McLaren"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#ff8001"</span>,</span>
+<span id="cb1-8">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Renault"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#ffbb33"</span>,</span>
+<span id="cb1-9">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Toro Rosso"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#6592ff"</span>,</span>
+<span id="cb1-10">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"williams"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#63c4ff"</span></span>
+<span id="cb1-11">)</span>
+<span id="cb1-12"></span>
+<span id="cb1-13">comparisons <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tribble</span>(</span>
+<span id="cb1-14">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>label, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>year, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>from.round, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>driverRef, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>constructorRef,</span>
+<span id="cb1-15">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Toro Rosso 2015 (VER)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2015</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"max_verstappen"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"toro_rosso"</span>,</span>
+<span id="cb1-16">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Renault 2017 (HUL)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2017</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">17</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hulkenberg"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"renault"</span>,</span>
+<span id="cb1-17">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Renault 2018 (HUL)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2018</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hulkenberg"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"renault"</span>,</span>
+<span id="cb1-18">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"McLaren 2019 (NOR)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2019</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"norris"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mclaren"</span>,</span>
+<span id="cb1-19">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Ferrari 2021 (LEC)"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2021</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"leclerc"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ferrari"</span></span>
+<span id="cb1-20">)</span>
+<span id="cb1-21"></span>
+<span id="cb1-22">sainz <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> comparisons <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">driverRef =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sainz"</span>)</span>
+<span id="cb1-23"></span>
+<span id="cb1-24">drivers <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_csv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data/drivers.csv"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">show_col_types =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(driverId, driverRef, code)</span>
+<span id="cb1-25">constructors <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_csv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data/constructors.csv"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">show_col_types =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-26">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(constructorId, constructorRef, name) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-27">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rename</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">constructorName =</span> name)</span>
+<span id="cb1-28">qualis <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_csv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data/qualifying.csv"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">show_col_types =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(qualifyId, raceId, driverId, constructorId, q1, q2, q3)</span>
+<span id="cb1-29">races <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read_csv</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data/races.csv"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">show_col_types =</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-30">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(raceId, year, round, name) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-31">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rename</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">raceName =</span> name)</span>
+<span id="cb1-32"></span>
+<span id="cb1-33">parse_duration <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span>(dur) {</span>
+<span id="cb1-34">  parts <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">strsplit</span>(dur, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"[:</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">\\</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">.]"</span>)[[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]]</span>
+<span id="cb1-35">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.numeric</span>(parts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">60</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.numeric</span>(parts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.numeric</span>(parts[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>]) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span></span>
+<span id="cb1-36">}</span>
+<span id="cb1-37"></span>
+<span id="cb1-38">df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">bind_rows</span>(</span>
+<span id="cb1-39">  sainz,</span>
+<span id="cb1-40">  comparisons</span>
+<span id="cb1-41">) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-42">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">merge</span>(drivers) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-43">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">merge</span>(constructors) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-44">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">merge</span>(races) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-45">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">merge</span>(qualis) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-46">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(round <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span> from.round <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span> round <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> from.round <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">30</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-47">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">select</span>(label, code, constructorName, year, round, raceName, q1, q2, q3) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-48">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_longer</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(q1, q2, q3), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_to =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"qualiSession"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_to =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"laptime"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-49">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rowwise</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-50">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">laptime =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">if_else</span>(laptime <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">\\</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">N"</span>, <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">parse_duration</span>(laptime))) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-51">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ungroup</span>()</span>
+<span id="cb1-52"></span>
+<span id="cb1-53">quali.diffs <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> df <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-54">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">driver =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">if_else</span>(code <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SAI"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Sainz"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Teammate"</span>)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-55">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_wider</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">id_cols =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(label, constructorName, year, round, raceName, qualiSession), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_from =</span> driver, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_from =</span> laptime) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-56">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">advantage.sec =</span> Teammate <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> Sainz, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">advantage.pc =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (Teammate <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> Sainz) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> Teammate) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-57">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.na</span>(advantage.sec)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-58">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(year, round) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-59">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">filter</span>(qualiSession <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">max</span>(qualiSession)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-60">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">arrange</span>(year, round)</span>
+<span id="cb1-61"></span>
+<span id="cb1-62"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(quali.diffs) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb1-63">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> round, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> advantage.sec, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">group =</span> constructorName, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill =</span> constructorName) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb1-64">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_col</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"black"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">linewidth =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb1-65">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_fill_manual</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values =</span> colours<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>colour) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb1-66">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">facet_wrap</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">fct_reorder</span>(label, year)) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb1-67">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limits =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.0</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">oob =</span> scales<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span>squish) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb1-68">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(</span>
+<span id="cb1-69">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Number of races"</span>,</span>
+<span id="cb1-70">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Advantage over teammate (s)"</span></span>
+<span id="cb1-71">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb1-72">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">guides</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"none"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb1-73">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>()</span></code></pre></div>
+</details>
 <div class="cell-output-display">
 <div id="fig-sainz-advantage" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -38,14 +566,186 @@ Figure&nbsp;1: Sainz’ advantage in seconds over teammates on joining a team (p
 </div>
 <p>There’s important context here. In Toro Rosso and McLaren, Sainz was teamed with rookies: it was only against Hulkenberg and Leclerc where Sainz stepped into a team with an established driver and had catching up to do. Furthermore, the switch to Renault happened near the end of 2017, so I’ve included his 2018 season with Renault too.</p>
 <p>With that context in mind, it’s difficult to draw firm conclusions. It took Sainz about seven races to be competitive with Hulkenberg, if we assume his first round with Renault was a bit lucky. The most relevant experience to his new seat in Williams is against Leclerc in 2021, where it took Sainz three races to qualify ahead and wasn’t until the sixth race that he looked to really be on terms with Leclerc. It’s not a lot of evidence, but I’ll make a prediction anyway: Sainz will gain a consistent advantage over Albon from round six. I’m 90% confident given Albon’s performance relative to Colapinto that Sainz will get the upper hand eventually. You can check me on this in a few weeks time!</p>
+<section id="imola-update" class="level2">
+<h2 class="anchored" data-anchor-id="imola-update">Imola update</h2>
+<p>Sainz has both over- and under-performed my predictions. Since the fourth round (which was the fifth qualifying, accounting for the sprint) he has consistently out-qualified Albon. He hasn’t managed to convert that into finishing ahead quite so consistently, but it’s harder to pin that on performance. In Imola he lost out because as the lead driver he pitted first on what turned out to be the wrong tyre strategy, for example, though he caused his own problems in other races.</p>
+<p>I’ve plotted qualifing results below rather than lap times just out of laziness, since I haven’t found a replacement for Ergast yet and couldn’t be bothered to look up and type out every session time. Forgive me.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(knitr)</span>
+<span id="cb2-2"></span>
+<span id="cb2-3">quali<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.2025</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">tribble</span>(</span>
+<span id="cb2-4">  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>Race, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>ALB, <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>SAI,</span>
+<span id="cb2-5">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Australia"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>,</span>
+<span id="cb2-6">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"China"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>,</span>
+<span id="cb2-7">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Japan"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>,</span>
+<span id="cb2-8">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Bahrain"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>,</span>
+<span id="cb2-9">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Saudi Arabia"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">11</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>,</span>
+<span id="cb2-10">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Miami"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>,</span>
+<span id="cb2-11">  <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Emilia-Romagna"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span></span>
+<span id="cb2-12">) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-13">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Round =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">row_number</span>()) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-14">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_longer</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(ALB, SAI), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_to=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Driver"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_to=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Qualifying Result"</span>)</span>
+<span id="cb2-15"></span>
+<span id="cb2-16"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(quali<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.2025</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-17">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x=</span>Round, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Qualifying Result</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">group=</span>Driver, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour=</span>Driver) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-18">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_line</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-19">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_point</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-20">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_y_continuous</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">limits=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">transform =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"reverse"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-21">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>()</span></code></pre></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-sainz-learns" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-sainz-learns-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://cbowdon.github.io/posts/sainz/index_files/figure-html/fig-sainz-learns-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-sainz-learns-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Sainz has had the upper hand over Albon in qualifying since round 4.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>It’ll be fun to see if he keeps this going to develop a points lead, or if he plateaus, or if Albon ups his game to fight back. Given that Williams won’t be developing their 2025 car any more from this point, one of the typical variables of driver performance (the changing car) as been removed. This gives us a clearer than usual picture of their relative performance. It’s going to be fascinating!</p>
 
 
+</section>
 
  ]]></description>
   <category>f1</category>
   <category>r</category>
   <guid>https://cbowdon.github.io/posts/sainz/</guid>
-  <pubDate>Thu, 13 Mar 2025 16:00:00 GMT</pubDate>
+  <pubDate>Fri, 14 Mar 2025 00:00:00 GMT</pubDate>
 </item>
 <item>
   <title>T. rex size distributions</title>
@@ -1121,7 +1821,7 @@ Table&nbsp;3: Imputed femur length for RTMP 81.12.1.
   <category>dinosaurs</category>
   <category>r</category>
   <guid>https://cbowdon.github.io/posts/t.rex/</guid>
-  <pubDate>Fri, 14 Feb 2025 16:00:00 GMT</pubDate>
+  <pubDate>Sat, 15 Feb 2025 00:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Gaussian Processes in R</title>
@@ -2320,7 +3020,7 @@ Figure&nbsp;3
   <category>stan</category>
   <category>r</category>
   <guid>https://cbowdon.github.io/posts/gaussian-processes/</guid>
-  <pubDate>Fri, 24 Jan 2025 16:00:00 GMT</pubDate>
+  <pubDate>Sat, 25 Jan 2025 00:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Can we predict who wins the Traitors with an R simulation?</title>
@@ -4951,7 +5651,7 @@ Figure&nbsp;12
   <category>monte carlo</category>
   <category>r</category>
   <guid>https://cbowdon.github.io/posts/traitors/</guid>
-  <pubDate>Sat, 18 Jan 2025 16:00:00 GMT</pubDate>
+  <pubDate>Sun, 19 Jan 2025 00:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Latent F1 team and driver performance: fun with Bayesian models</title>
@@ -9465,7 +10165,7 @@ Table&nbsp;12: Driver performance means and SDs from the posterior.
   <category>f1</category>
   <category>stan</category>
   <guid>https://cbowdon.github.io/posts/f1-stan/f1.html</guid>
-  <pubDate>Thu, 26 Dec 2024 16:00:00 GMT</pubDate>
+  <pubDate>Fri, 27 Dec 2024 00:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Using Stan from R</title>
@@ -9570,7 +10270,7 @@ model {
   <category>r</category>
   <category>stan</category>
   <guid>https://cbowdon.github.io/posts/using-stan-from-r/</guid>
-  <pubDate>Wed, 25 Dec 2024 16:00:00 GMT</pubDate>
+  <pubDate>Thu, 26 Dec 2024 00:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Importance Sampling</title>
@@ -10139,7 +10839,7 @@ font-style: inherit;">*</span> weights)</span></code></pre></div>
   <category>bayesian</category>
   <category>r</category>
   <guid>https://cbowdon.github.io/posts/importance-sampling/</guid>
-  <pubDate>Sun, 22 Dec 2024 16:00:00 GMT</pubDate>
+  <pubDate>Mon, 23 Dec 2024 00:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
