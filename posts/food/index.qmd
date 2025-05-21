@@ -6,8 +6,11 @@ code-fold: true
 freeze: false
 ---
 
+I'm curious whether my experience (mildly increasing concern about ultra-processed foods) is common, and it turns out the Food Standards Agency has been running a tracker survey containing this question since mid-2023.
+
 
 ```{r}
+#| warning: false
 library(httr2)
 
 url <- "https://data.food.gov.uk/catalog/datasets/0bfd916a-4e01-4cb8-ba16-763f0b36b50c"
@@ -24,12 +27,16 @@ xlsx_links <- doc %>% html_nodes("a[href$='.xlsx']") %>% html_attr("href")
 for (link in xlsx_links) {
   file_url <- link
   file_name <- basename(file_url)
-  download.file(url = file_url, destfile = sprintf("data/%s", file_name))
+  destfile <- sprintf("data/%s", file_name)
+  if (!file.exists(destfile)) {
+    download.file(url = file_url, destfile = destfile)
+  }
 }
 ```
 
 
 ```{r}
+#| warning: false
 library(tidyverse)
 library(readxl)
 
@@ -88,25 +95,43 @@ periods <- xlsx_files |>
   arrange(year, month_number)
 
 
-extract_q12_14 <- function(file) {
+extract_question <- function(file, question_prefix) {
   fmy <- extract_month_year(file)
 
-  data <- read_excel(file, sheet = "Percents", col_names = FALSE)
+  data <- read_excel(
+    file,
+    sheet = "Percents",
+    col_names = FALSE
+  )
+  headers <- as.vector(data[5, ], mode = "character")
+  headers[1] <- "QCategory"
+  headers <- zoo::na.locf(headers)
+  subheaders <- as.vector(data[6, ], mode = "character")
+  subheaders <- zoo::na.fill(subheaders, "")
+  combined_headers <- map2(
+    headers,
+    subheaders,
+    \(x, y) str_c(x, y, sep = ":: ")
+  )
+  combined_headers[1] <- "QCategory"
+  combined_headers[2] <- "Total"
 
-  has_question <- any(str_starts(pull(data, `...1`), "Q12_14"))
+  colnames(data) <- combined_headers
+
+  has_question <- any(str_starts(pull(data, QCategory), question_prefix))
 
   if (!is.na(has_question)) {
     data |>
-      filter(!is.na(`...1`)) |>
+      filter(!is.na(QCategory)) |>
       slice(
-        which(str_starts(`...1`, "Q12_14")):n()
+        which(str_starts(QCategory, question_prefix)):n()
       ) |>
       head(10) |> # take the cats
       tail(-1) |> # drop the header
       mutate(
         filename = fmy$filename,
         monthname = fmy$month,
-        year = fmy$year,
+        year = as.integer(fmy$year),
         month = match(
           monthname,
           c(
@@ -130,7 +155,38 @@ extract_q12_14 <- function(file) {
 
 df <- xlsx_files |>
   sort(decreasing = TRUE) |>
-  lapply(extract_q12_14) |>
-  filter(\(x) !is.null(x)) |>
+  lapply(\(f) extract_question(f, question_prefix = "Q12_14")) |>
+  keep(\(x) !is.null(x)) |>
   bind_rows()
 ```
+
+```{r}
+#| label: fig-responses
+#| fig-cap: Tracker for "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?"
+responses <- df |>
+  select(QCategory, Total, year, month) |>
+  filter(
+    QCategory %in%
+      c(
+        "Highly concerned",
+        "Somewhat concerned",
+        "Not very concerned",
+        "Not concerned at all"
+        #"Don't know",
+        #"I don't know enough to comment"
+      )
+  ) |>
+  mutate(
+    year_month = sprintf("%04d:%02d", year, month),
+    Total = as.numeric(Total)
+  )
+
+ggplot(responses) +
+  aes(x = year_month, y = Total, group = QCategory, colour = QCategory) +
+  geom_line() +
+  theme(
+    axis.text.x = element_text(angle = 45)
+  )
+```
+
+Surprisingly
