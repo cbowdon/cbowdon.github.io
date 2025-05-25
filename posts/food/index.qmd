@@ -1,44 +1,52 @@
 ---
 title: "Food"
 date: "2025-05-19"
-categories: [food, uk, r]
+categories: [food, uk, r, stan, bayesian, timeseries]
 code-fold: true
 freeze: false
 ---
 
-I'm curious whether my experience (mildly increasing concern about ultra-processed foods) is common, and it turns out the Food Standards Agency has been running a tracker survey containing this question since mid-2023.
+I was curious whether my experience (mildly increasing concern about ultra-processed foods) is common, and it turns out the Food Standards Agency (FSA) has been running a tracker survey containing this question since mid-2023. A nice little dataset to practice my time series analysis skills on.
 
+First we need to scrape the data. Whilst it's lovely that the FSA publishes all the monthly survey results (which were run by YouGov) it is annoying that they don't publish compiled statistics, so we need to get our tibbles dirty.
 
 ```{r}
-#| warning: false
+#| label: download-data
 library(httr2)
-
-url <- "https://data.food.gov.uk/catalog/datasets/0bfd916a-4e01-4cb8-ba16-763f0b36b50c"
-
-html_content <- request(url) |>
-  req_perform() |>
-  resp_body_string()
-
 library(rvest)
 
-# Assuming html_content is already defined
-doc <- read_html(html_content)
-xlsx_links <- doc %>% html_nodes("a[href$='.xlsx']") %>% html_attr("href")
-for (link in xlsx_links) {
-  file_url <- link
-  file_name <- basename(file_url)
-  destfile <- sprintf("data/%s", file_name)
-  if (!file.exists(destfile)) {
-    download.file(url = file_url, destfile = destfile)
+download_files <- function() {
+  url <- "https://data.food.gov.uk/catalog/datasets/0bfd916a-4e01-4cb8-ba16-763f0b36b50c"
+
+  html_content <- request(url) |>
+    req_perform() |>
+    resp_body_string()
+
+  # Assuming html_content is already defined
+  doc <- read_html(html_content)
+  xlsx_links <- doc %>% html_nodes("a[href$='.xlsx']") %>% html_attr("href")
+  for (link in xlsx_links) {
+    file_url <- link
+    file_name <- basename(file_url)
+    destfile <- sprintf("data/%s", file_name)
+    if (!file.exists(destfile)) {
+      download.file(url = file_url, destfile = destfile)
+    }
   }
 }
+
+download_files()
 ```
 
+Is there an easy way to read tracker survey spreadsheets into R? They have a common format. But I never found anything that did the job and had to roll my own.
 
 ```{r}
+#| label: tbl-monthly-spreadsheets
+#| tbl-cap: Example of the survey data.
 #| warning: false
 library(tidyverse)
 library(readxl)
+library(knitr)
 
 extract_month_year <- function(file) {
   decoded_filename <- URLdecode(file)
@@ -65,34 +73,6 @@ extract_month_year <- function(file) {
     return(NULL)
   }
 }
-
-
-xlsx_files <- list.files(path = "data", pattern = "*.xlsx", full.names = TRUE)
-
-periods <- xlsx_files |>
-  lapply(extract_month_year) |>
-  bind_rows() |>
-  arrange(year, month) |>
-  mutate(
-    month_number = match(
-      month,
-      c(
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December"
-      )
-    )
-  ) |>
-  arrange(year, month_number)
 
 
 extract_question <- function(file, question_prefix) {
@@ -153,40 +133,238 @@ extract_question <- function(file, question_prefix) {
   }
 }
 
-df <- xlsx_files |>
-  sort(decreasing = TRUE) |>
-  lapply(\(f) extract_question(f, question_prefix = "Q12_14")) |>
-  keep(\(x) !is.null(x)) |>
-  bind_rows()
-```
+question_df <- function(question_prefix) {
+  df_filename <- sprintf("data/%s.rds", question_prefix)
+  if (file.exists(df_filename)) {
+    df <- read_rds(df_filename)
+  } else {
+    xlsx_files <- list.files(
+      path = "data",
+      pattern = "*.xlsx",
+      full.names = TRUE
+    )
+    df <- xlsx_files |>
+      sort(decreasing = TRUE) |>
+      lapply(\(f) extract_question(f, question_prefix)) |>
+      keep(\(x) !is.null(x)) |>
+      bind_rows() |>
+      mutate(Question = question_prefix)
 
-```{r}
-#| label: fig-responses
-#| fig-cap: Tracker for "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?"
-responses <- df |>
-  select(QCategory, Total, year, month) |>
-  filter(
-    QCategory %in%
-      c(
-        "Highly concerned",
-        "Somewhat concerned",
-        "Not very concerned",
-        "Not concerned at all"
-        #"Don't know",
-        #"I don't know enough to comment"
-      )
+    df |> write_rds(df_filename)
+  }
+  df
+}
+
+df <- question_df("Q12_14")
+
+tidy_df <- df |>
+  filter(QCategory != "Unweighted base" & QCategory != "Base: All") |>
+  pivot_longer(
+    c(Total, contains("::")),
+    names_to = "Demographic",
+    values_to = "Value"
   ) |>
   mutate(
-    year_month = sprintf("%04d:%02d", year, month),
-    Total = as.numeric(Total)
-  )
+    Period = as.Date(sprintf("%04d-%02d-01", year, month)),
+    Response = QCategory,
+    Value = as.numeric(Value)
+  ) |>
+  select(Question, Demographic, Period, Response, Value) |>
+  arrange(Question, Period, Response, Demographic)
 
-ggplot(responses) +
-  aes(x = year_month, y = Total, group = QCategory, colour = QCategory) +
+tidy_df |> head() |> kable()
+```
+
+Finally we have ✨tidy✨ data.
+  
+  ```{r}
+#| label: fig-responses
+#| fig-cap: Tracker for "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?" Left is net concern, right is all responses.
+library(patchwork)
+
+plot_net_concern <- ggplot(
+  tidy_df |> filter(Demographic == "Total" & str_starts(Response, "Net: "))
+) +
+  aes(x = Period, y = Value) +
+  scale_y_continuous(limits = c(0, 1)) +
+  facet_wrap(~Demographic) +
   geom_line() +
   theme(
     axis.text.x = element_text(angle = 45)
   )
+
+plot_breakdown <- ggplot(
+  tidy_df |> filter(Demographic == "Total" & !str_starts(Response, "Net: "))
+) +
+  aes(x = Period, y = Value, group = Response, colour = Response) +
+  facet_wrap(~Demographic) +
+  geom_line() +
+  theme(
+    axis.text.x = element_text(angle = 45)
+  )
+
+plot_net_concern + plot_breakdown
 ```
 
-Surprisingly
+The number of people with concerns is evidently slowly increasing. The breakdown by response shows that there is also a migration towards being _highly_ concerned.
+
+## What's the forecast for net concern?
+
+```{r}
+net_concern <- filter(
+  tidy_df,
+  Demographic == "Total" & str_starts(Response, "Net: ")
+)
+fit <- lm(Value ~ Period, data = net_concern)
+predict.lm(
+  fit,
+  tibble(
+    Period = c(
+      "2025-04-01",
+      "2025-05-01",
+      "2025-06-01",
+      "2025-07-01",
+      "2025-08-01",
+      "2025-09-01"
+    )
+  ) |>
+    mutate(Period = as.Date(Period))
+)
+
+ggplot(net_concern) +
+  aes(x = Period, y = Value) +
+  geom_point() +
+  stat_smooth(method = "lm")
+
+ggplot(net_concern) +
+  aes(x = Period, y = Value) +
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point() +
+  geom_abline(
+    slope = fit$coefficients[[2]],
+    intercept = fit$coefficients[[1]],
+    colour = "pink"
+  )
+```
+
+## What made people highly concerned?
+
+Were there any particular points in time where the number of highly concerned people increased ("breaks")? You might expect concern to be driven by media coverage. Visually there are a few candidate points.
+
+To start our analysis, let's look at how autocorrelated the responses are.
+
+```{r}
+#| label: fig-acf
+#| fig-cap: ACF for "Highly concerned" responses.
+hc <- tidy_df |> filter(Demographic == "Total" & Response == "Highly concerned")
+
+acf(hc$Value)
+```
+
+There's definitely some autocorrelation.
+
+```{r}
+#| label: fig-pacf
+#| fig-cap: PACF for "Highly concerned" responses.
+pacf(hc$Value)
+```
+
+We can also do an autoregression, to understand how strongly each term depends on the previous terms.
+
+```{r}
+#| label: ar
+ar.ols(hc$Value, order.max = 3, intercept = T, demean = F)
+```
+
+The ACF/PACF and the coefficient of 0.6 on AR(1) suggests the "highly concerned" survey responses depend strongly on their previous value (lag 1). The PACF is not significant beyond lag 1.
+
+Let's now fit a simple Bayesian model where each value $y_t$ in the time series is drawn from a normal distribution centred on $\phi * y_{t-1} + c$ and examine the log likelihoods/residuals to identify potential breaks. To avoid double dipping, the model is using an uninformative prior for $\phi$, not based on the AR(1) coefficient.
+
+```{r}
+#| label: stan
+library(cmdstanr)
+
+model <- cmdstan_model("ar1.stan", exe_file = "ar1.stan.exe")
+outs <- model$sample(
+  data = list(
+    N = nrow(hc),
+    y = hc$Value,
+    sigma = 0.15
+  ),
+  parallel_chains = 4
+)
+outs
+```
+
+The model hasn't tightened up the prior much, so it hasn't learned a lot.
+
+```{r}
+#| label: fig-phi-dist
+#| fig-cap: Posterior and prior.
+phi_posterior <- outs$draws() |>
+  as_tibble() |>
+  select(contains("phi")) |>
+  pivot_longer(everything()) |>
+  mutate(name = "posterior")
+
+phi_prior <- tibble(
+  name = "prior",
+  value = runif(40000)
+)
+
+ggplot(bind_rows(phi_prior, phi_posterior)) +
+  aes(x = value, group = name, fill = name) +
+  geom_density(alpha = 0.5)
+```
+
+We can look at the log likelihoods anyway, though I don't think they're telling us much more than simply subtracting the mean.
+
+```{r}
+#| label: fig-resids
+#| fig-cap: Log likelihood and residuals for the Bayesian fit.
+log_liks <- outs$draws() |>
+  as_tibble() |>
+  select(contains("log_lik")) |>
+  pivot_longer(everything()) |>
+  mutate(t = as.integer(str_extract(name, "\\[(\\d+)\\]", group = 1))) |>
+  group_by(t) |>
+  summarise(value = mean(value)) |>
+  arrange(t) |>
+  ggplot() +
+  aes(x = t, y = value) +
+  geom_line() +
+  labs(title = "Log likelihood")
+
+resids <- outs$draws() |>
+  as_tibble() |>
+  select(contains("resid")) |>
+  pivot_longer(everything()) |>
+  mutate(t = as.integer(str_extract(name, "\\[(\\d+)\\]", group = 1))) |>
+  group_by(t) |>
+  summarise(value = mean(value)) |>
+  arrange(t) |>
+  ggplot() +
+  aes(x = t, y = value) +
+  geom_line() +
+  labs(title = "Residuals")
+
+resids + log_liks
+```
+
+The most interesting point is t=16 (Dec 2024) which has a low log likelihood and high residual.
+
+It's hard to say if this corresponds to a particular media event. The Daily Mail regularly posts articles about the risks of ultra-processed food, and in November/December 2024 it posted multiple articles about a cancer link.
+
+## The media
+
+That leads us to an interesting observation: a very small number of publications account for a large proportion of UK readership. See this data from [JournoFinder](https://journofinder.com/blog/uk-newspaper-circulation-figures).
+
+![](https://framerusercontent.com/images/1BjmhUMPE6dsrYLtK1qkJV8p5k.png)
+
+The UK population is approx 70 million people. Given that the Guardian and the Daily Mail target very different demographics (left and right wing) we don't expect much overlap between their readership, i.e. their combined monthly online readership alone covers approximately half the British population. Note also that BBC News isn't included, but has a similar level of traffic (albeit with higher overlap).
+
+This suggests that if we're interested in understanding how the media shapes public perception in the UK, we can do well from analysing the output of just a handful of sources. This is particularly true in the modern media landscape, in which:
+
+- live television is a dying medium
+- radio is dead (though podcasts live on)
+- social media is increasingly popular, _but_ news content on social media is dominated by reposts of news articles
