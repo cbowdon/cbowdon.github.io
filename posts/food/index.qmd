@@ -6,9 +6,11 @@ code-fold: true
 freeze: false
 ---
 
-I was curious whether my experience (mildly increasing concern about ultra-processed foods) is common, and it turns out the Food Standards Agency (FSA) has been running a tracker survey containing this question since mid-2023. A nice little dataset to practice my time series analysis skills on.
+There's a little drip drip drip of scare stories about ultra-processed food, a phrase that I'd never heard until this year. I'm starting to get worried. Is everyone else worried? Well it turns out the Food Standards Agency (FSA) has been running a tracker survey containing this question since mid-2023, so we can find out. It's a nice little dataset to practice my time series analysis skills on.
 
-First we need to scrape the data. Whilst it's lovely that the FSA publishes all the monthly survey results (which were run by YouGov) it is annoying that they don't publish compiled statistics, so we need to get our tibbles dirty.
+First we need to scrape the data. While it's lovely that the FSA publishes all the monthly survey results (which were run by YouGov) it is annoying that they don't publish compiled statistics, so we need to get our tibbles dirty.
+
+As usual, if you like coding with R you can see the gory details under the folds.
 
 ```{r}
 #| label: download-data
@@ -38,7 +40,7 @@ download_files <- function() {
 download_files()
 ```
 
-Is there an easy way to read tracker survey spreadsheets into R? They have a common format. But I never found anything that did the job and had to roll my own.
+Is there an easy way to read tracker survey spreadsheets into R? They have a common format, but I never found anything that did the job and had to roll my own. Anyway, eventually we end up with a single dataset.
 
 ```{r}
 #| label: tbl-monthly-spreadsheets
@@ -73,7 +75,6 @@ extract_month_year <- function(file) {
     return(NULL)
   }
 }
-
 
 extract_question <- function(file, question_prefix) {
   fmy <- extract_month_year(file)
@@ -175,11 +176,12 @@ tidy_df <- df |>
 tidy_df |> head() |> kable()
 ```
 
-Finally we have ✨tidy✨ data.
+Finally we have ✨tidy✨ data and we can visualise it.
   
-  ```{r}
+```{r}
 #| label: fig-responses
 #| fig-cap: Tracker for "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?" Left is net concern, right is all responses.
+#| warning: false
 library(patchwork)
 
 plot_net_concern <- ggplot(
@@ -187,76 +189,42 @@ plot_net_concern <- ggplot(
 ) +
   aes(x = Period, y = Value) +
   scale_y_continuous(limits = c(0, 1)) +
-  facet_wrap(~Demographic) +
   geom_line() +
+  stat_smooth(method = "lm", linewidth = 0.1) +
   theme(
     axis.text.x = element_text(angle = 45)
-  )
+  ) +
+  labs(title = "Net concern", x = NULL, y = "Proportion of respondents")
 
 plot_breakdown <- ggplot(
   tidy_df |> filter(Demographic == "Total" & !str_starts(Response, "Net: "))
 ) +
   aes(x = Period, y = Value, group = Response, colour = Response) +
-  facet_wrap(~Demographic) +
   geom_line() +
+  stat_smooth(method = "lm", linewidth = 0.1) +
   theme(
     axis.text.x = element_text(angle = 45)
-  )
+  ) +
+  labs(title = "Response breakdown", x = NULL, y = "Proportion of respondents")
 
 plot_net_concern + plot_breakdown
 ```
 
-The number of people with concerns is evidently slowly increasing. The breakdown by response shows that there is also a migration towards being _highly_ concerned.
+The number of people with concerns is evidently slowly increasing. A linear regression fits net concern very well, so it's reasonable to expect continued growth at the same rate (pending any intervention like policy changes). Presumably the line bends as we approach the inevitable core of stubborn sods who will never admit to being concerned about anything, but the data we have doesn't support that kind of model.
 
-## What's the forecast for net concern?
-
-```{r}
-net_concern <- filter(
-  tidy_df,
-  Demographic == "Total" & str_starts(Response, "Net: ")
-)
-fit <- lm(Value ~ Period, data = net_concern)
-predict.lm(
-  fit,
-  tibble(
-    Period = c(
-      "2025-04-01",
-      "2025-05-01",
-      "2025-06-01",
-      "2025-07-01",
-      "2025-08-01",
-      "2025-09-01"
-    )
-  ) |>
-    mutate(Period = as.Date(Period))
-)
-
-ggplot(net_concern) +
-  aes(x = Period, y = Value) +
-  geom_point() +
-  stat_smooth(method = "lm")
-
-ggplot(net_concern) +
-  aes(x = Period, y = Value) +
-  scale_y_continuous(limits = c(0, 1)) +
-  geom_point() +
-  geom_abline(
-    slope = fit$coefficients[[2]],
-    intercept = fit$coefficients[[1]],
-    colour = "pink"
-  )
-```
+The breakdown by response type is interesting. We have to watch our step, given the noisiness, but it does seem to show a migration towards being _highly_ concerned.
 
 ## What made people highly concerned?
-
-Were there any particular points in time where the number of highly concerned people increased ("breaks")? You might expect concern to be driven by media coverage. Visually there are a few candidate points.
+  
+I fitted a linear regression to each response above, but from the chunky confidence intervals you can see that this isn't necessarily the right model. You might expect that public concern is really driven by major media events, e.g. a major study linking ultra-processed food to cancer. So were there any particular points in time where the number of highly concerned people increased beyond the trend ("breaks")? Visually there are a few candidate points.
 
 To start our analysis, let's look at how autocorrelated the responses are.
-
+  
 ```{r}
 #| label: fig-acf
 #| fig-cap: ACF for "Highly concerned" responses.
-hc <- tidy_df |> filter(Demographic == "Total" & Response == "Highly concerned")
+hc <- tidy_df |>
+  filter(Demographic == "Total" & Response == "Highly concerned")
 
 acf(hc$Value)
 ```
@@ -278,10 +246,12 @@ ar.ols(hc$Value, order.max = 3, intercept = T, demean = F)
 
 The ACF/PACF and the coefficient of 0.6 on AR(1) suggests the "highly concerned" survey responses depend strongly on their previous value (lag 1). The PACF is not significant beyond lag 1.
 
-Let's now fit a simple Bayesian model where each value $y_t$ in the time series is drawn from a normal distribution centred on $\phi * y_{t-1} + c$ and examine the log likelihoods/residuals to identify potential breaks. To avoid double dipping, the model is using an uninformative prior for $\phi$, not based on the AR(1) coefficient.
+Let's now fit a simple Bayesian model where each value $y_t$ in the time series is drawn from a normal distribution centred on $\phi * y_{t-1} + c$ and examine the log likelihoods/residuals to identify potential breaks. To avoid double dipping, the model is using an uninformative prior for $\phi$, not based on the AR(1) coefficient. The Stan code is [here](ar1.stan).
 
 ```{r}
 #| label: stan
+#| warning: false
+#| echo: false
 library(cmdstanr)
 
 model <- cmdstan_model("ar1.stan", exe_file = "ar1.stan.exe")
@@ -291,7 +261,8 @@ outs <- model$sample(
     y = hc$Value,
     sigma = 0.15
   ),
-  parallel_chains = 4
+  parallel_chains = 4,
+  show_messages = F # remember to re-enable this when you're actually working
 )
 outs
 ```
@@ -317,7 +288,7 @@ ggplot(bind_rows(phi_prior, phi_posterior)) +
   geom_density(alpha = 0.5)
 ```
 
-We can look at the log likelihoods anyway, though I don't think they're telling us much more than simply subtracting the mean.
+We can look at the residuals and log likelihoods anyway, though I don't think they're telling us much more than a visual inspection.
 
 ```{r}
 #| label: fig-resids
@@ -353,11 +324,25 @@ resids + log_liks
 
 The most interesting point is t=16 (Dec 2024) which has a low log likelihood and high residual.
 
-It's hard to say if this corresponds to a particular media event. The Daily Mail regularly posts articles about the risks of ultra-processed food, and in November/December 2024 it posted multiple articles about a cancer link.
+It's hard to say if this corresponds to a particular media event. The Daily Mail regularly posts articles about the risks of ultra-processed food. Here's a sample:
+
+> They're linked to cancer, heart disease, diabetes - and our shocking obesity crisis. But what exactly are they and how can you avoid them? Britain's top experts provide the definitive guide to cutting ultra-processed food from your diet
+_Daily Mail, 17th Mar 2024_
+
+> Britain facing cancer timebomb in the under-50s due to poor diet and gut health - and ultra-processed food could be to blame
+_Daily Mail, 2nd Jun 2024_
+
+> Ultra-processed food and obesity could be behind 'disturbing' rise in cancer hitting young people, warns UK's top doctors
+_Daily Mail, 3rd Jun 2024_
+
+> Yet ANOTHER deadly harm of ultra-processed food: Junk raises risk of debilitating bone disease, scientists discover
+_Daily Mail, 4th Dec 2024_
+
+Are such stories a major driver of public concern about ultra-processed food in the UK?
 
 ## The media
 
-That leads us to an interesting observation: a very small number of publications account for a large proportion of UK readership. See this data from [JournoFinder](https://journofinder.com/blog/uk-newspaper-circulation-figures).
+This leads us to an interesting observation: a very small number of publications account for a large proportion of UK readership. See this data from [JournoFinder](https://journofinder.com/blog/uk-newspaper-circulation-figures).
 
 ![](https://framerusercontent.com/images/1BjmhUMPE6dsrYLtK1qkJV8p5k.png)
 
@@ -365,6 +350,92 @@ The UK population is approx 70 million people. Given that the Guardian and the D
 
 This suggests that if we're interested in understanding how the media shapes public perception in the UK, we can do well from analysing the output of just a handful of sources. This is particularly true in the modern media landscape, in which:
 
-- live television is a dying medium
-- radio is dead (though podcasts live on)
-- social media is increasingly popular, _but_ news content on social media is dominated by reposts of news articles
+- Live television is a dying medium. (I was at [Datacove's](https://datacove.co.uk) BristolR meetup recently with a fireside chat on marketing channel modelling. No one present had watched TV in the last 24 hours, and only a handful in the last month.)
+- Radio has had its time, has had its power (though yet to have its finest hour 🎸).
+- Social media is increasingly popular, but news content on social media is dominated by reposts of articles from traditional journalists.
+
+So let's create a corpus of news articles about ultra-processed food from the top 10 sources in the table above, plus the BBC. They have a combined readership of 64.8 million monthly readers in the UK (plus the BBC's unknown-but-high readership); even with high overlap, this represents the majority of the UK population. It's enough to give us a grand understanding of what's going on.
+
+I happen to work at [Polecat](https://www.polecat.com) who have licensed access to this data, so I can analyse it very easily. (Can't share the raw data here though.)
+
+Since November 2023 there have been over 2.5 million articles from those sources, but <1000 mentioned ultra-processed food, and <100 seem to be focused on it, as opposed to mentioning it in passing alongside other public health issues. Though the passing mentions would help with awareness, these have a weaker effect on informing opinion.
+
+```{r}
+#| label: fig-article-counts
+#| fig-cap: Counts of articles mentioning ultra-processed food from the top UK online news sources, by month.
+bind_rows(
+  jsonlite::read_json(
+    "data/focus-articles-counts.json",
+    simplifyVector = T
+  ) |>
+    as_tibble() |>
+    mutate(MentionType = "Focus articles"),
+  jsonlite::read_json(
+    "data/all-articles-counts.json",
+    simplifyVector = T
+  ) |>
+    as_tibble() |>
+    mutate(MentionType = "Articles with passing mentions")
+) |>
+  mutate(Period = as.Date(key_as_string)) |>
+  ggplot() +
+  aes(x = Period, y = doc_count, group = MentionType) +
+  geom_col() +
+  facet_wrap(~MentionType) +
+  labs(
+    title = "Articles mentioning ultra-processed food from top UK sources by month.",
+    x = NULL,
+    y = "Article count"
+  )
+```
+
+The takeaway here is that the number of articles mentioning ultra-processed food is _not_ increasing significantly. If we teased out the seasonality and squinted a bit we might say that there's a slight upward trend, but it wouldn't be a firm foundation. News articles aren't fungible commodities! You can't swap any one for another and expect the same impact on public perception. We need to take a more nuanced view.
+
+## AI-simulated polling
+
+An idea that's generating a lot of excitement recently is the suggestion that you can simulate public opinion polls with AI. The concept is very simple: you prime multiple LLM assistants to represent your different demographics and then sample their responses to questions.
+
+Accurately representing demographics is a Sisyphean task, but I'm a dedicated disciple of Mr. Pareto so let's see what we can do for 20% of the effort.
+
+```{r}
+library(ellmer)
+
+chat <- chat_openai(
+  base_url = "http://localhost:1234/v1/",
+  #model = "ministral-8b-instruct-2410",
+  model = "gemma-3-1b-it",
+  #model = "gpt-4.1-nano",
+  system_prompt = "You are a member of the British public, with your own life experiences and views. Answer the questions from the user by first giving a sentence of reasoning and then your response.",
+  params = params(log_probs = FALSE, seed = 42, n = 1)
+)
+
+chat$chat_structured(
+  "Reflect on the following headline, and your own experiences, then answer the question.
+
+  HEADLINE: Ultra-processed food linked to significant bowel cancer risk, scientists say. (Daily Mail, 12th Nov 2024)
+  
+  QUESTION: At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?
+    
+  Give a sentence of reasoning and then decide your response.",
+  type = type_object(
+    reasoning = type_string(
+      "One sentence of reasoning about how your personal experiences and views lead to your response."
+    ),
+    response = type_enum(
+      description = "Following the reasoning, your response to the question: At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?",
+      values = c(
+        "Highly concerned",
+        "Somewhat concerned",
+        "Not very concerned",
+        "Not concerned at all",
+        "Don't know"
+        #"I don't know enough to comment"
+      )
+    )
+  )
+)
+
+# map(chat$last_turn()@json$choices, \(x) x$message$content)
+```
+
+TODO the LLM is not reasoning properly, no connection between reasoning and response. Why?
