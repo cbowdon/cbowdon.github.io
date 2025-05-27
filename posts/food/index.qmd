@@ -1,7 +1,7 @@
 ---
 title: "Food"
 date: "2025-05-19"
-categories: [food, uk, r, stan, bayesian, timeseries]
+categories: [food, uk, r, stan, bayesian, timeseries, llm, surveys]
 code-fold: true
 freeze: false
 ---
@@ -251,7 +251,6 @@ Let's now fit a simple Bayesian model where each value $y_t$ in the time series 
 ```{r}
 #| label: stan
 #| warning: false
-#| echo: false
 library(cmdstanr)
 
 model <- cmdstan_model("ar1.stan", exe_file = "ar1.stan.exe")
@@ -397,45 +396,182 @@ An idea that's generating a lot of excitement recently is the suggestion that yo
 
 Accurately representing demographics is a Sisyphean task, but I'm a dedicated disciple of Mr. Pareto so let's see what we can do for 20% of the effort.
 
+R afficionados, we are using [ellmer](https://ellmer.tidyverse.org), which is becoming the de-facto AI package for R.
+
 ```{r}
+#| label: ai-sim-functions
 library(ellmer)
 
-chat <- chat_openai(
-  base_url = "http://localhost:1234/v1/",
-  #model = "ministral-8b-instruct-2410",
-  model = "gemma-3-1b-it",
-  #model = "gpt-4.1-nano",
-  system_prompt = "You are a member of the British public, with your own life experiences and views. Answer the questions from the user by first giving a sentence of reasoning and then your response.",
-  params = params(log_probs = FALSE, seed = 42, n = 1)
-)
-
-chat$chat_structured(
-  "Reflect on the following headline, and your own experiences, then answer the question.
-
-  HEADLINE: Ultra-processed food linked to significant bowel cancer risk, scientists say. (Daily Mail, 12th Nov 2024)
-  
-  QUESTION: At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?
-    
-  Give a sentence of reasoning and then decide your response.",
-  type = type_object(
-    reasoning = type_string(
-      "One sentence of reasoning about how your personal experiences and views lead to your response."
-    ),
-    response = type_enum(
-      description = "Following the reasoning, your response to the question: At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?",
-      values = c(
-        "Highly concerned",
-        "Somewhat concerned",
-        "Not very concerned",
-        "Not concerned at all",
-        "Don't know"
-        #"I don't know enough to comment"
-      )
-    )
+response_cats <- tibble(
+  Cat = LETTERS[1:5],
+  Response = c(
+    "Highly concerned",
+    "Somewhat concerned",
+    "Not very concerned",
+    "Not concerned at all",
+    "Don't know"
   )
 )
 
-# map(chat$last_turn()@json$choices, \(x) x$message$content)
+llm_answer_distribution <- function(
+  headline,
+  source,
+  date,
+  simulated_identity = "Statistically average person"
+) {
+  chat <- chat_openai(
+    #base_url = "http://localhost:1234/v1/",
+    #model = "ministral-8b-instruct-2410",
+    model = "gpt-4.1-nano",
+    system_prompt = sprintf(
+      "You are a member of the British public, with your own life experiences and opinions.
+
+    This is your identity: 
+    <identity>
+    %s
+    </identity>
+    
+    
+    You are being asked for your views as part of a survey. Respond to each question from the pollster.",
+      simulated_identity
+    ),
+    params = params(
+      log_probs = TRUE,
+      seed = 42,
+      n = 1,
+      top_p = 1,
+      top_logprobs = 5,
+    )
+  )
+
+  # Invite the LLM to hallucinate a bit, to express its identity.
+  thoughts <- chat$chat(
+    sprintf(
+      "What are thoughts on the following headline given your own views and experiences? Please provide one or two sentences.
+  
+  HEADLINE: %s (%s, %s)",
+      headline,
+      source,
+      format.Date(date, "%d %b %Y")
+    ),
+    echo = FALSE
+  )
+
+  # Now we need a specific answer.
+  response <- chat$chat_structured(
+    "Considering your previous response, answer this question.
+  At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?
+    
+  A) Highly concerned
+  B) Somewhat concerned
+  C) Not very concerned
+  D) Not concerned at all
+  E) Don't know
+  
+  Respond with the letter of your chosen answer.",
+    type = type_enum(description = "Answer letter", values = LETTERS[1:5])
+  )
+
+  answer_logprobs <- chat$last_turn()@json$choices[[1]]$logprobs$content[[
+    4
+  ]]$top_logprobs
+
+  answer_probs <- tibble(
+    token = sapply(answer_logprobs, \(x) x$token),
+    logprob = sapply(answer_logprobs, \(x) x$logprob)
+  ) |>
+    mutate(Probability = exp(logprob)) |>
+    rename(Cat = token) |>
+    merge(response_cats) |>
+    select(Response, Probability)
+}
 ```
 
-TODO the LLM is not reasoning properly, no connection between reasoning and response. Why?
+We can now get the probability that the LLM would have selected each response in this conversation, given its identity.
+
+```{r}
+#| label: tbl-llm-simulation
+#| tbl-cap: Example of simulated AI polling response to an alarming headline.
+#| code-fold: false
+llm_answer_distribution(
+  headline = "Ultra-processed food linked to potential bowel cancer risk, scientists say",
+  source = "Daily Mail",
+  date = as.Date("2024-05-01")
+) |>
+  kable(digits = 3)
+```
+
+ We can also manipulate that identity to get a different response distribution.
+
+```{r}
+#| label: tbl-hypochondriac
+#| tbl-cap: Response distribution of LLM again, this time with "hypochondriac" identity.
+llm_answer_distribution(
+  headline = "Ultra-processed food linked to potential bowel cancer risk, scientists say",
+  source = "Daily Mail",
+  date = as.Date("2024-05-01"),
+  simulated_identity = "Hypochondriac"
+) |>
+  kable(digits = 3)
+```
+
+Let's apply this to our articles.
+
+```{r}
+#| label: tbl-articles
+#| tbl-cap: A sample of the articles collected.
+articles <- read_csv(
+  "data/ultra-processed-food-docs-titles-only.csv",
+  col_select = c("harvestTimeLong", "domain", "title"),
+  show_col_types = F
+) |>
+  mutate(
+    harvestTimeLong = parse_date(
+      str_extract(harvestTimeLong, "(.*) @.*", 1),
+      "%b %d, %Y"
+    ),
+    article_id = row_number()
+  ) |>
+  head() # while we're developing
+
+articles |> head() |> kable()
+```
+
+We can use `furrr` to run every article past the simulated survey respondent in parallel.
+
+```{r}
+#| label: tbl-example
+#| tbl-cap: Example of the simulated response.
+#| warning: false
+library(furrr)
+
+sim_ident <- "Extremely chill dude"
+
+rows <- lapply(1:nrow(articles), function(i) as.list(articles[i, ]))
+
+with(plan(multisession, workers = 4), {
+  tasks <- future_map(
+    rows,
+    function(row) {
+      dist <- llm_answer_distribution(
+        headline = row$title,
+        source = row$domain,
+        date = row$harvestTimeLong,
+        simulated_identity = sim_ident
+      )
+      dist |>
+        mutate(article_id = row$article_id, simulated_identity = sim_ident)
+    }
+  )
+})
+
+bind_rows(tasks) |>
+  group_by(article_id) |>
+  filter(Probability == max(Probability)) |>
+  merge(articles) |>
+  kable()
+```
+
+Now we have all the tools we need to do some very interesting work.
+
+## Putting it all together
