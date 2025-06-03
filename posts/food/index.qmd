@@ -445,6 +445,7 @@ llm_answer_distribution <- function(
   )
 
   # Invite the LLM to hallucinate a bit, to express its identity.
+  # TODO - this is a mistake, it affects the later probability distribution. A fixed expression per identity would be better.
   thoughts <- chat$chat(
     sprintf(
       "What are thoughts on the following headline given your own views and experiences? Please provide one or two sentences.
@@ -574,4 +575,7 @@ bind_rows(tasks) |>
 
 Now we have all the tools we need to do some very interesting work.
 
+TODO - thought is making the probs unstable
+
 ## Putting it all together
+
