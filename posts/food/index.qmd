@@ -444,24 +444,14 @@ llm_answer_distribution <- function(
     )
   )
 
-  # Invite the LLM to hallucinate a bit, to express its identity.
-  # TODO - this is a mistake, it affects the later probability distribution. A fixed expression per identity would be better.
-  thoughts <- chat$chat(
-    sprintf(
-      "What are thoughts on the following headline given your own views and experiences? Please provide one or two sentences.
-  
-  HEADLINE: %s (%s, %s)",
-      headline,
-      source,
-      format.Date(date, "%d %b %Y")
-    ),
-    echo = FALSE
-  )
-
   # Now we need a specific answer.
   response <- chat$chat_structured(
-    "Considering your previous response, answer this question.
-  At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?
+    sprintf(
+      "Consider the following headline then answer the question.
+
+  HEADLINE: %s (%s, %s)
+
+  QUESTION: At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?
     
   A) Highly concerned
   B) Somewhat concerned
@@ -470,6 +460,10 @@ llm_answer_distribution <- function(
   E) Don't know
   
   Respond with the letter of your chosen answer.",
+      headline,
+      source,
+      format.Date(date, "%d %b %Y")
+    ),
     type = type_enum(description = "Answer letter", values = LETTERS[1:5])
   )
 
@@ -531,9 +525,9 @@ articles <- read_csv(
       str_extract(harvestTimeLong, "(.*) @.*", 1),
       "%b %d, %Y"
     ),
-    article_id = row_number()
+    ArticleId = row_number()
   ) |>
-  head() # while we're developing
+  rename(Title = title, Date = harvestTimeLong, Domain = domain)
 
 articles |> head() |> kable()
 ```
@@ -546,7 +540,7 @@ We can use `furrr` to run every article past the simulated survey respondent in 
 #| warning: false
 library(furrr)
 
-sim_ident <- "Extremely chill dude"
+sim_ident <- "Average person"
 
 rows <- lapply(1:nrow(articles), function(i) as.list(articles[i, ]))
 
@@ -555,27 +549,68 @@ with(plan(multisession, workers = 4), {
     rows,
     function(row) {
       dist <- llm_answer_distribution(
-        headline = row$title,
-        source = row$domain,
-        date = row$harvestTimeLong,
+        headline = row$Title,
+        source = row$Domain,
+        date = row$Date,
         simulated_identity = sim_ident
       )
       dist |>
-        mutate(article_id = row$article_id, simulated_identity = sim_ident)
+        mutate(ArticleId = row$ArticleId, simulated_identity = sim_ident)
     }
   )
 })
 
-bind_rows(tasks) |>
-  group_by(article_id) |>
-  filter(Probability == max(Probability)) |>
+article_responses <- bind_rows(tasks) |>
   merge(articles) |>
+  as_tibble() |>
+  mutate(
+    # responses as ordered factor for plotting
+    Response = factor(
+      Response,
+      c(
+        "Highly concerned",
+        "Somewhat concerned",
+        "Not very concerned",
+        "Not concerned at all",
+        "Don't know"
+      ),
+      ordered = TRUE
+    )
+  )
+
+article_responses |>
+  group_by(ArticleId) |>
+  filter(Probability == max(Probability)) |>
+  head() |>
   kable()
 ```
 
-Now we have all the tools we need to do some very interesting work.
+The simplest thing to do is plot the distribution of responses at each point in time, based on the article seen at that time.
 
-TODO - thought is making the probs unstable
+```{r}
+#| label: fig-probability
+#| fig-cap: Probability distribution at each point in time.
+ggplot(article_responses) +
+  aes(
+    x = Date,
+    y = Probability,
+    group = Response,
+    fill = Response,
+    colour = Response
+  ) +
+  geom_area()
+```
 
-## Putting it all together
+In this plot we can see that more recently there has been more probability of "Highly concerning" and less of "Not concerned at all".
 
+However this simplistic model assumes previous articles have no lasting impact, which is obviously wrong. Public opinion doesn't work like that.
+
+How should we model the persistent effect of old news?
+
+## A better model
+
+Typing as I think, there are two ways to go. First we could build some mathematical model, which is a function of the point in time, the previous distribution, and the new distribution predicted for the latest article. This would be a semi-arbitrary rules-based approach, where we would pick how to weight older points. We can use some empirical results for this: the autoregression above suggests we put 0.6 weighting on the prior month.
+
+Alternatively, we could build the prior articles into the LLM's context. The challenge there is representing the time that has passed between seeing the articles. Perhaps we give the LLM a sliding window of say 1-month, and ask it to predict based on only the articles in that month. But we'd still have to incorporate the LLM's "position" prior to the new article somehow. We could perhaps just tell it "you are Somewhat Concerned". Lots of fun, but is it scientific?
+
+To be continued...
