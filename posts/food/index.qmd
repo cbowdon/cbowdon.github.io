@@ -1,5 +1,5 @@
 ---
-title: "Food"
+title: "Ultra-Processed Food"
 date: "2025-05-19"
 categories: [food, uk, r, stan, bayesian, timeseries, llm, surveys]
 code-fold: true
@@ -663,9 +663,7 @@ This is a mixed bag. The trend in net concern does align, although it's clearly 
 
 ## Digging deeper
 
-If we look at the distribution of responses, we notice that almost all articles generate a "Somewhat concerned" response. Now, we haven't calibrated the LLM on real human responses, but also if you just look at the headlines, anyone who takes them as fact most probably _would_ be concerned. Lack of calibration isn't our biggest problem here - the LLM is probably not far off reality - the problem is that media stories about ultra-processed food are overwhelmingly concerning.
-
-So we're going to have to build a model with some weighted contribution from each publisher each month.
+If we look at the distribution of responses, we notice that almost all articles generate a "Somewhat concerned" response. 
 
 ```{r}
 #| label: fig-response-distribution
@@ -680,11 +678,57 @@ ggplot(
   scale_x_continuous(limits = c(0, 1))
 ```
 
-The only thing that would actually make a difference is how much the respondent trusted the headline, which itself is tightly coupled to which headlines the respondent is exposed to, because in practice people rarely read newspapers they don't trust.
+Now, we haven't calibrated the LLM on real human responses, but also if you just look at the headlines, anyone who takes them as fact most probably _would_ be concerned. They're all about cancer, bone disease, and early death. So arguably lack of calibration isn't our biggest problem here. The LLM might not be calibrated for the difference between "somewhat" and "highly" concerned, but it does accurately identify which articles are concern-raising. The problem is that the articles are _overwhelmingly_ concerning.
+
+The thing that would make most difference to perception is how much the respondent trusted the headline, which itself is tightly coupled to which headlines the respondent is exposed to, because in practice people rarely read newspapers they don't trust.
+
+To move past this, we're going to have to build a model with some weighted contribution from each publisher each month.
 
 ### Media breakdown
 
 Let's therefore look at how the articles are distributed amongst the sources.
+
+```{r}
+#| label: fig-source-dist
+#| fig-cap: Articles focusing on ultra-processed food by source, since Jan 2024.
+
+domain_counts <- jsonlite::read_json(
+  "data/all-output-counts.json",
+  simplifyVector = T
+) |>
+  as_tibble() |>
+  rename(Domain = key, nArticles = doc_count)
+
+freqs <- articles |>
+  group_by(Domain) |>
+  count() |>
+  merge(domain_counts) |>
+  mutate(freq = n / nArticles) |>
+  arrange(desc(freq))
+
+abs_counts <- ggplot(freqs) +
+  aes(y = forcats::fct_reorder(Domain, n), x = n, fill = Domain) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_hue() +
+  labs(x = "Number of articles on ultra-processed food", y = NULL)
+
+all_articles <- ggplot(freqs) +
+  aes(y = forcats::fct_reorder(Domain, n), x = nArticles, fill = Domain) +
+  geom_col() +
+  scale_fill_hue() +
+  labs(x = "Number of articles (all topics)", y = NULL) +
+  theme(
+    axis.text.x = element_text(angle = 45)
+  )
+
+abs_counts + all_articles
+```
+
+Oh, the Daily Mail has by far the most. Who'd have thought? Though in fairness it is a smaller proportion of their total output, which is enormous.
+
+_(Incidentally, the Daily Mail also has the most articles about cancer, bone disease, and early death. I'm sure they employ a lot of medical professionals.)_
+
+
 
 #### NEXT STEPS
 

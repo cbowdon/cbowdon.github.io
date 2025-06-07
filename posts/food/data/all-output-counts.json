@@ -1,0 +1,42 @@
+[
+  {
+    "key": "dailymail.co.uk",
+    "doc_count": 1009661
+  },
+  {
+    "key": "bbc.co.uk",
+    "doc_count": 338798
+  },
+  {
+    "key": "independent.co.uk",
+    "doc_count": 278677
+  },
+  {
+    "key": "mirror.co.uk",
+    "doc_count": 256470
+  },
+  {
+    "key": "ft.com",
+    "doc_count": 243960
+  },
+  {
+    "key": "theguardian.com",
+    "doc_count": 147582
+  },
+  {
+    "key": "metro.co.uk",
+    "doc_count": 131911
+  },
+  {
+    "key": "standard.co.uk",
+    "doc_count": 126726
+  },
+  {
+    "key": "telegraph.co.uk",
+    "doc_count": 99369
+  },
+  {
+    "key": "thetimes.co.uk",
+    "doc_count": 12
+  }
+]
