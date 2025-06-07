@@ -226,7 +226,7 @@ The number of people with concerns is evidently slowly increasing. A linear regr
 
 The breakdown by response type is interesting. We have to watch our step, given the noisiness, but it does seem to show a migration towards being _highly_ concerned.
 
-Note that I have merged the two categories "I don't know enough to comment" and "Don't know" in the original data for two reasons: first, there's a technical limit of 5 categories coming later, and second there is very little difference.
+Note that I have merged the two categories "I don't know enough to comment" and "Don't know" in the original data for two reasons: first, there's a technical limit of 5 categories coming later, and second there is very little difference between these two.
 
 ## What made people highly concerned?
   
@@ -406,7 +406,7 @@ The takeaway here is that the number of articles mentioning ultra-processed food
 
 ## AI-simulated polling
 
-An idea that's generating a lot of excitement recently is the suggestion that you can simulate public opinion polls with AI. The concept is very simple: you calibrate multiple LLM assistants to represent your different demographics and then sample their responses to questions.
+An idea that's generating a lot of excitement recently is the suggestion that you can simulate public opinion polls with AI. The concept is very simple: you calibrate multiple LLM assistants to represent your different demographics and then sample their responses to questions. This is quicker and cheaper than polling real people, _if_ you can make it reliable.
 
 Accurately representing demographics is a Sisyphean task, but I'm a dedicated disciple of Mr. Pareto so let's see what we can do for 20% of the effort.
 
@@ -674,15 +674,20 @@ ggplot(
     summarise(Probability = mean(Probability))
 ) +
   aes(y = forcats::fct_rev(Response), x = Probability, fill = Response) +
-  geom_col() +
-  scale_x_continuous(limits = c(0, 1))
+  geom_col(show.legend = F) +
+  scale_x_continuous(limits = c(0, 1)) +
+  labs(x = "Mean probability across all articles", y = "Response")
 ```
 
 Now, we haven't calibrated the LLM on real human responses, but also if you just look at the headlines, anyone who takes them as fact most probably _would_ be concerned. They're all about cancer, bone disease, and early death. So arguably lack of calibration isn't our biggest problem here. The LLM might not be calibrated for the difference between "somewhat" and "highly" concerned, but it does accurately identify which articles are concern-raising. The problem is that the articles are _overwhelmingly_ concerning.
 
 The thing that would make most difference to perception is how much the respondent trusted the headline, which itself is tightly coupled to which headlines the respondent is exposed to, because in practice people rarely read newspapers they don't trust.
 
-To move past this, we're going to have to build a model with some weighted contribution from each publisher each month.
+To move past this, we're going to have to build a model with some weighted contribution from each publisher each month. We could go nuts with a complex model of what people are exposed to, but...
+
+> Everything should be as simple as possible, but no simpler. (Einstein?)
+
+Let's start by assuming the UK population is exposed to articles from each source in proportion to that source's estimated readership.
 
 ### Media breakdown
 
@@ -691,32 +696,42 @@ Let's therefore look at how the articles are distributed amongst the sources.
 ```{r}
 #| label: fig-source-dist
 #| fig-cap: Articles focusing on ultra-processed food by source, since Jan 2024.
+#| warning: false
 
 domain_counts <- jsonlite::read_json(
   "data/all-output-counts.json",
   simplifyVector = T
 ) |>
   as_tibble() |>
-  rename(Domain = key, nArticles = doc_count)
+  rename(Domain = key, nTotal = doc_count)
 
-freqs <- articles |>
+
+art_freqs <- articles |>
   group_by(Domain) |>
-  count() |>
-  merge(domain_counts) |>
-  mutate(freq = n / nArticles) |>
-  arrange(desc(freq))
+  summarise(nArticle = n_distinct(ArticleId))
+
+resp_freqs <- article_responses |>
+  group_by(ArticleId) |>
+  filter(Probability == max(Probability)) |>
+  group_by(Domain, Response) |>
+  summarise(nResponse = n_distinct(ArticleId))
+
+freqs <- merge(art_freqs, resp_freqs) |> merge(domain_counts)
 
 abs_counts <- ggplot(freqs) +
-  aes(y = forcats::fct_reorder(Domain, n), x = n, fill = Domain) +
-  geom_col(show.legend = FALSE) +
-  scale_fill_hue() +
-  labs(x = "Number of articles on ultra-processed food", y = NULL)
+  aes(
+    y = forcats::fct_reorder(Domain, nArticle),
+    x = nResponse,
+    fill = Response
+  ) +
+  geom_col() +
+  labs(title = "Ultra-processed food", x = "Number of articles", y = NULL) +
+  theme(legend.position = "bottom")
 
 all_articles <- ggplot(freqs) +
-  aes(y = forcats::fct_reorder(Domain, n), x = nArticles, fill = Domain) +
+  aes(y = forcats::fct_reorder(Domain, nArticle), x = nTotal) +
   geom_col() +
-  scale_fill_hue() +
-  labs(x = "Number of articles (all topics)", y = NULL) +
+  labs(title = "All topics", x = "Number of articles", y = NULL) +
   theme(
     axis.text.x = element_text(angle = 45)
   )
@@ -728,6 +743,103 @@ Oh, the Daily Mail has by far the most. Who'd have thought? Though in fairness i
 
 _(Incidentally, the Daily Mail also has the most articles about cancer, bone disease, and early death. I'm sure they employ a lot of medical professionals.)_
 
+We now have enough information to build a probabilistic model of media exposure.
+
+In a given period, a reader draws a count $n$ of articles they will read from a (non-negative) Poisson distribution. This represents the varying levels of news engagement.
+
+$$
+n ~ Pois(\lambda)
+$$
+
+We're assuming a discrete normal distribution of number of articles read. We'll look up a good value for $\lambda$ later.
+
+They will then draw $n$ samples from a multinomial distribution of sources, where the multinomial probabilities are informed by the relative readership statistics. This gives us a vector of $n_s$, number of articles to read from each source.
+
+$$
+n_s ~ M(sources)
+$$
+
+Then we sample $n_s$ articles from each source. Each article $d$ has a probability $p$ of being about ultra-processed food, which is the relative frequency of articles about ultra-processed food from that source in that period.
+
+If $d$ is about ultra-processed food, the reader's response $r$ to $d$ is drawn from the LLM's probability distribution of responses. Otherwise their response does not change.
+
+This is quite a complicated model, but it's also leaving A LOT out. We're ignoring the demographics of each source's readership, for example, and we're making the incorrect assumption that all articles are equally likely to be read. With accurate article readership statistics we could do better, but those are difficult if not impossible to get for all sources. We're also ignoring incomplete reads or misreads.
+
+```{r}
+#| label: fig-relative-frequency
+relfreq <- freqs |>
+  group_by(Domain) |>
+  summarise(Relative.Frequency = sum(nArticle) / max(nTotal)) |>
+  arrange(desc(Relative.Frequency))
+ggplot(relfreq) +
+  aes(y = fct_reorder(Domain, Relative.Frequency), x = Relative.Frequency) +
+  geom_col() +
+  labs(x="Relative frequency of ultra-processed food articles among source's output", y=NULL)
+```
+
+```{r}
+#| label: fig-readership
+
+readership <- tibble(
+  Domain = c(
+    "bbc.co.uk",
+    "theguardian.com",
+    "dailymail.co.uk",
+    "independent.co.uk",
+    "express.co.uk",
+    "mirror.co.uk",
+    "telegraph.co.uk",
+    "standard.co.uk",
+    "metro.co.uk",
+    "thetimes.co.uk",
+    "ft.com"
+  ),
+  Readers = c(
+    20, # estimate!
+    19.7,
+    12.3,
+    8.3,
+    5.9,
+    5.7,
+    4.6,
+    2.6,
+    2.5,
+    1.9,
+    1.3
+  )
+) |>
+  mutate(Readers = Readers / sum(Readers))
+
+ggplot(readership) +
+  aes(y = fct_reorder(Domain, Readers), x = Readers) +
+  geom_col() +
+  labs(y = NULL, x = "Unique monthly readers (millions)")
+```
+
+```{r}
+#| label: model
+#| code-fold: false
+num_sim_readers <- 1
+
+# Number of articles in the time period
+n <- rpois(num_sim_readers, lambda = 30) # approx. 1 article per day
+
+# Number of articles per source
+n_s <- rmultinom(1, n, prob = readership$Readers)
+
+# We then have to do a Binomial test on each source given the relative frequency.
+# We normalise the relative frequency to avoid wasted samples.
+# TODO need to establish a domain sort order
+rbinom(1, size=n_s[[1]], prob=relfreq$Relative.Frequency[[1]] / max(relfreq$Relative.Frequency))
+
+# Number of relevant articles
+sample(
+  articles |> filter(Domain == "bbc.co.uk"),
+  size = n_s[[1]],
+  replace = FALSE
+)
+```
+
 
 
 #### NEXT STEPS
@@ -736,6 +848,11 @@ _(Incidentally, the Daily Mail also has the most articles about cancer, bone dis
 - Start thinking about cumulative effects/time. The easiest way to do this is to adopt the same monthly resolution as the survey (remembering that the survey must lag the media).
 - Include some weights we can train in this model, learn them, and try prediction.
 - Maybe it's a Bayesian model, where our priors for Influence are drawn from the circulation estimates.
+
+
+- Calibration: maybe we could rank the articles by concerning-ness, pick thresholds that correspond to the actual response breakdown, and train the LLM on these. We evaluate the accuracy by prediction.
+- On the other hand, maybe there's a cumulative effect: multiple "somewhat" concerning articles could lead to becoming "highly concerned".
+- Also consider, there's perhaps a max-level effect: a single "highly" concerning article probably takes precedence over having multiple "somewhat" concerning or "not very" concerning articles.
 
 #### BELOW THIS LINE IS OLD AND PROBABLY WRONG
 
