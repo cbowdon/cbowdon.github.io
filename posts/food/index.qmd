@@ -420,8 +420,8 @@ llm_answer_distribution <- function(
   simulated_identity = "Statistically average person"
 ) {
   chat <- chat_openai(
-    #base_url = "http://localhost:1234/v1/",
-    #model = "ministral-8b-instruct-2410",
+    #base_url = "http://localhost:8080/v1/",
+    #model = "gemma-3-1b-it",
     model = "gpt-4.1-nano",
     system_prompt = sprintf(
       "You are a member of the British public, with your own life experiences and opinions.
@@ -584,6 +584,31 @@ article_responses |>
   head() |>
   kable()
 ```
+
+If we look at the distribution of responses, we notice that almost all articles generate a "Somewhat concerned" response. Now, we haven't calibrated the LLM on real human responses, but also if you just look at the headlines, anyone who takes them as fact most probably _would_ be concerned. Lack of calibration isn't our biggest problem here - the LLM is probably not far off reality - the problem is that media stories about ultra-processed food are overwhelmingly concerning.
+
+```{r}
+#| label: fig-response-distribution
+#| fig-cap: Response distribution
+ggplot(
+  article_responses |>
+    group_by(Response) |>
+    summarise(Probability = mean(Probability))
+) +
+  aes(y = forcats::fct_rev(Response), x = Probability) +
+  geom_col() +
+  scale_x_continuous(limits=c(0, 1))
+```
+
+The only thing that would actually make a difference is how much the respondent trusted the headline, which itself is tightly coupled to which headlines the respondent is exposed to, because in practice people rarely read newspapers they don't trust.
+
+#### NEXT STEPS
+
+- Build an exposure distribution
+- Start thinking about cumulative effects/time
+- Some kind of Monte Carlo model maybe?
+
+#### BELOW THIS LINE IS OLD AND PROBABLY WRONG
 
 The simplest thing to do is plot the distribution of responses at each point in time, based on the article seen at that time.
 
