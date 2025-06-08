@@ -1,97 +1,102 @@
 [
-    {
-      "key_as_string" : "2023-11-01",
-      "key" : 1698796800000,
-      "doc_count" : 25
-    },
-    {
-      "key_as_string" : "2023-12-01",
-      "key" : 1701388800000,
-      "doc_count" : 21
-    },
-    {
-      "key_as_string" : "2024-01-01",
-      "key" : 1704067200000,
-      "doc_count" : 23
-    },
-    {
-      "key_as_string" : "2024-02-01",
-      "key" : 1706745600000,
-      "doc_count" : 50
-    },
-    {
-      "key_as_string" : "2024-03-01",
-      "key" : 1709251200000,
-      "doc_count" : 31
-    },
-    {
-      "key_as_string" : "2024-04-01",
-      "key" : 1711929600000,
-      "doc_count" : 25
-    },
-    {
-      "key_as_string" : "2024-05-01",
-      "key" : 1714521600000,
-      "doc_count" : 57
-    },
-    {
-      "key_as_string" : "2024-06-01",
-      "key" : 1717200000000,
-      "doc_count" : 67
-    },
-    {
-      "key_as_string" : "2024-07-01",
-      "key" : 1719792000000,
-      "doc_count" : 36
-    },
-    {
-      "key_as_string" : "2024-08-01",
-      "key" : 1722470400000,
-      "doc_count" : 42
-    },
-    {
-      "key_as_string" : "2024-09-01",
-      "key" : 1725148800000,
-      "doc_count" : 35
-    },
-    {
-      "key_as_string" : "2024-10-01",
-      "key" : 1727740800000,
-      "doc_count" : 50
-    },
-    {
-      "key_as_string" : "2024-11-01",
-      "key" : 1730419200000,
-      "doc_count" : 41
-    },
-    {
-      "key_as_string" : "2024-12-01",
-      "key" : 1733011200000,
-      "doc_count" : 30
-    },
-    {
-      "key_as_string" : "2025-01-01",
-      "key" : 1735689600000,
-      "doc_count" : 57
-    },
-    {
-      "key_as_string" : "2025-02-01",
-      "key" : 1738368000000,
-      "doc_count" : 22
-    },
-    {
-      "key_as_string" : "2025-03-01",
-      "key" : 1740787200000,
-      "doc_count" : 42
-    },
-    {
-      "key_as_string" : "2025-04-01",
-      "key" : 1743465600000,
-      "doc_count" : 29
-    },
-    {
-      "key_as_string" : "2025-05-01",
-      "key" : 1746057600000,
-      "doc_count" : 54
-    }
-  ]
+  {
+    "key_as_string": "2023-11-01",
+    "key": 1698796800000,
+    "doc_count": 57
+  },
+  {
+    "key_as_string": "2023-12-01",
+    "key": 1701388800000,
+    "doc_count": 49
+  },
+  {
+    "key_as_string": "2024-01-01",
+    "key": 1704067200000,
+    "doc_count": 67
+  },
+  {
+    "key_as_string": "2024-02-01",
+    "key": 1706745600000,
+    "doc_count": 104
+  },
+  {
+    "key_as_string": "2024-03-01",
+    "key": 1709251200000,
+    "doc_count": 75
+  },
+  {
+    "key_as_string": "2024-04-01",
+    "key": 1711929600000,
+    "doc_count": 83
+  },
+  {
+    "key_as_string": "2024-05-01",
+    "key": 1714521600000,
+    "doc_count": 118
+  },
+  {
+    "key_as_string": "2024-06-01",
+    "key": 1717200000000,
+    "doc_count": 130
+  },
+  {
+    "key_as_string": "2024-07-01",
+    "key": 1719792000000,
+    "doc_count": 110
+  },
+  {
+    "key_as_string": "2024-08-01",
+    "key": 1722470400000,
+    "doc_count": 83
+  },
+  {
+    "key_as_string": "2024-09-01",
+    "key": 1725148800000,
+    "doc_count": 109
+  },
+  {
+    "key_as_string": "2024-10-01",
+    "key": 1727740800000,
+    "doc_count": 124
+  },
+  {
+    "key_as_string": "2024-11-01",
+    "key": 1730419200000,
+    "doc_count": 105
+  },
+  {
+    "key_as_string": "2024-12-01",
+    "key": 1733011200000,
+    "doc_count": 142
+  },
+  {
+    "key_as_string": "2025-01-01",
+    "key": 1735689600000,
+    "doc_count": 149
+  },
+  {
+    "key_as_string": "2025-02-01",
+    "key": 1738368000000,
+    "doc_count": 92
+  },
+  {
+    "key_as_string": "2025-03-01",
+    "key": 1740787200000,
+    "doc_count": 123
+  },
+  {
+    "key_as_string": "2025-04-01",
+    "key": 1743465600000,
+    "doc_count": 132
+  },
+  {
+    "key_as_string": "2025-05-01",
+    "key": 1746057600000,
+    "doc_count": 146
+  },
+  {
+    "key_as_string": "2025-06-01",
+    "key": 1748736000000,
+    "doc_count": 30
+  }
+]

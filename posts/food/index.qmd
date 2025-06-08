@@ -6,7 +6,7 @@ code-fold: true
 freeze: false
 ---
 
-There's a little drip drip drip of scare stories about ultra-processed food, a phrase that I'd never heard until this year. I'm starting to get worried. Is everyone else worried? Well it turns out the Food Standards Agency (FSA) has been running a tracker survey containing this question since mid-2023, so we can find out. It's a nice little dataset to practice my time series analysis skills on.
+There's a little drip drip drip of scare stories about ultra-processed food (UPF) a phrase that I'd never heard until this year. I'm starting to get worried. Is everyone else worried? Well it turns out the Food Standards Agency (FSA) has been running a tracker survey containing this question since mid-2023, so we can find out. It's a nice little dataset to practice my time series analysis skills on.
 
 First we need to scrape the data. While it's lovely that the FSA publishes all the monthly survey results (which were run by YouGov) it is annoying that they don't publish compiled statistics, so we need to get our tibbles dirty.
 
@@ -371,29 +371,45 @@ So let's create a corpus of news articles about ultra-processed food from the to
 
 I happen to work at [Polecat](https://www.polecat.com) who have licensed access to this data, so I can analyse it very easily. (Can't share the raw data here though.)
 
-Since November 2023 there have been over 2.5 million articles from those sources, but <1000 mentioned ultra-processed food, and <100 seem to be focused on it, as opposed to mentioning it in passing alongside other public health issues. Though the passing mentions would help with awareness, these have a weaker effect on informing opinion.
+Since November 2023 there have been over 2.5 million articles from those sources, but only around 2000 mentioned ultra-processed food, and <500 seem to be focused on it, as opposed to mentioning it in passing alongside other public health issues. Though the passing mentions would help with awareness, these have a weaker effect on informing opinion.
 
 ```{r}
 #| label: fig-article-counts
 #| fig-cap: Counts of articles mentioning ultra-processed food from the top UK online news sources, by month.
-bind_rows(
+DOMAINS <- c(
+  "bbc.co.uk",
+  "theguardian.com",
+  "dailymail.co.uk",
+  "independent.co.uk",
+  "express.co.uk",
+  "mirror.co.uk",
+  "telegraph.co.uk",
+  "standard.co.uk",
+  "metro.co.uk",
+  "thetimes.co.uk",
+  "ft.com"
+)
+
+article_counts <- bind_rows(
   jsonlite::read_json(
     "data/focus-articles-counts.json",
     simplifyVector = T
   ) |>
     as_tibble() |>
-    mutate(MentionType = "Focus articles"),
+    mutate(mention = "focus", MentionType = "Focus articles"),
   jsonlite::read_json(
     "data/all-articles-counts.json",
     simplifyVector = T
   ) |>
     as_tibble() |>
-    mutate(MentionType = "Articles with passing mentions")
+    mutate(mention = "any", MentionType = "Articles with any mentions of UPFs")
 ) |>
   mutate(Period = as.Date(key_as_string)) |>
-  ggplot() +
+  filter(Period >= "2024-01-01" & Period < "2025-06-01")
+
+ggplot(article_counts) +
   aes(x = Period, y = doc_count, group = MentionType) +
-  geom_col() +
+  geom_line() +
   facet_wrap(~MentionType) +
   labs(
     title = "Articles mentioning ultra-processed food from top UK sources by month.",
@@ -402,7 +418,25 @@ bind_rows(
   )
 ```
 
-The takeaway here is that the number of articles mentioning ultra-processed food is _not_ increasing significantly. If we teased out the seasonality and squinted a bit we might say that there's a slight upward trend, but it wouldn't be a firm foundation. News articles aren't fungible commodities! You can't swap any one for another and expect the same impact on public perception. We need to take a more nuanced view.
+The number of articles mentioning ultra-processed food is increasing over time. The fluctuation is most likely seasonal, and the trend is apparently upwards. There's _just_ about enough data to fix a SARIMA model.
+
+```{r}
+#| label: fig-sarima
+#| fig-cap: A (very uncertain) SARIMA fit of the mention counts.
+mention_counts <- ts(
+  filter(article_counts, mention == "any")$doc_count,
+  start = c(2024, 1),
+  deltat = 1 / 12
+)
+afit <- forecast::auto.arima(mention_counts, d = 1, D = 1)
+plot(forecast::forecast(afit, h = 5, level = 90))
+```
+
+However, there is no such trend in articles focused on ultra-processed food.
+
+It's tempting to look at the upward trend in mentions, not the upward trend in net concern, and call it a day. Media mentions go up, net concern goes up, quod erat demonstratum! But no.
+
+Because it's a bit of a flimsy conclusion, if you think about it. For one thing, news articles aren't fungible commodities! You can't swap any one for another and expect the same impact on public perception. An article that focuses on UPF ought to be considerably more impactful than one that mentions it in passing. We also know that some sources have multitudes more readers than others. We need to take a more nuanced approach.
 
 ## AI-simulated polling
 
@@ -497,7 +531,7 @@ Note that I've removed the response category "I don't know enough to comment" fo
 
 ```{r}
 #| label: tbl-llm-simulation
-#| tbl-cap: Example of simulated AI polling response to an alarming headline.
+#| tbl-cap: Example of simulated AI polling response to a fictional alarming headline.
 #| code-fold: false
 llm_answer_distribution(
   headline = "Ultra-processed food linked to potential bowel cancer risk, scientists say",
@@ -527,7 +561,7 @@ A basic model, but already quite interesting. Let's apply this to our articles.
 #| label: tbl-articles
 #| tbl-cap: A sample of the articles collected.
 articles <- read_csv(
-  "data/ultra-processed-food-docs-titles-only.csv",
+  "data/upf-selected-title-matches-no-content.csv",
   col_select = c("harvestTimeLong", "domain", "title"),
   show_col_types = F
 ) |>
@@ -538,6 +572,7 @@ articles <- read_csv(
     ),
     ArticleId = row_number()
   ) |>
+  filter(harvestTimeLong < "2025-06-01" & harvestTimeLong >= "2024-01-01") |>
   rename(Title = title, Date = harvestTimeLong, Domain = domain)
 
 articles |> head() |> kable(digits = 3)
@@ -553,35 +588,48 @@ library(furrr)
 
 sim_ident <- "Average person"
 
-rows <- lapply(1:nrow(articles), function(i) as.list(articles[i, ]))
+simulate_responses <- function(articles, sim_ident) {
+  datafile <- sprintf("data/article-responses - %s.rds", sim_ident)
 
-with(plan(multisession, workers = 4), {
-  tasks <- future_map(
-    rows,
-    function(row) {
-      dist <- llm_answer_distribution(
-        headline = row$Title,
-        source = row$Domain,
-        date = row$Date,
-        simulated_identity = sim_ident
+  if (!file.exists(datafile)) {
+    rows <- lapply(1:nrow(articles), function(i) as.list(articles[i, ]))
+
+    with(plan(multisession, workers = 4), {
+      tasks <- future_map(
+        rows,
+        function(row) {
+          dist <- llm_answer_distribution(
+            headline = row$Title,
+            source = row$Domain,
+            date = row$Date,
+            simulated_identity = sim_ident
+          )
+          dist |>
+            mutate(ArticleId = row$ArticleId, simulated_identity = sim_ident)
+        }
       )
-      dist |>
-        mutate(ArticleId = row$ArticleId, simulated_identity = sim_ident)
-    }
-  )
-})
+    })
 
-article_responses <- bind_rows(tasks) |>
-  merge(articles) |>
-  as_tibble() |>
-  mutate(
-    # responses as ordered factor for plotting
-    Response = factor(
-      Response,
-      RESPONSE_CATS,
-      ordered = TRUE
-    )
-  )
+    article_responses <- bind_rows(tasks) |>
+      merge(articles) |>
+      as_tibble() |>
+      mutate(
+        # responses as ordered factor for plotting
+        Response = factor(
+          Response,
+          RESPONSE_CATS,
+          ordered = TRUE
+        )
+      )
+
+    article_responses |> write_rds(datafile)
+  }
+  read_rds(datafile)
+}
+
+article_responses <- simulate_responses(articles, sim_ident) |>
+  merge(select(articles, ArticleId)) |>
+  as_tibble()
 
 article_responses |>
   group_by(ArticleId) |>
@@ -659,11 +707,11 @@ plot_net5 +
   plot_layout(ncol = 2, nrow = 2)
 ```
 
-This is a mixed bag. The trend in net concern does align, although it's clearly miscalibrated. The simulated response breakdown contradicts the actual response breakdown, because it shows opposing trends for "Highly" and "Somewhat" concerned.
+This is a mixed bag. The trends do align, although it's clearly miscalibrated. There's also a lot of noise.
 
 ## Digging deeper
 
-If we look at the distribution of responses, we notice that almost all articles generate a "Somewhat concerned" response. 
+If we look at the distribution of responses, we notice that the majority of articles generate a "Somewhat concerned" response. 
 
 ```{r}
 #| label: fig-response-distribution
@@ -770,30 +818,22 @@ This is quite a complicated model, but it's also leaving A LOT out. We're ignori
 relfreq <- freqs |>
   group_by(Domain) |>
   summarise(Relative.Frequency = sum(nArticle) / max(nTotal)) |>
-  arrange(desc(Relative.Frequency))
+  arrange(Domain)
+
 ggplot(relfreq) +
   aes(y = fct_reorder(Domain, Relative.Frequency), x = Relative.Frequency) +
   geom_col() +
-  labs(x="Relative frequency of ultra-processed food articles among source's output", y=NULL)
+  labs(
+    x = "Relative frequency of ultra-processed food articles among source's output",
+    y = NULL
+  )
 ```
 
 ```{r}
 #| label: fig-readership
 
 readership <- tibble(
-  Domain = c(
-    "bbc.co.uk",
-    "theguardian.com",
-    "dailymail.co.uk",
-    "independent.co.uk",
-    "express.co.uk",
-    "mirror.co.uk",
-    "telegraph.co.uk",
-    "standard.co.uk",
-    "metro.co.uk",
-    "thetimes.co.uk",
-    "ft.com"
-  ),
+  Domain = factor(DOMAINS, levels = DOMAINS, ordered = TRUE),
   Readers = c(
     20, # estimate!
     19.7,
@@ -825,19 +865,20 @@ num_sim_readers <- 1
 n <- rpois(num_sim_readers, lambda = 30) # approx. 1 article per day
 
 # Number of articles per source
-n_s <- rmultinom(1, n, prob = readership$Readers)
+for (n_i in n) {
+  n_s <- rmultinom(1, n_i, prob = readership$Readers)
 
-# We then have to do a Binomial test on each source given the relative frequency.
-# We normalise the relative frequency to avoid wasted samples.
-# TODO need to establish a domain sort order
-rbinom(1, size=n_s[[1]], prob=relfreq$Relative.Frequency[[1]] / max(relfreq$Relative.Frequency))
+  for (j in 1:length(DOMAINS)) {
+    # We then have to do a Binomial test on each source given the relative frequency.
+    # We normalise the relative frequency to avoid wasted samples.
+    rbinom(
+      1,
+      n_s[[j]],
+      prob = relfreq$Relative.Frequency / max(relfreq$Relative.Frequency)
+    )
+  }
+}
 
-# Number of relevant articles
-sample(
-  articles |> filter(Domain == "bbc.co.uk"),
-  size = n_s[[1]],
-  replace = FALSE
-)
 ```
 
 

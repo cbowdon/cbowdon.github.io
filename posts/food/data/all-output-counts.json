@@ -1,42 +1,42 @@
 [
   {
     "key": "dailymail.co.uk",
-    "doc_count": 1009661
+    "doc_count": 1010448
   },
   {
     "key": "bbc.co.uk",
-    "doc_count": 338798
+    "doc_count": 339320
   },
   {
     "key": "independent.co.uk",
-    "doc_count": 278677
+    "doc_count": 278890
   },
   {
     "key": "mirror.co.uk",
-    "doc_count": 256470
+    "doc_count": 256751
+  },
+  {
+    "key": "express.co.uk",
+    "doc_count": 245287
   },
   {
     "key": "ft.com",
-    "doc_count": 243960
+    "doc_count": 244078
   },
   {
     "key": "theguardian.com",
-    "doc_count": 147582
+    "doc_count": 147698
   },
   {
     "key": "metro.co.uk",
-    "doc_count": 131911
+    "doc_count": 132006
   },
   {
     "key": "standard.co.uk",
-    "doc_count": 126726
+    "doc_count": 126803
   },
   {
     "key": "telegraph.co.uk",
-    "doc_count": 99369
-  },
-  {
-    "key": "thetimes.co.uk",
-    "doc_count": 12
+    "doc_count": 99451
   }
 ]
