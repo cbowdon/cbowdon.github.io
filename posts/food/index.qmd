@@ -793,23 +793,24 @@ _(Incidentally, the Daily Mail also has the most articles about cancer, bone dis
 
 We now have enough information to build a probabilistic model of media exposure.
 
-In a given period, a reader draws a count $n$ of articles they will read from a (non-negative) Poisson distribution. This represents the varying levels of news engagement.
+Let's assume that every reader $r$ samples a number of articles $n_s$ from each source $s$ according to a Poisson distribution. The Poisson distribution is parameterised according to relative readership levels, so for example $\lambda_{BBC} > \lambda_{FT}$ and on average $n_{BBC} > n_{FT}$ but with lots of randomisation, so some of our simulated readers will draw more from the Mail, some more from the Metro, etc.
+
+The reader then draws $n_s$ articles at random from each source. (This is a simplification of course.) To represent the fact that only a small proportion of articles from each source in each period are about UPFs, we draw the $n_s$ observations from a binomial distribution parameterised by $p_s$, the relative frequency of UPF articles for the source. The count of UPF-related articles we get back is denoted $d_s$.
 
 $$
-n ~ Pois(\lambda)
+n_s \sim Pois(\lambda_s)
+$$
+$$
+d_s \sim Binom(n_s, p_s)
 $$
 
-We're assuming a discrete normal distribution of number of articles read. We'll look up a good value for $\lambda$ later.
-
-They will then draw $n$ samples from a multinomial distribution of sources, where the multinomial probabilities are informed by the relative readership statistics. This gives us a vector of $n_s$, number of articles to read from each source.
+Since $p_s$ is very small, this will be very inefficient and we will mostly draw zeros. But maths comes to the rescue, because the unconditional distribution of $d_s$ can be given by:
 
 $$
-n_s ~ M(sources)
+d_s \sim Pois(\lambda_s p_s)
 $$
 
-Then we sample $n_s$ articles from each source. Each article $d$ has a probability $p$ of being about ultra-processed food, which is the relative frequency of articles about ultra-processed food from that source in that period.
-
-If $d$ is about ultra-processed food, the reader's response $r$ to $d$ is drawn from the LLM's probability distribution of responses. Otherwise their response does not change.
+This is much faster to compute. We need to do so for each of our simulated readers $r$ to get a count of relevant articles they will read from each source. We then materialise these articles by sampling from the actual UPF articles from the soure in that time period, generate the LLM assessment for the articles, and take the mean assessment.
 
 This is quite a complicated model, but it's also leaving A LOT out. We're ignoring the demographics of each source's readership, for example, and we're making the incorrect assumption that all articles are equally likely to be read. With accurate article readership statistics we could do better, but those are difficult if not impossible to get for all sources. We're also ignoring incomplete reads or misreads.
 
@@ -859,26 +860,29 @@ ggplot(readership) +
 ```{r}
 #| label: model
 #| code-fold: false
-num_sim_readers <- 1
 
-# Number of articles in the time period
-n <- rpois(num_sim_readers, lambda = 30) # approx. 1 article per day
+# Number of articles in the time period, calibrated such
+# that the expected number of BBC articles is 10 per month.
+readership <- readership |>
+  mutate(
+    lambda = 10 * Readers / max(Readers),
+    # TODO prob_upf
+    prob_upf = 0.1
+  )
 
-# Number of articles per source
-for (n_i in n) {
-  n_s <- rmultinom(1, n_i, prob = readership$Readers)
+n_sim_readers <- 5
 
-  for (j in 1:length(DOMAINS)) {
-    # We then have to do a Binomial test on each source given the relative frequency.
-    # We normalise the relative frequency to avoid wasted samples.
-    rbinom(
-      1,
-      n_s[[j]],
-      prob = relfreq$Relative.Frequency / max(relfreq$Relative.Frequency)
-    )
-  }
+result <- matrix(
+  nrow = nrow(readership),
+  ncol = n_sim_readers,
+  dimnames = list(readership$Domain, 1:n_sim_readers)
+)
+for (i in 1:nrow(readership)) {
+  row <- as.list(readership[i, ])
+  n <- rpois(n_sim_readers, row$lambda * row$prob_upf)
+  result[i, ] <- n
 }
-
+result
 ```
 
 
