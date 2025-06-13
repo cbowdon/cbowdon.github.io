@@ -12,7 +12,7 @@ An idea that's generating a lot of excitement recently is the suggestion that yo
 
 That sounds incredibly fun! In this post I'll explore the FSA tracker survey data, and then build an AI simulation model.
 
-## The survey data
+# The survey data
 
 First we need to scrape the survey data. While it's lovely that the FSA publishes all the monthly survey results (which were run by YouGov) it is annoying that they don't publish compiled statistics, so we need to get our tibbles dirty.
 
@@ -240,33 +240,36 @@ The breakdown by response type is interesting. We have to watch our step, given 
 
 Note that I have merged the two categories "I don't know enough to comment" and "Don't know" in the original data for two reasons: first, there's a technical limit of 5 categories coming later, and second there is very little difference between these two.
 
-## Background for the model: the media landscape
+# The media landscape
 
-Here's an interesting observation: a surprisingly small number of publications account for a large proportion of UK readership. See this data from [JournoFinder](https://journofinder.com/blog/uk-newspaper-circulation-figures).
+Besides calibrating the simulated demographics, the major challenge is ensuring that the models are exposed to the same information. If interested in current events, this information is most likely not in the training data. This means you need to ensure the AI has been exposed to the same media.
+
+Now, here's an interesting observation: a surprisingly small number of publications account for a large proportion of UK readership. See this data from [JournoFinder](https://journofinder.com/blog/uk-newspaper-circulation-figures).
 
 ![](https://framerusercontent.com/images/1BjmhUMPE6dsrYLtK1qkJV8p5k.png)
 
-The UK population is approximately 70 million people. Given that the Guardian and the Daily Mail target very different demographics (left and right wing) we don't expect much overlap between their readership, i.e. their combined monthly online readership alone probably covers half the news-reading British population. Note also that BBC News isn't included, but has a similar level of traffic, albeit with higher overlap.
+The UK population is approximately 70 million people. Given that the Guardian and the Daily Mail target very different demographics (left and right wing) we wouldn't expect much overlap between their readership, i.e. their combined monthly online readership alone probably covers half the news-reading British population. Note also that BBC News isn't included in that table, but has a similar level of traffic, albeit with higher overlap.
 
-This suggests that if we're interested in understanding how the media shapes public perception in the UK, we can do well from analysing the output of just a handful of sources. This is particularly true in the modern media landscape, in which:
+This suggests that if we're interested in understanding how the media shapes public perception in the UK, we can do well by analysing the output of just a handful of sources. This is particularly true in the modern media landscape, in which:
 
 - Live television is a dying medium. (I was at a brilliant R meetup hosted by [Datacove](https://datacove.co.uk) recently when the session discussion turned to media channels. No one present had watched live TV in the last 24 hours, and only around 1 in 10 in the last month.)
 - Radio has had its time, has had its power (though yet to have its finest hour 🎸).
 - Social media is increasingly popular, but news content on social media is dominated by reposts of articles from traditional journalists.
 
-So let's create a corpus of news articles about ultra-processed food from the top 10 sources in the table above, plus the BBC. They have a combined readership of 64.8 million monthly readers in the UK (plus the BBC's unknown-but-high readership); even with high overlap, this represents the majority of the UK population. It's enough to give us a grand understanding of what's going on.
+So let's create a corpus of news articles about ultra-processed food from the top 10 sources in the table above, plus the BBC. They have a combined readership of 64.8 million monthly readers in the UK (plus the BBC's unknown-but-high readership); even with high overlap, this clearly represents the majority of the UK population. It's enough to give us a solid understanding of what's going on.
 
-I happen to work at [Polecat](https://www.polecat.com) who have licensed access to this data, so I can analyse it very easily. (Can't share the raw data here though.)
+I happen to work at [Polecat](https://www.polecat.com) who have licensed access to this data, so I can analyse it very easily. (Can't share the raw data here though. 🙊)
 
-Since November 2023 there have been over 2.5 million articles from those sources, but only around 2000 mentioned ultra-processed food, and <500 seem to be focused on it, as opposed to mentioning it in passing alongside other public health issues. Though the passing mentions would help with awareness, these have a weaker effect on informing opinion.
+Since November 2023 there have been over 2.5 million articles from those sources, but only around 2000 mentioned ultra-processed food, and <500 seem to be focused on it, as opposed to mentioning it alongside other food or public health issues. Though all mentions would help with awareness, focus articles have a stronger effect on informing opinion.
 
 ```{r}
 #| label: fig-article-counts
 #| fig-cap: Counts of articles mentioning ultra-processed food from the top UK online news sources, by month.
+#| warning: false
 source("articles.R")
 
 upf_articles <- load_upf_articles()
-domain_count <- load_domain_counts()
+domain_counts <- load_domain_counts()
 
 ggplot(
   upf_articles |>
@@ -289,6 +292,7 @@ Although the number of articles focused on UPFs is not showing any trend, the nu
 ```{r}
 #| label: fig-sarima
 #| fig-cap: A (very uncertain) SARIMA fit of the mention counts.
+#| warning: false
 mention_counts <- ts(
   (group_by(upf_articles, period) |> count())$n,
   start = c(2024, 1),
@@ -298,12 +302,81 @@ afit <- forecast::auto.arima(mention_counts, d = 1, D = 1)
 plot(forecast::forecast(afit, h = 5, level = 90))
 ```
 
-It's tempting to look at the upward trend in mentions, not the upward trend in net concern, and call it a day. Media mentions go up, net concern goes up, quod erat demonstratum!
+It's tempting to look at the upward trend in mentions and the upward trend in net concern, and call it a day. Media mentions go up, net concern goes up, quod erat demonstratum! But this is a bit flimsy.
 
-But that's a bit of a flimsy conclusion. For one thing, news articles aren't fungible commodities! You can't swap any one for another and expect the same impact on public perception. An article that focuses on UPF ought to be considerably more impactful than one that mentions it in passing. We also know that some sources have multitudes more readers than others. We need to take a more nuanced approach.
+## Why can't we just count mentions and be done with it?
 
-## AI-simulated polling
+1. Even considering that we've already reasoned about UK audiences and scoped our search to selected top publications, this is still a poor model of readership. Every mention in every article counts equally, even though we can see that the Guardian has **over ten times** the number of readers the Financial Times does.
+2. This model assumes that every mention of UPFs contributes an equal amount of concern. Some of them might be positive, or cause different levels of concern.
+3. Net concern has increased by <5%, whereas the mentions have doubled. We have reason to be skeptical that mentions count is the whole story.
 
+We need to take a more nuanced approach.
+
+# A better readership model
+
+Let's start with a look at how the articles are distributed amongst the sources.
+
+```{r}
+#| label: fig-source-dist
+#| fig-cap: Articles focusing on ultra-processed food by source, since Jan 2024.
+#| warning: false
+ggplot(
+  upf_articles |> group_by(domain, period) |> count()
+) +
+  aes(x = period, y = n, group = domain, colour = domain) +
+  facet_wrap(~domain, nrow = 2) +
+  geom_point(show.legend = F) +
+  geom_line(linewidth = 1, show.legend = F)
+```
+
+Perhaps unsurprisingly, the Daily Mail has by far the most. Who'd have thought? They are also showing the most obvious increase in attention to the topic.
+
+_(Incidentally, the Daily Mail also has the most articles about cancer, bone disease, and early death. I'm sure they employ a lot of medical professionals.)_
+
+To be completely fair to the Daily Mail, we should note it is a smaller proportion of their total output, which is enormous.
+
+```{r}
+#| label: fig-source-count-context
+#| fig-cap: Total number of articles output by top sources, since Jan 2024.
+ggplot(
+  group_by(domain_counts, domain) |> summarise(n = sum(n_articles))
+) +
+  aes(
+    y = fct_reorder(domain, n),
+    x = n,
+    group = domain,
+    colour = domain,
+    fill = domain
+  ) +
+  geom_col(linewidth = 1, show.legend = F)
+```
+
+
+
+We now have enough information to build a probabilistic model of media exposure.
+
+Let's assume that every reader $r$ samples a number of articles $n_s$ from each source $s$ according to a Poisson distribution. The Poisson distribution is parameterised according to relative readership levels, so for example $\lambda_{BBC} > \lambda_{FT}$ and on average $n_{BBC} > n_{FT}$ but with lots of randomisation, so some of our simulated readers will draw more from the Mail, some more from the Metro, etc.
+
+The reader then draws $n_s$ articles at random from each source. (This is a simplification of course.) To represent the fact that only a small proportion of articles from each source in each period are about UPFs, we draw the $n_s$ observations from a binomial distribution parameterised by $p_s$, the relative frequency of UPF articles for the source. The count of UPF-related articles we get back is denoted $d_s$.
+
+$$
+n_s \sim Pois(\lambda_s)
+$$
+$$
+d_s \sim Binom(n_s, p_s)
+$$
+
+Since $p_s$ is very small, this will be very inefficient and we will mostly draw zeros. But maths comes to the rescue, because the unconditional distribution of $d_s$ can be given by:
+
+$$
+d_s \sim Pois(\lambda_s p_s)
+$$
+
+This is much faster to compute. We need to do so for each of our simulated readers $r$ to get a count of relevant articles they will read from each source. We then materialise these articles by sampling from the actual UPF articles from the soure in that time period, generate the LLM assessment for the articles, and take the mean assessment.
+
+This is quite a complicated model, but it's also leaving A LOT out. We're ignoring the demographics of each source's readership, for example, and we're making the incorrect assumption that all articles are equally likely to be read. With accurate article readership statistics we could do better, but those are difficult if not impossible to get for all sources. We're also ignoring incomplete reads or misreads.
+
+# Building the AI model
 
 R afficionados, we are using [ellmer](https://ellmer.tidyverse.org), which is becoming the de-facto AI package for R. The approach is to force the LLM into picking a category via structured outputs, and then reviewing the probabilities that it would have picked each category.
 
@@ -607,97 +680,6 @@ Let's start by assuming the UK population is exposed to articles from each sourc
 
 ### Media breakdown
 
-Let's therefore look at how the articles are distributed amongst the sources.
-
-```{r}
-#| label: fig-source-dist
-#| fig-cap: Articles focusing on ultra-processed food by source, since Jan 2024.
-#| warning: false
-
-domain_counts <- jsonlite::read_json(
-  "data/all-output-counts.json",
-  simplifyVector = T
-) |>
-  as_tibble() |>
-  rename(Domain = key, nTotal = doc_count)
-
-
-art_freqs <- articles |>
-  group_by(Domain) |>
-  summarise(nArticle = n_distinct(ArticleId))
-
-resp_freqs <- article_responses |>
-  group_by(ArticleId) |>
-  filter(Probability == max(Probability)) |>
-  group_by(Domain, Response) |>
-  summarise(nResponse = n_distinct(ArticleId))
-
-freqs <- merge(art_freqs, resp_freqs) |> merge(domain_counts)
-
-abs_counts <- ggplot(freqs) +
-  aes(
-    y = forcats::fct_reorder(Domain, nArticle),
-    x = nResponse,
-    fill = Response
-  ) +
-  geom_col() +
-  labs(title = "Ultra-processed food", x = "Number of articles", y = NULL) +
-  theme(legend.position = "bottom")
-
-all_articles <- ggplot(freqs) +
-  aes(y = forcats::fct_reorder(Domain, nArticle), x = nTotal) +
-  geom_col() +
-  labs(title = "All topics", x = "Number of articles", y = NULL) +
-  theme(
-    axis.text.x = element_text(angle = 45)
-  )
-
-abs_counts + all_articles
-```
-
-Oh, the Daily Mail has by far the most. Who'd have thought? Though in fairness it is a smaller proportion of their total output, which is enormous.
-
-_(Incidentally, the Daily Mail also has the most articles about cancer, bone disease, and early death. I'm sure they employ a lot of medical professionals.)_
-
-We now have enough information to build a probabilistic model of media exposure.
-
-Let's assume that every reader $r$ samples a number of articles $n_s$ from each source $s$ according to a Poisson distribution. The Poisson distribution is parameterised according to relative readership levels, so for example $\lambda_{BBC} > \lambda_{FT}$ and on average $n_{BBC} > n_{FT}$ but with lots of randomisation, so some of our simulated readers will draw more from the Mail, some more from the Metro, etc.
-
-The reader then draws $n_s$ articles at random from each source. (This is a simplification of course.) To represent the fact that only a small proportion of articles from each source in each period are about UPFs, we draw the $n_s$ observations from a binomial distribution parameterised by $p_s$, the relative frequency of UPF articles for the source. The count of UPF-related articles we get back is denoted $d_s$.
-
-$$
-n_s \sim Pois(\lambda_s)
-$$
-$$
-d_s \sim Binom(n_s, p_s)
-$$
-
-Since $p_s$ is very small, this will be very inefficient and we will mostly draw zeros. But maths comes to the rescue, because the unconditional distribution of $d_s$ can be given by:
-
-$$
-d_s \sim Pois(\lambda_s p_s)
-$$
-
-This is much faster to compute. We need to do so for each of our simulated readers $r$ to get a count of relevant articles they will read from each source. We then materialise these articles by sampling from the actual UPF articles from the soure in that time period, generate the LLM assessment for the articles, and take the mean assessment.
-
-This is quite a complicated model, but it's also leaving A LOT out. We're ignoring the demographics of each source's readership, for example, and we're making the incorrect assumption that all articles are equally likely to be read. With accurate article readership statistics we could do better, but those are difficult if not impossible to get for all sources. We're also ignoring incomplete reads or misreads.
-
-```{r}
-#| label: fig-relative-frequency
-relfreq <- freqs |>
-  group_by(Domain) |>
-  summarise(Relative.Frequency = sum(nArticle) / max(nTotal)) |>
-  arrange(Domain)
-
-ggplot(relfreq) +
-  aes(y = fct_reorder(Domain, Relative.Frequency), x = Relative.Frequency) +
-  geom_col() +
-  labs(
-    x = "Relative frequency of ultra-processed food articles among source's output",
-    y = NULL
-  )
-```
-
 ```{r}
 #| label: fig-readership
 
@@ -713,7 +695,7 @@ readership <- tibble(
     4.6,
     2.6,
     2.5,
-    1.9,
+    #1.9,
     1.3
   )
 ) |>
