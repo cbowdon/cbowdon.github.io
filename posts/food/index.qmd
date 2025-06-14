@@ -24,6 +24,7 @@ As usual, if you like coding with R you can see the gory details under the folds
 library(tidyverse)
 library(httr2)
 library(rvest)
+library(knitr)
 
 if (!str_ends(getwd(), "posts/food")) {
   setwd("posts/food")
@@ -329,11 +330,7 @@ ggplot(
   geom_line(linewidth = 1, show.legend = F)
 ```
 
-Perhaps unsurprisingly, the Daily Mail has by far the most. Who'd have thought? They are also showing the most obvious increase in attention to the topic.
-
-_(Incidentally, the Daily Mail also has the most articles about cancer, bone disease, and early death. I'm sure they employ a lot of medical professionals.)_
-
-To be completely fair to the Daily Mail, we should note it is a smaller proportion of their total output, which is enormous.
+Perhaps unsurprisingly, the Daily Mail has by far the most. Who'd have thought? They are also showing the most obvious increase in attention to the topic.  (Incidentally, the Daily Mail also has the most articles about cancer, bone disease, and early death. They must employ a lot of medical professionals.) To be completely fair to the Daily Mail though, we should note it is a smaller proportion of their total output, which is enormous.
 
 ```{r}
 #| label: fig-source-count-context
@@ -351,9 +348,13 @@ ggplot(
   geom_col(linewidth = 1, show.legend = F)
 ```
 
+## Modelling
 
+We now have enough information to build a Monte Carlo model of media exposure. We'll keep it as simple as we can without compromising too much on representativeness.
 
-We now have enough information to build a probabilistic model of media exposure.
+> Everything should be as simple as possible, but no simpler. (Einstein?)
+
+Let's start by assuming the UK population is exposed to articles from each source in proportion to that source's estimated readership.
 
 Let's assume that every reader $r$ samples a number of articles $n_s$ from each source $s$ according to a Poisson distribution. The Poisson distribution is parameterised according to relative readership levels, so for example $\lambda_{BBC} > \lambda_{FT}$ and on average $n_{BBC} > n_{FT}$ but with lots of randomisation, so some of our simulated readers will draw more from the Mail, some more from the Metro, etc.
 
@@ -375,6 +376,153 @@ $$
 This is much faster to compute. We need to do so for each of our simulated readers $r$ to get a count of relevant articles they will read from each source. We then materialise these articles by sampling from the actual UPF articles from the soure in that time period, generate the LLM assessment for the articles, and take the mean assessment.
 
 This is quite a complicated model, but it's also leaving A LOT out. We're ignoring the demographics of each source's readership, for example, and we're making the incorrect assumption that all articles are equally likely to be read. With accurate article readership statistics we could do better, but those are difficult if not impossible to get for all sources. We're also ignoring incomplete reads or misreads.
+
+```{r}
+#| label: readership
+
+readership <- tibble(
+  domain = factor(DOMAINS, levels = DOMAINS, ordered = TRUE),
+  monthly_readers = 1000000 *
+    c(30, 19.7, 12.3, 8.3, 5.9, 5.7, 4.6, 2.6, 2.5, 1.3) # BBC estimated from online sources
+) |>
+  merge(
+    domain_counts |>
+      group_by(domain, period) |>
+      summarise(n_total_articles = sum(n_articles)),
+    all.x = TRUE
+  ) |>
+  merge(
+    upf_articles |> group_by(domain, period) |> summarise(n_upf_articles = n()),
+    all.x = TRUE
+  ) |>
+  mutate(
+    n_upf_articles = coalesce(n_upf_articles, 0),
+    prob_upf = n_upf_articles / n_total_articles,
+    # Number of articles in the time period, calibrated such
+    # that the expected number of BBC articles is approx 1/day.
+    # (Educated guess placeholder)
+    lambda = 30.4 * monthly_readers / max(monthly_readers),
+  )
+```
+
+We build it using R's statistical functions and simulate 1,000 readers. The code for this is very simple.
+
+```{r}
+#| label: tbl-model
+#| tbl-cap: Article count model
+#| code-fold: false
+
+set.seed(42)
+
+sample_article_counts <- function(month_readership, n_sim_readers) {
+  result <- matrix(
+    ncol = length(DOMAINS),
+    nrow = n_sim_readers,
+    dimnames = list(1:n_sim_readers, DOMAINS)
+  )
+  for (i in 1:nrow(month_readership)) {
+    source <- as.list(month_readership[i, ])
+    n <- rpois(n_sim_readers, source$lambda * source$prob_upf)
+    result[, i] <- n
+  }
+  result
+}
+
+PERIODS <- seq.Date(
+  from = as.Date("2024-01-01"),
+  to = as.Date("2025-05-01"),
+  by = "1 month"
+)
+
+N_SIM_READERS = 1000
+
+sim_counts <- PERIODS |>
+  map(
+    function(p) {
+      sample_article_counts(
+        month_readership = filter(readership, period == p),
+        n_sim_readers = N_SIM_READERS
+      )
+    }
+  )
+```
+
+We can examine how many articles on UPFs the readers are likely to read each month.
+
+```{r}
+#| label: tbl-article-reads-monthly
+#| tbl-caption: Distribution of average number of UPF articles read per month
+monthly_sim_count_totals <- sim_counts |> map(~ table(rowSums(.)))
+
+monthly_sim_count_totals |>
+  map(as.data.frame) |>
+  bind_rows() |>
+  rename(n_upf_articles_read_in_month = Var1) |>
+  group_by(n_upf_articles_read_in_month) |>
+  summarise(percent_of_readers = 100 * mean(Freq) / N_SIM_READERS) |>
+  kable(digits = 1)
+```
+
+This suggests that around 6% of newspaper will read an article on UPFs every month. That seems quite reasonable. The number has grown from around 3% to around 11% over the last year and a half. This is more realistic than our original model, which simply noted a doubling in the number of articles. Our more sophisticated model says the number of articles read has probably tripled, but that they only influence a very small proportion of readers.
+
+```{r}
+#| label: fig-growth-in-readers
+#| fig-cap: Change in percent of simulated readers who read at least one UPF article in a month over time.
+upf_readership_over_time <- map2(
+  PERIODS,
+  monthly_sim_count_totals,
+  function(p, t) {
+    tibble(
+      period = p,
+      pc_sim_readers_reading_at_least_one_article = 100 *
+        (N_SIM_READERS - t[[1]]) /
+        N_SIM_READERS
+    )
+  }
+) |>
+  bind_rows()
+
+ggplot(upf_readership_over_time) +
+  aes(x = period, y = pc_sim_readers_reading_at_least_one_article) +
+  geom_line() +
+  scale_y_continuous(
+    limits = c(0, 100),
+    breaks = seq(0, 100, 20),
+    minor_breaks = seq(0, 100, 10)
+  ) +
+  labs(
+    x = NULL,
+    y = "Percent of simulated readers",
+  )
+```
+
+By examining the model parameters, we can see that the sources that contribute most are the Guardian, the Telegraph, and the Daily Mail.
+
+```{r}
+#| label: tbl-domain-params
+#| tbl-cap: Mean monthly model parameters for each domain.
+#|
+readership |>
+  group_by(domain) |>
+  summarise(
+    lambda = mean(lambda),
+    prob_upf = mean(prob_upf),
+    monthly_readers = mean(monthly_readers),
+    monthly_total_articles = mean(n_total_articles),
+    monthly_upf_articles = mean(n_upf_articles),
+    exp_monthly_upf_articles = mean(lambda * prob_upf)
+  ) |>
+  mutate(
+    exp_monthly_upf_articles = exp_monthly_upf_articles /
+      sum(exp_monthly_upf_articles)
+  ) |>
+  arrange(desc(exp_monthly_upf_articles)) |>
+  kable(digits = c(0, 1, 4, 0, 0, 0, 2))
+```
+
+Again this differs significantly from our simpler model, which would have pinned it all on the Daily Mail, as that source has the largest absolute number of UPF articles. The Telegraph is initially surprising given their comparatively low readership, but they have a very high probability of producing UPF articles.
+
+With a more realistic model of readership achieved, we can move on to the AI polling. The next step is to sample articles for each reader given their counts. In our model, these are the articles that will influence opinions, i.e. those which inform the LLM survey respondents.
 
 # Building the AI model
 
@@ -674,67 +822,6 @@ The thing that would make most difference to perception is how much the responde
 
 To move past this, we're going to have to build a model with some weighted contribution from each publisher each month. We could go nuts with a complex model of what people are exposed to, but...
 
-> Everything should be as simple as possible, but no simpler. (Einstein?)
-
-Let's start by assuming the UK population is exposed to articles from each source in proportion to that source's estimated readership.
-
-### Media breakdown
-
-```{r}
-#| label: fig-readership
-
-readership <- tibble(
-  Domain = factor(DOMAINS, levels = DOMAINS, ordered = TRUE),
-  Readers = c(
-    20, # estimate!
-    19.7,
-    12.3,
-    8.3,
-    5.9,
-    5.7,
-    4.6,
-    2.6,
-    2.5,
-    #1.9,
-    1.3
-  )
-) |>
-  mutate(Readers = Readers / sum(Readers))
-
-ggplot(readership) +
-  aes(y = fct_reorder(Domain, Readers), x = Readers) +
-  geom_col() +
-  labs(y = NULL, x = "Unique monthly readers (millions)")
-```
-
-```{r}
-#| label: model
-#| code-fold: false
-
-# Number of articles in the time period, calibrated such
-# that the expected number of BBC articles is 10 per month.
-readership <- readership |>
-  mutate(
-    lambda = 10 * Readers / max(Readers),
-    # TODO prob_upf
-    prob_upf = 0.1
-  )
-
-n_sim_readers <- 5
-
-result <- matrix(
-  nrow = nrow(readership),
-  ncol = n_sim_readers,
-  dimnames = list(readership$Domain, 1:n_sim_readers)
-)
-for (i in 1:nrow(readership)) {
-  row <- as.list(readership[i, ])
-  n <- rpois(n_sim_readers, row$lambda * row$prob_upf)
-  result[i, ] <- n
-}
-result
-```
-
 
 
 #### NEXT STEPS
@@ -748,17 +835,3 @@ result
 - Calibration: maybe we could rank the articles by concerning-ness, pick thresholds that correspond to the actual response breakdown, and train the LLM on these. We evaluate the accuracy by prediction.
 - On the other hand, maybe there's a cumulative effect: multiple "somewhat" concerning articles could lead to becoming "highly concerned".
 - Also consider, there's perhaps a max-level effect: a single "highly" concerning article probably takes precedence over having multiple "somewhat" concerning or "not very" concerning articles.
-
-#### BELOW THIS LINE IS OLD AND PROBABLY WRONG
-
-However this simplistic model assumes previous articles have no lasting impact, which is obviously wrong. Public opinion doesn't work like that.
-
-How should we model the persistent effect of old news?
-
-## A better model
-
-Typing as I think, there are two ways to go. First we could build some mathematical model, which is a function of the point in time, the previous distribution, and the new distribution predicted for the latest article. This would be a semi-arbitrary rules-based approach, where we would pick how to weight older points. We can use some empirical results for this: the autoregression above suggests we put 0.6 weighting on the prior month.
-
-Alternatively, we could build the prior articles into the LLM's context. The challenge there is representing the time that has passed between seeing the articles. Perhaps we give the LLM a sliding window of say 1-month, and ask it to predict based on only the articles in that month. But we'd still have to incorporate the LLM's "position" prior to the new article somehow. We could perhaps just tell it "you are Somewhat Concerned". Lots of fun, but is it scientific?
-
-To be continued...
