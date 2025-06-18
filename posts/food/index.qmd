@@ -288,6 +288,8 @@ ggplot(
   )
 ```
 
+N.B. The Sun and the Times have further licence restrictions, so aren't included here.
+
 Although the number of articles focused on UPFs is not showing any trend, the number of articles mentioning UPFs is increasing over time. The fluctuation is most likely seasonal, and the trend is apparently upwards. There's _just_ about enough data to fix a SARIMA model. (We ought to have two years, we have eighteen months but the cycles seem to be sub-year.)
 
 ```{r}
@@ -354,9 +356,9 @@ We now have enough information to build a Monte Carlo model of media exposure. W
 
 > Everything should be as simple as possible, but no simpler. (Einstein?)
 
-Let's start by assuming the UK population is exposed to articles from each source in proportion to that source's estimated readership.
+Let's start by assuming the UK population is exposed to articles from each source in proportion to that source's estimated readership. We're going to get a bit maths now.
 
-Let's assume that every reader $r$ samples a number of articles $n_s$ from each source $s$ according to a Poisson distribution. The Poisson distribution is parameterised according to relative readership levels, so for example $\lambda_{BBC} > \lambda_{FT}$ and on average $n_{BBC} > n_{FT}$ but with lots of randomisation, so some of our simulated readers will draw more from the Mail, some more from the Metro, etc.
+Let every reader $r$ sample a number of articles $n_s$ from each source $s$ according to a Poisson distribution - i.e. a natural discrete distribution of counts. The Poisson distribution is parameterised according to relative readership levels, so for example $\lambda_{BBC} > \lambda_{FT}$ and on average $n_{BBC} > n_{FT}$ but with lots of randomisation, so some of our simulated readers will draw more from the Mail, some more from the Metro, etc.
 
 The reader then draws $n_s$ articles at random from each source. (This is a simplification of course.) To represent the fact that only a small proportion of articles from each source in each period are about UPFs, we draw the $n_s$ observations from a binomial distribution parameterised by $p_s$, the relative frequency of UPF articles for the source. The count of UPF-related articles we get back is denoted $d_s$.
 
@@ -375,15 +377,16 @@ $$
 
 This is much faster to compute. We need to do so for each of our simulated readers $r$ to get a count of relevant articles they will read from each source. We then materialise these articles by sampling from the actual UPF articles from the soure in that time period, generate the LLM assessment for the articles, and take the mean assessment.
 
-This is quite a complicated model, but it's also leaving A LOT out. We're ignoring the demographics of each source's readership, for example, and we're making the incorrect assumption that all articles are equally likely to be read. With accurate article readership statistics we could do better, but those are difficult if not impossible to get for all sources. We're also ignoring incomplete reads or misreads.
+This is quite a complicated model, but it's also leaving A LOT out. We're ignoring the demographics of each source's readership, for example, and we're making the incorrect assumption that all articles are equally likely to be read. It would be better to have a multinomial distribution across the articles rather than our simple binomial. Ideally that would be informed by accurate article-level readership statistics, though those are difficult if not impossible to get for all sources. We're also ignoring incomplete reads or misreads.
 
 ```{r}
 #| label: readership
+#| warning: false
 
 readership <- tibble(
   domain = factor(DOMAINS, levels = DOMAINS, ordered = TRUE),
   monthly_readers = 1000000 *
-    c(30, 19.7, 12.3, 8.3, 5.9, 5.7, 4.6, 2.6, 2.5, 1.3) # BBC estimated from online sources
+    c(59, 19.7, 12.3, 8.3, 5.9, 5.7, 4.6, 2.6, 2.5, 1.3) # BBC estimated from OFCOM survey
 ) |>
   merge(
     domain_counts |>
@@ -400,12 +403,22 @@ readership <- tibble(
     prob_upf = n_upf_articles / n_total_articles,
     # Number of articles in the time period, calibrated such
     # that the expected number of BBC articles is approx 1/day.
-    # (Educated guess placeholder)
+    # This is an educated guess, not much research to back it I'm afraid. Pew found in 2015 that
+    # "An overwhelming majority of both long-form readers (72%) and short-form readers (79%)
+    # view just one article on a given site over the course of a month on their cellphone."
+    # - https://www.pewresearch.org/journalism/2016/05/05/long-form-reading-shows-signs-of-life-in-our-mobile-news-world/
+    # That was specific to the heady earlier days of the mobile web though.
+    # I found various industry-backed studies suggesting it could be higher, such as this NewsWorks study that
+    # found young people reading 6/day, however this is really suspicious and they have an
+    # obvious incentive to inflate the numbers.
+    # https://pressgazette.co.uk/media-audience-and-business-data/media_metrics/young-people-news/
     lambda = 30.4 * monthly_readers / max(monthly_readers),
   )
 ```
 
-We build it using R's statistical functions and simulate 1,000 readers. The code for this is very simple.
+I've had to make an educated guess on the expected number of articles read per month - details are in the code above.
+
+We can now build the model using R's statistical functions and simulate a number of readers. The code for this is very simple.
 
 ```{r}
 #| label: tbl-model
@@ -434,7 +447,7 @@ PERIODS <- seq.Date(
   by = "1 month"
 )
 
-N_SIM_READERS = 1000
+N_SIM_READERS = 10000
 
 sim_counts <- PERIODS |>
   map(
@@ -463,7 +476,9 @@ monthly_sim_count_totals |>
   kable(digits = 1)
 ```
 
-This suggests that around 6% of newspaper will read an article on UPFs every month. That seems quite reasonable. The number has grown from around 3% to around 11% over the last year and a half. This is more realistic than our original model, which simply noted a doubling in the number of articles. Our more sophisticated model says the number of articles read has probably tripled, but that they only influence a very small proportion of readers.
+This suggests that around 4% of news readers will read an article on UPFs every month. That seems quite reasonable. The number has grown from around 2% to around 6% over the last year and a half. This is more realistic than our original model, which simply noted a doubling in the number of articles. Our more sophisticated model says the number of articles read has probably tripled, but that they only influence a very small proportion of readers.
+
+A little reminder: we have modelled just the top 10 UK news sources, which have orders of magnitude more eyeballs than all other online news sources. We would expect the contribution from local news, blogs, trade pubs, etc. to be negligible.
 
 ```{r}
 #| label: fig-growth-in-readers
@@ -486,9 +501,9 @@ ggplot(upf_readership_over_time) +
   aes(x = period, y = pc_sim_readers_reading_at_least_one_article) +
   geom_line() +
   scale_y_continuous(
-    limits = c(0, 100),
-    breaks = seq(0, 100, 20),
-    minor_breaks = seq(0, 100, 10)
+    limits = c(0, 20),
+    breaks = seq(0, 20, 10),
+    minor_breaks = seq(0, 20, 5)
   ) +
   labs(
     x = NULL,
@@ -496,7 +511,7 @@ ggplot(upf_readership_over_time) +
   )
 ```
 
-By examining the model parameters, we can see that the sources that contribute most are the Guardian, the Telegraph, and the Daily Mail.
+By examining the model parameters, we can see that the sources that contribute most are the Guardian, the Telegraph, and the BBC.
 
 ```{r}
 #| label: tbl-domain-params
@@ -522,11 +537,61 @@ readership |>
 
 Again this differs significantly from our simpler model, which would have pinned it all on the Daily Mail, as that source has the largest absolute number of UPF articles. The Telegraph is initially surprising given their comparatively low readership, but they have a very high probability of producing UPF articles.
 
-With a more realistic model of readership achieved, we can move on to the AI polling. The next step is to sample articles for each reader given their counts. In our model, these are the articles that will influence opinions, i.e. those which inform the LLM survey respondents.
+With a more realistic model of readership achieved, we can move on to the AI polling. 
 
-# Building the AI model
+# Building the AI's world view
 
-R afficionados, we are using [ellmer](https://ellmer.tidyverse.org), which is becoming the de-facto AI package for R. The approach is to force the LLM into picking a category via structured outputs, and then reviewing the probabilities that it would have picked each category.
+The next step is to sample specific articles for each reader given their counts. In our model, these are the articles that will influence opinions, i.e. those which inform the LLM survey respondents.
+
+```{r}
+#| label: tbl-sampled-articles
+#| tbl-cap: Sampled articles for each reader
+
+sample_index <- expand.grid(
+  period = 1:length(PERIODS),
+  reader = 1:N_SIM_READERS,
+  domain = 1:length(DOMAINS)
+)
+
+sampled_articles <- 1:nrow(sample_index) |>
+  map(
+    function(i) {
+      p <- sample_index[i, 1]
+      r <- sample_index[i, 2]
+      s <- sample_index[i, 3]
+
+      n <- sim_counts[[p]][r, s]
+
+      if (n > 0) {
+        upf_articles |>
+          filter(period == PERIODS[p] & domain == DOMAINS[s]) |>
+          slice_sample(n = n, replace = FALSE) |>
+          mutate(period = PERIODS[p], reader = r, n = n)
+      }
+    },
+    .progress = T
+  ) |>
+  bind_rows()
+
+print(
+  sprintf(
+    "Percent of readers who have read at least one UPF article in the total period: %.1f%%",
+    100 * n_distinct(sampled_articles$reader) / N_SIM_READERS
+  )
+)
+
+head(sampled_articles)
+```
+
+Aggregating this table this tells us that 50% of our reading population have read at least one article about UPFs in the last year and a half.
+
+Finally we're ready to see what effect these articles have on the readers. Break out the AI!
+  
+# Asking the AI questions
+
+Here's an exciting GPU-based statistical model bit (ooh, sexy) as a break from that awful CPU-based statistical model bit (ugh, dull).
+
+R afficionados, we are using [ellmer](https://ellmer.tidyverse.org), which is more or less the de-facto AI package for R. The approach we take is to force the LLM into picking a category via structured outputs, and then reviewing the probabilities that it would have picked each category.
 
 ```{r}
 #| label: ai-sim-functions
@@ -539,15 +604,12 @@ response_cats <- tibble(
 )
 
 llm_answer_distribution <- function(
-  headline,
-  source,
-  date,
+  articles,
   simulated_identity = "Statistically average person"
 ) {
   chat <- chat_openai(
     #base_url = "http://localhost:8080/v1/",
     #model = "gemma-3-1b-it",
-    # Do no local LLM servers provide lob probs?!
     model = "gpt-4.1-nano",
     system_prompt = sprintf(
       "You are a member of the British public, with your own life experiences and opinions.
@@ -556,7 +618,6 @@ llm_answer_distribution <- function(
     <identity>
     %s
     </identity>
-    
     
     You are being asked for your views as part of a survey. Respond to each question from the pollster.",
       simulated_identity
@@ -569,32 +630,43 @@ llm_answer_distribution <- function(
       top_logprobs = 5,
       # Keep the full distribution for sampling
       top_p = 1,
-      # Ensure sampled cat agrees with probs
-      temperature = 0,
+      # Do not adjust the distribution
+      # (Whether log probs are pre- or post- temperature depends on the provider)
+      temperature = 1,
       # Reproducibility
       seed = 42,
     )
   )
 
+  headlines <- articles |>
+    map(function(a) {
+      sprintf(
+        "HEADLINE: %s (%s, %s)",
+        a$headline,
+        a$source,
+        format.Date(a$date, "%d %b %Y")
+      )
+    })
+
   # Now we need a specific answer.
   response <- chat$chat_structured(
     sprintf(
-      "Consider the following headline then answer the question.
+      "Consider the following news articles then answer the question.
 
-  HEADLINE: %s (%s, %s)
+<articles>
+%s
+</articles>
 
-  QUESTION: At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?
-    
-  A) Highly concerned
-  B) Somewhat concerned
-  C) Not very concerned
-  D) Not concerned at all
-  E) Don't know
+QUESTION: At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?
   
-  Respond with the letter of your chosen answer.",
-      headline,
-      source,
-      format.Date(date, "%d %b %Y")
+A) Highly concerned
+B) Somewhat concerned
+C) Not very concerned
+D) Not concerned at all
+E) Don't know
+
+Respond with the letter of your chosen answer.",
+      paste(headlines, sep = "\n")
     ),
     type = type_enum(description = "Answer letter", values = LETTERS[1:5])
   )
@@ -622,12 +694,15 @@ Note that I've removed the response category "I don't know enough to comment" fo
 #| label: tbl-llm-simulation
 #| tbl-cap: Example of simulated AI polling response to a fictional alarming headline.
 #| code-fold: false
-llm_answer_distribution(
-  headline = "Ultra-processed food linked to potential bowel cancer risk, scientists say",
-  source = "Daily Mail",
-  date = as.Date("2024-05-01")
-) |>
-  kable(digits = 3)
+fake_article <- list(
+  list(
+    headline = "Ultra-processed food linked to potential bowel cancer risk, scientists say",
+    source = "Daily Mail",
+    date = as.Date("2024-05-01")
+  )
+)
+
+llm_answer_distribution(fake_article) |> kable(digits = 3)
 ```
 
  We can also manipulate that identity to get a different response distribution.
@@ -635,39 +710,95 @@ llm_answer_distribution(
 ```{r}
 #| label: tbl-hypochondriac
 #| tbl-cap: Response distribution of LLM again, this time with "hypochondriac" identity.
-llm_answer_distribution(
-  headline = "Ultra-processed food linked to potential bowel cancer risk, scientists say",
-  source = "Daily Mail",
-  date = as.Date("2024-05-01"),
-  simulated_identity = "Hypochondriac"
-) |>
+llm_answer_distribution(fake_article, simulated_identity = "Hypochondriac") |>
   kable(digits = 3)
 ```
 
-A basic model, but already quite interesting. Let's apply this to our articles.
+A basic model, but already quite interesting. Let's test it for bias.
 
 ```{r}
-#| label: tbl-articles
-#| tbl-cap: A sample of the articles collected.
-articles <- read_csv(
-  "data/upf-selected-title-matches-no-content.csv",
-  col_select = c("harvestTimeLong", "domain", "title"),
-  show_col_types = F
-) |>
-  mutate(
-    harvestTimeLong = parse_date(
-      str_extract(harvestTimeLong, "(.*) @.*", 1),
-      "%b %d, %Y"
-    ),
-    ArticleId = row_number()
-  ) |>
-  filter(harvestTimeLong < "2025-06-01" & harvestTimeLong >= "2024-01-01") |>
-  rename(Title = title, Date = harvestTimeLong, Domain = domain)
+#| label: tbl-gender-test
+#| tbl-cap: Response distribution of LLM for different genders.
 
-articles |> head() |> kable(digits = 3)
+gender_resp <- c("British man", "British woman") |>
+  map(
+    ~ llm_answer_distribution(fake_article, simulated_identity = .) |>
+      mutate(simulated_identity = .)
+  ) |>
+  bind_rows()
+
+gender_resp |>
+  pivot_wider(
+    id_cols = Response,
+    names_from = simulated_identity,
+    values_from = Probability
+  ) |>
+  kable(digits = 3)
 ```
 
-We can use `furrr` to run every article past the simulated survey respondent in parallel.
+Wow. Stereotype much? But to be brutally honest, that's kind of the point of AI simulated polling, to exploit the biases to model "typical" responses. If we look at the actual responses by gender, we can see that there really is a gender difference in the direction the model predicts (though not as pronounced).
+
+```{r}
+#| label: fig-actual-gender-split
+#| fig-cap: Actual response distribution for different genders. Females are more likely to say they are "highly concerned" about ultra-processed foods.
+
+gender_breakdown <- tidy_df |>
+  filter(str_starts(Demographic, "Gender") & !str_starts(Response, "Net: ")) |>
+  mutate(
+    Response = if_else(Response %in% RESPONSE_CATS, Response, "Don't know"),
+    Response = factor(Response, levels = RESPONSE_CATS, ordered = TRUE),
+    Demographic = str_replace(Demographic, "Gender:: ", "")
+  ) |>
+  # Re-normalise after removing the IDK cat
+  group_by(Question, Demographic, Period) |>
+  mutate(Value = Value / sum(Value)) |>
+  ungroup()
+
+plot_gender_dist <- ggplot(
+  gender_breakdown |>
+    group_by(Demographic, Response) |>
+    summarise(Value = mean(Value)) |>
+    mutate(Value = if_else(Demographic == "Male", Value, -Value))
+) +
+  aes(x = Value, y = fct_rev(Response), fill = Demographic) +
+  scale_fill_manual(values = c("Male" = "orange", "Female" = "purple")) +
+  geom_col() +
+  labs(
+    title = "Gender response distribution",
+    x = "Mean proportion of respondents",
+    y = NULL
+  )
+
+plot_gender_time <- ggplot(gender_breakdown) +
+  aes(x = Period, y = Value, group = Response, colour = Response) +
+  facet_wrap(~Demographic) +
+  geom_point() +
+  stat_smooth(method = "lm") +
+  labs(
+    title = "Response breakdown over time",
+    x = NULL,
+    y = "Proportion of respondents"
+  )
+
+plot_gender_dist + plot_gender_time + plot_layout(nrow = 2, ncol = 1)
+```
+
+To make a useful gender comparison, we'd need to calibrate the LLM such that it's predictions are consistent with known gender biases. One way to achieve this would be rescaling the response distribution.
+
+# Running AI over the dataset
+
+Let's apply this to our articles. We can use `furrr` to run every simulated survey respondent in parallel. We'll start with a single "average person" identity.
+
+```{r}
+#| label: dataset-to-run
+
+samples_per_reader <- sampled_articles |>
+  group_by(period, reader) |>
+  summarize(
+    article_ids = list(sort(article_id)),
+    n_article = n_distinct(article_id),
+  )
+```
 
 ```{r}
 #| label: tbl-example
