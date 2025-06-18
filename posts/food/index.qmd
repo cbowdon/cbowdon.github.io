@@ -736,7 +736,7 @@ gender_resp |>
   kable(digits = 3)
 ```
 
-Wow. Stereotype much? But to be brutally honest, that's kind of the point of AI simulated polling, to exploit the biases to model "typical" responses. If we look at the actual responses by gender, we can see that there really is a gender difference in the direction the model predicts (though not as pronounced).
+Wow. Stereotype much? But to be brutally honest, that's kind of the point of AI simulated polling, to exploit the biases to model "typical" responses. If we look at the actual responses by gender, we can see that there really is a gender difference in the direction the model predicts. Note that we're comparing one (fake) article against the assumed influence of many here, so we don't expect equivalence.
 
 ```{r}
 #| label: fig-actual-gender-split
@@ -783,7 +783,7 @@ plot_gender_time <- ggplot(gender_breakdown) +
 plot_gender_dist + plot_gender_time + plot_layout(nrow = 2, ncol = 1)
 ```
 
-To make a useful gender comparison, we'd need to calibrate the LLM such that it's predictions are consistent with known gender biases. One way to achieve this would be rescaling the response distribution.
+To make a useful gender comparison, we'd need to calibrate the LLM such that it's predictions are consistent with known gender biases. One way to achieve this would be reshaping the response distribution.
 
 # Running AI over the dataset
 
@@ -798,6 +798,8 @@ samples_per_reader <- sampled_articles |>
     article_ids = list(sort(article_id)),
     n_article = n_distinct(article_id),
   )
+
+unique_articles <- unique(samples_per_reader$article_ids)
 ```
 
 ```{r}
@@ -808,30 +810,25 @@ library(furrr)
 
 sim_ident <- "Average person"
 
-simulate_responses <- function(articles, sim_ident) {
+simulate_responses <- function(unique_articles, sim_ident) {
   datafile <- sprintf("data/article-responses - %s.rds", sim_ident)
 
   if (!file.exists(datafile)) {
-    rows <- lapply(1:nrow(articles), function(i) as.list(articles[i, ]))
+    process_reader <- function(art_ids) {
+      arts <- upf_articles |> filter(article_id %in% art_ids)
+      dist <- llm_answer_distribution(
+        map(arts, as.list),
+        simulated_identity = sim_ident
+      )
+      dist |>
+        mutate(article_ids = list(art_ids), simulated_identity = sim_ident)
+    }
 
     with(plan(multisession, workers = 4), {
-      tasks <- future_map(
-        rows,
-        function(row) {
-          dist <- llm_answer_distribution(
-            headline = row$Title,
-            source = row$Domain,
-            date = row$Date,
-            simulated_identity = sim_ident
-          )
-          dist |>
-            mutate(ArticleId = row$ArticleId, simulated_identity = sim_ident)
-        }
-      )
+      tasks <- future_map(unique_articles, process_reader, .progress = TRUE)
     })
 
     article_responses <- bind_rows(tasks) |>
-      merge(articles) |>
       as_tibble() |>
       mutate(
         # responses as ordered factor for plotting
@@ -847,12 +844,10 @@ simulate_responses <- function(articles, sim_ident) {
   read_rds(datafile)
 }
 
-article_responses <- simulate_responses(articles, sim_ident) |>
-  merge(select(articles, ArticleId)) |>
-  as_tibble()
+article_responses <- simulate_responses(unique_articles, sim_ident)
 
 article_responses |>
-  group_by(ArticleId) |>
+  group_by(article_ids) |>
   filter(Probability == max(Probability)) |>
   head() |>
   kable(digits = 3)

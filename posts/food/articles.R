@@ -21,7 +21,9 @@ load_upf_articles <- function() {
     unnest("_source") |>
     unnest("highlight") |>
     filter(domain %in% DOMAINS) |>
+    arrange(harvestTime, domain) |>
     mutate(
+      article_id = row_number(),
       domain = factor(domain, levels = DOMAINS, ordered = TRUE),
       harvestTime = as.Date(harvestTime),
       period = as.Date(strftime(harvestTime, "%Y-%m-01")),
@@ -29,7 +31,7 @@ load_upf_articles <- function() {
     ) |>
     select(-starts_with("_")) |>
     filter(period >= "2024-01-01" & period < "2025-06-01") |>
-    rename(highlights = content)
+    rename(highlights = content, publish_date = harvestTime)
 }
 
 
