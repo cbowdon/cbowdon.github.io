@@ -621,8 +621,8 @@ create_respondent <- function(
     #model = "mlx-community/gemma-3-27b-it-4bit-DWQ",
     #model = "mlx-community/gemma-3-27b-it-qat-8bit",
     # Qwen is great - and clearly biased
-    #model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",
-    model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",
+    model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",
+    #model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",
     #model = "mlx-community/Qwen3-14B-4bit-DWQ-053125",
     system_prompt = sprintf(
       "You are a member of the British public, with your own life experiences and opinions.
@@ -659,7 +659,7 @@ extract_answer_dist <- function(respondent, choices) {
   )
 
   token <- respondent$last_turn()@json$choices[[1]]$logprobs$content |>
-    keep(~ .x$token %in% rc$token) |>
+    keep(~ str_detect(.x$token, paste(rc$token, collapse = "|"))) |>
     first()
 
   token$top_logprobs |>
@@ -674,14 +674,22 @@ extract_answer_dist <- function(respondent, choices) {
 
 ask <- function(respondent, question, choices) {
   mcq <- multiple_choice_question(question, choices)
-  respondent$chat_structured(
-    mcq,
-    type = type_enum(
-      description = "Answer letter",
-      values = LETTERS[1:length(choices)]
-    )
+  tryCatch(
+    {
+      respondent$chat_structured(
+        mcq,
+        type = type_enum(
+          description = "Answer letter",
+          values = LETTERS[1:length(choices)]
+        )
+      )
+      extract_answer_dist(respondent, choices)
+    },
+    error = function(e) {
+      print(respondent$last_turn()@json)
+      stop(e)
+    }
   )
-  extract_answer_dist(respondent, choices)
 }
 
 upf_question <- "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?"
@@ -719,13 +727,13 @@ question_with_articles <- function(question, articles, date_today = today()) {
     })
 
   interpolate(
-    "Today's date is {{date_today}}.
-
-Answer the question, recalling that you have seen the following articles that may or may not have influenced your opinion.
+    "Answer the question, recalling that you have seen the following articles that may or may not have influenced your opinion.
 
 <articles>
 {{headlines}}
 </articles>
+
+(Today's date is {{date_today}}.)
 
 QUESTION: {{question}}",
   )
@@ -866,11 +874,9 @@ library(furrr)
 
 sim_ident <- "Average person"
 
-simulate_responses <- function(unique_samples, sim_ident, force = FALSE) {
-  datafile <- sprintf("data/article-responses - %s.rds", sim_ident)
-
-  if (!file.exists(datafile) || force) {
-    process_reader <- function(row) {
+simulate_reader <- function(row) {
+  tryCatch(
+    {
       arts <- upf_articles |> filter(article_id %in% row$article_ids)
       dist <- ask(
         create_respondent(sim_ident),
@@ -883,30 +889,33 @@ simulate_responses <- function(unique_samples, sim_ident, force = FALSE) {
       )
       dist |>
         mutate(sample_key = row$sample_key, simulated_identity = sim_ident)
-    }
+    },
+    error = \(e) print(e, row)
+  )
+}
 
+map_simulated_readers <- function(unique_samples, sim_ident, force = FALSE) {
+  datafile <- sprintf("data/article-responses - %s.rds", sim_ident)
+
+  if (!file.exists(datafile) || force) {
     with(plan(multisession, workers = 4), {
       tasks <- future_map(
         pmap(unique_samples, list),
-        process_reader,
+        simulate_reader,
         .progress = TRUE
       )
     })
 
     article_responses <- bind_rows(tasks) |> as_tibble()
-
-    if (!force) {
-      article_responses |> write_rds(datafile)
-    }
-    article_responses
-  } else {
-    read_rds(datafile)
+    article_responses |> write_rds(datafile)
   }
+  read_rds(datafile)
 }
 
-article_responses <- simulate_responses(
+article_responses <- map_simulated_readers(
   unique_samples,
-  sim_ident
+  sim_ident,
+  force = TRUE
 )
 
 sim_results <- samples_per_reader |> merge(article_responses)
