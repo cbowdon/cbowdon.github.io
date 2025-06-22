@@ -593,7 +593,7 @@ Here's an exciting GPU-based statistical model bit (ooh, sexy) as a break from t
 
 R afficionados, we are using [ellmer](https://ellmer.tidyverse.org), which is more or less the de-facto AI package for R. The approach we take is to force the LLM into picking a category via structured outputs, and then reviewing the probabilities that it would have picked each category.
 
-To avoid sharing the licensed news data with a third-party, the model is a local LLM running with a patched version of mlx-omni-server.
+To avoid sharing the licensed news data with a third-party, the model is a local LLM running with a patched version of mlx-omni-server. Working with mlx-omni-server is also awesome because when you're confused about some of the finer points of logits and sampling you can just LOOK at the code and see.
 
 ```{r}
 #| label: ai-sim-functions
@@ -617,13 +617,19 @@ create_respondent <- function(
 ) {
   chat_openai(
     base_url = "http://0.0.0.0:10240/v1/",
-    # Gemma is good but seems to be too debiased
+    # Gemma is good
+    #model = "mlx-community/gemma-3-1b-it-4bit-DWQ",
     #model = "mlx-community/gemma-3-27b-it-4bit-DWQ",
     #model = "mlx-community/gemma-3-27b-it-qat-8bit",
-    # Qwen is great - and clearly biased
-    model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",
+    # Qwen is great
+    #model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",
+    #model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125",
     #model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",
-    #model = "mlx-community/Qwen3-14B-4bit-DWQ-053125",
+    model = "mlx-community/Qwen3-14B-4bit-DWQ-053125",
+    # Uncensored?
+    #model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",
+    # GPT for debugging, do not use with data
+    #model = "gpt-4.1-nano",
     system_prompt = sprintf(
       "You are a member of the British public, with your own life experiences and opinions.
 
@@ -636,18 +642,19 @@ You are being asked for your views as part of a survey. Respond to each question
       simulated_identity
     ),
     params = params(
-      # Single output
+      # Single output (all the local server supports)
       n = 1,
       # Get max available log probs
       log_probs = TRUE,
       top_logprobs = 5,
       # Keep the full distribution for sampling
       top_p = 1,
-      # Do not adjust the distribution
-      # (Whether log probs are pre- or post- temperature depends on the provider)
-      temperature = 1,
-      # Reproducibility
-      seed = 42,
+      # Do not adjust the distribution, so no cascading randomness
+      temperature = 0
+    ),
+    api_args = list(
+      # Ensure we disable reasoning from Qwen
+      enable_thinking = FALSE
     )
   )
 }
@@ -662,13 +669,19 @@ extract_answer_dist <- function(respondent, choices) {
     keep(~ str_detect(.x$token, paste(rc$token, collapse = "|"))) |>
     first()
 
+  if (is.null(token)) {
+    stop(
+      respondent$last_turn()@json$choices[[1]]
+    )
+  }
+
   token$top_logprobs |>
     bind_rows() |>
     select(token, logprob) |>
     unique() |>
     merge(rc) |>
     mutate(Probability = exp(logprob)) |>
-    select(Response, Probability) |>
+    select(Response, Probability, logprob) |>
     arrange(Response)
 }
 
@@ -692,14 +705,59 @@ ask <- function(respondent, question, choices) {
   )
 }
 
-upf_question <- "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?"
-ask(create_respondent("Average British person"), upf_question, RESPONSE_CATS) |>
+UPF_QUESTION <- "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?"
+
+ask(create_respondent("Average British person"), UPF_QUESTION, RESPONSE_CATS) |>
   kable(digits = 3)
 ```
 
 We can now get the probability that the LLM would have selected each response in this conversation, given its identity.
 
 Note that I've removed the response category "I don't know enough to comment" for the practical reason that only 5 top log probs are available from the LLM.
+
+Although we have fixed the temperature to zero to avoid cascading randomness from token sampling, there is still some non-determinism at the hardware level. It almost never affects the most likely token, but it does affect the log probs, so we need to sample until the distribution starts to converge.
+
+```{r}
+
+ask_converged <- function(
+  respondent_fn,
+  question,
+  choices,
+  min_n_samples = 3,
+  max_n_samples = 30,
+  tolerance = 0.01
+) {
+  samples <- matrix(0, nrow = max_n_samples, ncol = length(choices))
+
+  old_col_means <- colSums(samples) # zeros
+
+  for (i in 1:max_n_samples) {
+    respondent <- respondent_fn()
+    answer <- ask(respondent, question, choices)
+    samples[i, ] = answer$logprob
+
+    new_col_means <- colSums(samples) / i
+
+    max_diff <- max(abs(new_col_means - old_col_means))
+    old_col_means <- new_col_means
+
+    if (i >= min_n_samples && max_diff < tolerance) {
+      print(sprintf("Converged after %d iters", i))
+      break
+    }
+  }
+  tibble(
+    Response = choices,
+    Probability = exp(new_col_means)
+  )
+}
+
+ask_converged(
+  create_respondent,
+  UPF_QUESTION,
+  RESPONSE_CATS
+)
+```
 
 ```{r}
 #| label: tbl-llm-simulation
@@ -751,9 +809,9 @@ fake_articles <- list(
   )
 )
 
-ask(
-  create_respondent(),
-  question_with_articles(upf_question, fake_articles),
+ask_converged(
+  create_respondent,
+  question_with_articles(UPF_QUESTION, fake_articles),
   RESPONSE_CATS
 ) |>
   kable(digits = 3)
@@ -763,10 +821,12 @@ ask(
 
 ```{r}
 #| label: tbl-concerned
-#| tbl-cap: Response distribution of LLM again, this time with the identity of someone very concerned about living a healthy lifestyle.
-ask(
-  create_respondent("Someone very concerned about living a healthy lifestyle"),
-  question_with_articles(upf_question, fake_articles),
+#| tbl-cap: Response distribution of LLM again, this time with the identity of someone very concerned about their health.
+ask_converged(
+  \() {
+    create_respondent("Someone very concerned about their health")
+  },
+  question_with_articles(UPF_QUESTION, fake_articles),
   RESPONSE_CATS
 ) |>
   kable(digits = 3)
@@ -780,14 +840,16 @@ A basic model, but already quite interesting. Let's test it for bias.
 
 gender_resp <- c("Female", "Male") |>
   map(
-    ~ ask(
-      create_respondent(.),
-      upf_question,
+    ~ ask_converged(
+      \() create_respondent(.),
+      UPF_QUESTION,
       RESPONSE_CATS
     ) |>
       mutate(simulated_identity = .)
   ) |>
   bind_rows()
+
+# gender_resp |> mutate(Net = Response %in% c("Highly concerned", "Somewhat concerned")) |> group_by(simulated_identity, Net) |> summarise(p = sum(Probability))
 
 gender_resp |>
   pivot_wider(
@@ -798,7 +860,9 @@ gender_resp |>
   kable(digits = 3)
 ```
 
-Some bias there! But to be brutally honest, that's kind of the point of AI simulated polling, to exploit the biases to model "typical" responses. If we look at the actual responses by gender, we can see that there really is a gender difference in the direction the model predicts i.e. female respondents were more likely to be highly concerned compared to males.
+There is a little bias there. Normally we would seek to avoid this, but that's the point of AI simulated polling, to exploit the biases to model "typical" responses. If we look at the actual responses by gender, we can see that there really is a gender difference i.e. female respondents were more likely to be highly concerned compared to males.
+
+In my testing, larger models were more likely to demonstrate bias in the same direction as real respondents (i.e. females having more net concern).
 
 ```{r}
 #| label: fig-actual-gender-split
@@ -845,14 +909,16 @@ plot_gender_time <- ggplot(gender_breakdown) +
 plot_gender_dist + plot_gender_time + plot_layout(nrow = 2, ncol = 1)
 ```
 
-To make a useful gender comparison, we'd need to calibrate the LLM such that it's predictions are consistent with known gender biases. One way to achieve this would be reshaping the response distribution. We could also generate a sample of expected responses with the desired distribution and fine-tune the LLM on this.
+To make a useful gender comparison, we'd need to calibrate the LLM such that its predictions are consistent with known gender biases. The original paper from Argyle et al. did this by conditioning the LLM on backstories - where we just have "male" or "female", they have a more comprehensive paragraph - and sampling from a set of backstories designed to be representative of the population.
 
 # Running AI over the dataset
 
-Let's apply this to our articles. We can use `furrr` to run every simulated survey respondent in parallel. We'll start with a single "average person" identity.
+Let's apply this to our articles now. We can use `furrr` to run every simulated survey respondent in parallel. We'll start with a single "average person" identity.
 
 ```{r}
 #| label: dataset-to-run
+#| warning: false
+library(furrr)
 
 samples_per_reader <- sampled_articles |>
   group_by(period, reader) |>
@@ -864,13 +930,6 @@ samples_per_reader <- sampled_articles |>
 
 unique_samples <- samples_per_reader |>
   distinct(period, sample_key, article_ids)
-```
-
-```{r}
-#| label: tbl-example
-#| tbl-cap: Example of the simulated response.
-#| warning: false
-library(furrr)
 
 sim_ident <- "Average person"
 
@@ -879,9 +938,9 @@ simulate_reader <- function(row) {
     {
       arts <- upf_articles |> filter(article_id %in% row$article_ids)
       dist <- ask(
-        create_respondent(sim_ident),
+        \() create_respondent(sim_ident),
         question_with_articles(
-          upf_question,
+          UPF_QUESTION,
           pmap(arts, list),
           date_today = row$period
         ),
@@ -919,18 +978,34 @@ article_responses <- map_simulated_readers(
 )
 
 sim_results <- samples_per_reader |> merge(article_responses)
+```
 
+We have now asked every simulated reader the poll question every month. We have a probability distribution of possible answers for each, so we could up-sample. We also can assume that the readers we didn't simulate saw nothing that would change their minds. This is ignoring word-of-mouth and other forms of media, so for a better model we will need to consider those.
+
+```{r}
+#| label: fig-map-sim
+#| tbl-cap: The simulated response over time.
 ggplot(
   sim_results |>
     group_by(period, Response) |>
-    summarise(Probability = mean(Probability))
+    summarise(Probability = sum(Probability) / N_SIM_READERS)
 ) +
   aes(x = period, y = Probability, group = Response, colour = Response) +
   geom_point() +
-  stat_smooth(method = "lm")
+  stat_smooth()
+
+ggplot(
+  sim_results |>
+    mutate(Concerned = Response %in% RESPONSE_CATS[1:2]) |>
+    group_by(period, Concerned) |>
+    summarise(Probability = sum(Probability) / N_SIM_READERS) |>
+    filter(Concerned)
+) +
+  aes(x = period, y = Probability, group = Concerned, colour = Concerned) +
+  geom_point() +
+  stat_smooth()
 ```
 
-Let's do the simplest thing possible: how does the trend in simulated responses compare to the trend in actual survey responses? Note that the implicit model here is that everyone reads everything and their opinion is the average of what they read.
 
 ```{r}
 #| label: fig-probability
