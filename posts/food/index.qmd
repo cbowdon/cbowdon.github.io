@@ -613,7 +613,7 @@ multiple_choice_question <- function(question, choices) {
 }
 
 create_respondent <- function(
-  simulated_identity = "Statistically average person"
+  simulated_identity = "Average person"
 ) {
   chat_openai(
     base_url = "http://0.0.0.0:10240/v1/",
@@ -718,6 +718,8 @@ Note that I've removed the response category "I don't know enough to comment" fo
 Although we have fixed the temperature to zero to avoid cascading randomness from token sampling, there is still some non-determinism at the hardware level. It almost never affects the most likely token, but it does affect the log probs, so we need to sample until the distribution starts to converge.
 
 ```{r}
+#| label: tbl-converged
+#| tbl-cap: Converged response to UPF question.
 
 ask_converged <- function(
   respondent_fn,
@@ -752,11 +754,12 @@ ask_converged <- function(
   )
 }
 
-ask_converged(
+converged_answer <- ask_converged(
   create_respondent,
   UPF_QUESTION,
   RESPONSE_CATS
 )
+converged_answer |> kable(digits = 3)
 ```
 
 ```{r}
@@ -916,7 +919,7 @@ To make a useful gender comparison, we'd need to calibrate the LLM such that its
 Let's apply this to our articles now. We can use `furrr` to run every simulated survey respondent in parallel. We'll start with a single "average person" identity.
 
 ```{r}
-#| label: dataset-to-run
+#| label: simulate-readers
 #| warning: false
 library(furrr)
 
@@ -938,7 +941,7 @@ simulate_reader <- function(row) {
     {
       arts <- upf_articles |> filter(article_id %in% row$article_ids)
       dist <- ask(
-        \() create_respondent(sim_ident),
+        create_respondent(sim_ident),
         question_with_articles(
           UPF_QUESTION,
           pmap(arts, list),
@@ -974,111 +977,78 @@ map_simulated_readers <- function(unique_samples, sim_ident, force = FALSE) {
 article_responses <- map_simulated_readers(
   unique_samples,
   sim_ident,
-  force = TRUE
+  #force = TRUE
 )
 
 sim_results <- samples_per_reader |> merge(article_responses)
 ```
 
-We have now asked every simulated reader the poll question every month. We have a probability distribution of possible answers for each, so we could up-sample. We also can assume that the readers we didn't simulate saw nothing that would change their minds. This is ignoring word-of-mouth and other forms of media, so for a better model we will need to consider those.
+We have now asked every simulated reader the poll question every month. We have a probability distribution of possible answers for each, so we can up-sample. We also can assume that the readers we didn't simulate saw nothing that would change their minds. This is ignoring word-of-mouth and other forms of media, so for a better model we will need to consider those.
+
+What we need to do now is combine the default probability distribution with the article-readers.
+We'll do that month by month, and we can sample from the converged distribution for the non-readers and sample from the individual distributions for readers. That would be much the same as a weighted sum, which is the simpler option.
 
 ```{r}
-#| label: fig-map-sim
-#| tbl-cap: The simulated response over time.
-ggplot(
-  sim_results |>
-    group_by(period, Response) |>
-    summarise(Probability = sum(Probability) / N_SIM_READERS)
-) +
-  aes(x = period, y = Probability, group = Response, colour = Response) +
-  geom_point() +
-  stat_smooth()
+#| label: fig-sum-distibutions
+#| fig-cap: Comparison of actual and simulated responses over time.
+period_sim_dists <- matrix(nrow = length(PERIODS), ncol = length(RESPONSE_CATS))
 
-ggplot(
-  sim_results |>
-    mutate(Concerned = Response %in% RESPONSE_CATS[1:2]) |>
-    group_by(period, Concerned) |>
-    summarise(Probability = sum(Probability) / N_SIM_READERS) |>
-    filter(Concerned)
-) +
-  aes(x = period, y = Probability, group = Concerned, colour = Concerned) +
-  geom_point() +
-  stat_smooth()
-```
+for (i in seq_along(PERIODS)) {
+  period_sim_results <- sim_results |> filter(period == PERIODS[i])
+  n_non_readers <- N_SIM_READERS - n_distinct(period_sim_results$reader)
 
+  non_reader_dist <- n_non_readers * converged_average$Probability
+  reader_dist <- (period_sim_results |>
+    group_by(Response) |>
+    summarise(p = sum(Probability)))$p
+  total_dist <- non_reader_dist + reader_dist
+  period_sim_dists[i, ] <- total_dist / sum(total_dist)
+}
 
-```{r}
-#| label: fig-probability
-#| fig-cap: Simulated responses (probability) and actual responses over time.
-#| warning: false
+rownames(period_sim_dists) <- as.character(PERIODS)
+colnames(period_sim_dists) <- RESPONSE_CATS
 
-period_dist <- article_responses |>
-  mutate(Period = floor_date(Date, unit = "month") + duration(1, "month")) |>
-  group_by(Period, Response) |>
-  summarise(Probability = mean(Probability), nArticles = n_distinct(ArticleId))
+sim_breakdown <- as_tibble(period_sim_dists) |>
+  mutate(Period = PERIODS) |>
+  pivot_longer(-c(Period), names_to = "Response", values_to = "Value") |>
+  mutate(Response = factor(Response, levels = RESPONSE_CATS, ordered = TRUE))
 
-period_dist_net <- period_dist |>
-  filter(Response %in% c("Highly concerned", "Somewhat concerned")) |>
-  group_by(Period) |>
-  summarise(Probability = sum(Probability))
+sim_net_concern <- sim_breakdown |>
+  mutate(
+    Concerned = Response %in% c("Highly concerned", "Somewhat concerned")
+  ) |>
+  group_by(Period, Concerned) |>
+  summarise(Value = sum(Value)) |>
+  filter(Concerned)
 
-plot_net5 <- ggplot(net_concern) +
-  aes(x = Period, y = Value) +
-  geom_point() +
-  stat_smooth(method = "lm") +
-  scale_y_continuous(limits = c(0, 1)) +
-  labs(title = "Net concern", x = NULL, y = "Proportion of respondents")
-
-plot_sim_net <- ggplot(period_dist_net) +
-  aes(x = Period, y = Probability) +
-  geom_point() +
-  stat_smooth(method = "lm") +
-  scale_y_continuous(limits = c(0, 1)) +
+plot_actual_breakdown <- ggplot(breakdown) +
+  aes(x = Period, y = Value, group = Response, colour = Response) +
+  geom_point(show.legend = FALSE) +
+  stat_smooth(method = "lm", show.legend = FALSE) +
   labs(
-    title = "Simulated net concern",
+    title = "Actual response breakdown",
     x = NULL,
     y = "Proportion of respondents"
   )
 
-plot_breakdown5 <- ggplot(breakdown) +
-  aes(
-    x = Period,
-    y = Value,
-    colour = Response,
-    fill = Response
-  ) +
-  geom_point(show.legend = FALSE) +
-  stat_smooth(method = "lm", show.legend = FALSE) +
-  labs(title = "Response breakdown", x = NULL, y = "Proportion of respondents")
-
-plot_sim_breakdown <- ggplot(period_dist) +
-  aes(
-    x = Period,
-    y = Probability,
-    group = Response,
-    colour = Response,
-    fill = Response
-  ) +
-  geom_point(show.legend = FALSE) +
+plot_sim_breakdown <- ggplot(sim_breakdown) +
+  aes(x = Period, y = Value, group = Response, colour = Response) +
+  geom_point() +
   stat_smooth(method = "lm") +
   labs(
     title = "Simulated response breakdown",
     x = NULL,
-    y = "Proportion of respondents"
+    y = "Proportion of simulated respondents"
   )
 
-plot_net5 +
-  plot_sim_net +
-  plot_breakdown5 +
-  plot_sim_breakdown +
-  plot_layout(ncol = 2, nrow = 2)
+plot_actual_breakdown + plot_sim_breakdown
 ```
 
-This is a mixed bag. The trends do align, although it's clearly miscalibrated. There's also a lot of noise.
+This is encouraging! Remember the AI has _not_ been calibrated on the actual survey data, only on our media model, and yet its predictions are not too far from reality.
 
 ## Digging deeper
 
-If we look at the distribution of responses, we notice that the majority of articles generate a "Somewhat concerned" response. 
+Let's dig into our simulated responses a bit.
 
 ```{r}
 #| label: fig-response-distribution
@@ -1094,22 +1064,23 @@ ggplot(
   labs(x = "Mean probability across all articles", y = "Response")
 ```
 
-Now, we haven't calibrated the LLM on real human responses, but also if you just look at the headlines, anyone who takes them as fact most probably _would_ be concerned. They're all about cancer, bone disease, and early death. So arguably lack of calibration isn't our biggest problem here. The LLM might not be calibrated for the difference between "somewhat" and "highly" concerned, but it does accurately identify which articles are concern-raising. The problem is that the articles are _overwhelmingly_ concerning.
+Again, we haven't calibrated the LLM on real human responses, but among the headlines there are plenty about cancer, bone disease, and early death. "Highly concerned" is not unrealistic.
 
-The thing that would make most difference to perception is how much the respondent trusted the headline, which itself is tightly coupled to which headlines the respondent is exposed to, because in practice people rarely read newspapers they don't trust.
+This suggests that we could be underweighting the influence of media in our model. Considering just the contribution of simulated respondents who were exposed to media shows how these respondents have influenced the overall trend.
 
-To move past this, we're going to have to build a model with some weighted contribution from each publisher each month. We could go nuts with a complex model of what people are exposed to, but...
+```{r}
+#| label: fig-media-sim-over-time
+#| fig-cap: Contribution of simulated readers to response trends.
+ggplot(
+  sim_results |>
+    rename(Period = period) |>
+    group_by(Period, Response) |>
+    summarise(Value = sum(Probability) / N_SIM_READERS)
+) +
+  aes(x = Period, y = Value, group = Response, colour = Response) +
+  geom_point() +
+  stat_smooth() +
+  labs(x = NULL, y = "Proportion of all respondents")
+```
 
-
-
-#### NEXT STEPS
-
-- Build an exposure distribution.
-- Start thinking about cumulative effects/time. The easiest way to do this is to adopt the same monthly resolution as the survey (remembering that the survey must lag the media).
-- Include some weights we can train in this model, learn them, and try prediction.
-- Maybe it's a Bayesian model, where our priors for Influence are drawn from the circulation estimates.
-
-
-- Calibration: maybe we could rank the articles by concerning-ness, pick thresholds that correspond to the actual response breakdown, and train the LLM on these. We evaluate the accuracy by prediction.
-- On the other hand, maybe there's a cumulative effect: multiple "somewhat" concerning articles could lead to becoming "highly concerned".
-- Also consider, there's perhaps a max-level effect: a single "highly" concerning article probably takes precedence over having multiple "somewhat" concerning or "not very" concerning articles.
+It's interesting that the articles appear to have polarised the simulated readers, with both "Highly concerned" and "Not concerned at all" growing. The rise in "Don't know" might be confusion from contradictory articles, or might be due to articles that only mentioned ultra-processed foods in passing.
