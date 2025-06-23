@@ -418,12 +418,10 @@ readership <- tibble(
 
 I've had to make an educated guess on the expected number of articles read per month - details are in the code above.
 
-We can now build the model using R's statistical functions and simulate a number of readers. The code for this is very simple.
+We can now build the model using R's statistical functions and simulate a number of readers. Then we can examine how many articles on UPFs the readers are likely to read each month.
 
 ```{r}
-#| label: tbl-model
-#| tbl-cap: Article count model
-#| code-fold: false
+#| label: model
 
 set.seed(42)
 
@@ -459,8 +457,6 @@ sim_counts <- PERIODS |>
     }
   )
 ```
-
-We can examine how many articles on UPFs the readers are likely to read each month.
 
 ```{r}
 #| label: tbl-article-reads-monthly
@@ -544,8 +540,7 @@ With a more realistic model of readership achieved, we can move on to the AI pol
 The next step is to sample specific articles for each reader given their counts. In our model, these are the articles that will influence opinions, i.e. those which inform the LLM survey respondents.
 
 ```{r}
-#| label: tbl-sampled-articles
-#| tbl-cap: Sampled articles for each reader
+#| label: sampled-articles
 
 sample_index <- expand.grid(
   period = 1:length(PERIODS),
@@ -569,7 +564,7 @@ sampled_articles <- 1:nrow(sample_index) |>
           mutate(period = PERIODS[p], reader = r, n = n)
       }
     },
-    .progress = T
+    .progress = F
   ) |>
   bind_rows()
 
@@ -579,38 +574,54 @@ print(
     100 * n_distinct(sampled_articles$reader) / N_SIM_READERS
   )
 )
-
-head(sampled_articles)
 ```
 
-Aggregating this table this tells us that 50% of our reading population have read at least one article about UPFs in the last year and a half.
+Aggregating this sample this tells us that 50% of our (simulated) reading population have read at least one article about UPFs in the last year and a half.
 
 Finally we're ready to see what effect these articles have on the readers. Break out the AI!
   
 # Asking the AI questions
 
-Here's an exciting GPU-based statistical model bit (ooh, sexy) as a break from that awful CPU-based statistical model bit (ugh, dull).
+Now we get to move on from that awful CPU-based statistic model (boo, dull) to an awesome GPU-based statistic model (wow, sexy).
 
-R afficionados, we are using [ellmer](https://ellmer.tidyverse.org), which is more or less the de-facto AI package for R. The approach we take is to force the LLM into picking a category via structured outputs, and then reviewing the probabilities that it would have picked each category.
+The approach we take is to force the LLM into picking a category via structured outputs, and then reviewing the probabilities that it would have picked each category. R afficionados, we are using [ellmer](https://ellmer.tidyverse.org), which is more or less the de-facto AI package for R.
 
-To avoid sharing the licensed news data with a third-party, the model is a local LLM running with a patched version of mlx-omni-server. Working with mlx-omni-server is also awesome because when you're confused about some of the finer points of logits and sampling you can just LOOK at the code and see.
+To avoid sharing the licensed news data with a third-party, the model is a local Qwen3 model running with a patched version of mlx-omni-server. Qwen3's reasoning has been disabled because that changes the conditioning of the model and we just want its immediate "system 1" response to the survey questions. Working with mlx-omni-server is also awesome because when you're confused about some of the finer points of logits and sampling you can just LOOK at the code and see what's happening.
+
+Most of the AI code is folded, but it's useful to see the prompts.
+
+```{r}
+#| label: prompts
+#| code-fold: false
+# This is the system prompt, which initiates every conversation by giving the AI a persona and instructions.
+SYSTEM_PROMPT <- "You are a member of the British public, with your own life experiences and opinions.
+
+This is your identity: 
+<identity>
+{{simulated_identity}}
+</identity>
+
+You are being asked for your views as part of a survey. Respond to each question from the pollster."
+
+# This is the question precisely as asked in the YouGov survey.
+UPF_QUESTION <- "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?"
+
+# This is how we wrap the question with relevant articles (and a date, for context).
+QUESTION_ARTICLE_WRAPPER <- "Answer the question, recalling that you have seen the following articles that may or may not have influenced your opinion.
+
+<articles>
+{{headlines}}
+</articles>
+
+(Today's date is {{date_today}}.)
+
+QUESTION: {{question}}"
+
+```
 
 ```{r}
 #| label: ai-sim-functions
 library(ellmer)
-
-multiple_choice_question <- function(question, choices) {
-  paste(
-    c(
-      question,
-      "",
-      imap(choices, ~ sprintf("%s) %s", LETTERS[.y], .x)),
-      "",
-      "Respond with the letter of your chosen answer."
-    ),
-    collapse = "\n"
-  )
-}
 
 create_respondent <- function(
   simulated_identity = "Average person"
@@ -630,17 +641,8 @@ create_respondent <- function(
     #model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",
     # GPT for debugging, do not use with data
     #model = "gpt-4.1-nano",
-    system_prompt = sprintf(
-      "You are a member of the British public, with your own life experiences and opinions.
-
-This is your identity: 
-<identity>
-%s
-</identity>
-
-You are being asked for your views as part of a survey. Respond to each question from the pollster.",
-      simulated_identity
-    ),
+    api_key = "n/a",
+    system_prompt = interpolate(SYSTEM_PROMPT),
     params = params(
       # Single output (all the local server supports)
       n = 1,
@@ -685,6 +687,19 @@ extract_answer_dist <- function(respondent, choices) {
     arrange(Response)
 }
 
+multiple_choice_question <- function(question, choices) {
+  paste(
+    c(
+      question,
+      "",
+      imap(choices, ~ sprintf("%s) %s", LETTERS[.y], .x)),
+      "",
+      "Respond with the letter of your chosen answer."
+    ),
+    collapse = "\n"
+  )
+}
+
 ask <- function(respondent, question, choices) {
   mcq <- multiple_choice_question(question, choices)
   tryCatch(
@@ -705,9 +720,7 @@ ask <- function(respondent, question, choices) {
   )
 }
 
-UPF_QUESTION <- "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?"
-
-ask(create_respondent("Average British person"), UPF_QUESTION, RESPONSE_CATS) |>
+ask(create_respondent("Average person"), UPF_QUESTION, RESPONSE_CATS) |>
   kable(digits = 3)
 ```
 
@@ -736,7 +749,7 @@ ask_converged <- function(
   for (i in 1:max_n_samples) {
     respondent <- respondent_fn()
     answer <- ask(respondent, question, choices)
-    samples[i, ] = answer$logprob
+    samples[i, ] = answer$Probability
 
     new_col_means <- colSums(samples) / i
 
@@ -750,7 +763,7 @@ ask_converged <- function(
   }
   tibble(
     Response = choices,
-    Probability = exp(new_col_means)
+    Probability = new_col_means
   )
 }
 
@@ -787,17 +800,7 @@ question_with_articles <- function(question, articles, date_today = today()) {
       )
     })
 
-  interpolate(
-    "Answer the question, recalling that you have seen the following articles that may or may not have influenced your opinion.
-
-<articles>
-{{headlines}}
-</articles>
-
-(Today's date is {{date_today}}.)
-
-QUESTION: {{question}}",
-  )
+  interpolate(QUESTION_ARTICLE_WRAPPER)
 }
 
 fake_articles <- list(
@@ -839,7 +842,7 @@ A basic model, but already quite interesting. Let's test it for bias.
 
 ```{r}
 #| label: tbl-gender-test
-#| tbl-cap: Response distribution of LLM for two different genders.
+#| tbl-cap: Response distribution of LLM for different genders.
 
 gender_resp <- c("Female", "Male") |>
   map(
@@ -997,7 +1000,7 @@ for (i in seq_along(PERIODS)) {
   period_sim_results <- sim_results |> filter(period == PERIODS[i])
   n_non_readers <- N_SIM_READERS - n_distinct(period_sim_results$reader)
 
-  non_reader_dist <- n_non_readers * converged_average$Probability
+  non_reader_dist <- n_non_readers * converged_answer$Probability
   reader_dist <- (period_sim_results |>
     group_by(Response) |>
     summarise(p = sum(Probability)))$p
