@@ -1277,28 +1277,28 @@ Table&nbsp;2: Mean monthly model parameters for each domain.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.434</td>
-<td style="text-align: right;">-0.834</td>
+<td style="text-align: right;">0.184</td>
+<td style="text-align: right;">-1.691</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.462</td>
-<td style="text-align: right;">-0.771</td>
+<td style="text-align: right;">0.568</td>
+<td style="text-align: right;">-0.566</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.059</td>
-<td style="text-align: right;">-2.834</td>
+<td style="text-align: right;">0.196</td>
+<td style="text-align: right;">-1.629</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.011</td>
-<td style="text-align: right;">-4.521</td>
+<td style="text-align: right;">0.013</td>
+<td style="text-align: right;">-4.316</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.033</td>
-<td style="text-align: right;">-3.396</td>
+<td style="text-align: right;">0.039</td>
+<td style="text-align: right;">-3.254</td>
 </tr>
 </tbody>
 </table>
@@ -1314,9 +1314,9 @@ Table&nbsp;2: Mean monthly model parameters for each domain.
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  respondent_fn,</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  question,</span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  choices,</span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">min_n_samples =</span> <span class="dv">3</span>,</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">min_n_samples =</span> <span class="dv">5</span>,</span>
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">max_n_samples =</span> <span class="dv">30</span>,</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">tolerance =</span> <span class="fl">0.01</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">tolerance =</span> <span class="fl">0.005</span></span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>) {</span>
 <span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  samples <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, <span class="at">nrow =</span> max_n_samples, <span class="at">ncol =</span> <span class="fu">length</span>(choices))</span>
 <span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
@@ -1350,7 +1350,7 @@ Table&nbsp;2: Mean monthly model parameters for each domain.
 <span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 8 iters"</code></pre>
+<pre><code>[1] "Converged after 10 iters"</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -1373,23 +1373,23 @@ Table&nbsp;3: Converged response to UPF question.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.472</td>
+<td style="text-align: right;">0.236</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.346</td>
+<td style="text-align: right;">0.401</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.082</td>
+<td style="text-align: right;">0.239</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.023</td>
+<td style="text-align: right;">0.030</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.077</td>
+<td style="text-align: right;">0.094</td>
 </tr>
 </tbody>
 </table>
@@ -1418,7 +1418,7 @@ Table&nbsp;3: Converged response to UPF question.
 <span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
 <span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 3 iters"</code></pre>
+<pre><code>[1] "Converged after 5 iters"</code></pre>
 </div>
 <div id="tbl-llm-simulation" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -1437,23 +1437,23 @@ Table&nbsp;4: Example of simulated AI polling response to a fictional alarming h
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.879</td>
+<td style="text-align: right;">0.887</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.071</td>
+<td style="text-align: right;">0.073</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.013</td>
+<td style="text-align: right;">0.014</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.007</td>
+<td style="text-align: right;">0.006</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.030</td>
+<td style="text-align: right;">0.020</td>
 </tr>
 </tbody>
 </table>
@@ -1471,7 +1471,7 @@ Table&nbsp;4: Example of simulated AI polling response to a fictional alarming h
 <span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
 <span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 3 iters"</code></pre>
+<pre><code>[1] "Converged after 5 iters"</code></pre>
 </div>
 <div id="tbl-concerned" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -1490,15 +1490,15 @@ Table&nbsp;5: Response distribution of LLM again, this time with the identity of
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.950</td>
+<td style="text-align: right;">0.948</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.021</td>
+<td style="text-align: right;">0.025</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.006</td>
+<td style="text-align: right;">0.005</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
@@ -1506,7 +1506,7 @@ Table&nbsp;5: Response distribution of LLM again, this time with the identity of
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.018</td>
+<td style="text-align: right;">0.017</td>
 </tr>
 </tbody>
 </table>
@@ -1531,8 +1531,8 @@ Table&nbsp;5: Response distribution of LLM again, this time with the identity of
 <span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 4 iters"
-[1] "Converged after 6 iters"</code></pre>
+<pre><code>[1] "Converged after 13 iters"
+[1] "Converged after 13 iters"</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -1564,28 +1564,28 @@ Table&nbsp;6: Response distribution of LLM for different genders.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.701</td>
-<td style="text-align: right;">0.661</td>
+<td style="text-align: right;">0.461</td>
+<td style="text-align: right;">0.480</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.233</td>
-<td style="text-align: right;">0.251</td>
+<td style="text-align: right;">0.346</td>
+<td style="text-align: right;">0.314</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.019</td>
-<td style="text-align: right;">0.023</td>
+<td style="text-align: right;">0.098</td>
+<td style="text-align: right;">0.101</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.009</td>
-<td style="text-align: right;">0.012</td>
+<td style="text-align: right;">0.021</td>
+<td style="text-align: right;">0.028</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.038</td>
-<td style="text-align: right;">0.052</td>
+<td style="text-align: right;">0.074</td>
+<td style="text-align: right;">0.077</td>
 </tr>
 </tbody>
 </table>

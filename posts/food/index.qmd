@@ -766,9 +766,9 @@ ask_converged <- function(
   respondent_fn,
   question,
   choices,
-  min_n_samples = 3,
+  min_n_samples = 5,
   max_n_samples = 30,
-  tolerance = 0.01
+  tolerance = 0.005
 ) {
   samples <- matrix(0, nrow = max_n_samples, ncol = length(choices))
 
