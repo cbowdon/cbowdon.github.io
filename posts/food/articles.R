@@ -1,5 +1,25 @@
 library(tidyverse)
 
+s3 <- paws::s3()
+
+PREFIX <- "ai-polling-simulation"
+ARTICLES_FILENAME <- "titles_plus_highlights.json"
+AGGS_FILENAME <- "aggs.json"
+
+datapath <- \(f) sprintf("data/%s", f)
+
+for (f in c(ARTICLES_FILENAME, AGGS_FILENAME)) {
+  filepath <- datapath(f)
+  if (!file.exists(filepath)) {
+    print(paste0("Downloading ", f))
+    download <- s3$get_object(
+      Bucket = Sys.getenv("DATA_BUCKET"),
+      Key = sprintf("%s/%s", PREFIX, f)
+    )
+    writeBin(download, filepath)
+  }
+}
+
 DOMAINS <- c(
   "bbc.co.uk",
   "theguardian.com",
@@ -14,10 +34,7 @@ DOMAINS <- c(
 )
 
 load_upf_articles <- function() {
-  jsonlite::read_json(
-    "data/titles_plus_highlights.json",
-    simplifyVector = T
-  ) |>
+  jsonlite::read_json(datapath(ARTICLES_FILENAME), simplifyVector = T) |>
     unnest("_source") |>
     unnest("highlight") |>
     filter(domain %in% DOMAINS) |>
@@ -36,7 +53,7 @@ load_upf_articles <- function() {
 
 
 load_domain_counts <- function() {
-  jsonlite::read_json("data/aggs.json", simplifyVector = T) |>
+  jsonlite::read_json(datapath(AGGS_FILENAME), simplifyVector = T) |>
     rename(domain = key, total = doc_count) |>
     filter(domain %in% DOMAINS) |>
     mutate(domain = factor(domain, levels = DOMAINS, ordered = TRUE)) |>

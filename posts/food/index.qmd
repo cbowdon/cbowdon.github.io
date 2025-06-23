@@ -4,6 +4,7 @@ date: "2025-05-19"
 categories: [food, uk, r, ai, llm, surveys]
 code-fold: true
 freeze: false
+warning: false
 ---
 
 There's a little drip drip drip of scare stories about ultra-processed food (UPF) a phrase that I'd never heard until this year. I'm starting to get worried. Is everyone else worried? Well it turns out the Food Standards Agency (FSA) has been running a tracker survey containing this question since mid-2023, so we can find out.
@@ -528,7 +529,10 @@ readership |>
       sum(exp_monthly_upf_articles)
   ) |>
   arrange(desc(exp_monthly_upf_articles)) |>
-  kable(digits = c(0, 1, 4, 0, 0, 0, 2))
+  kable(
+    digits = c(0, 1, 4, 0, 0, 0, 2),
+    format.args = list(decimal.mark = ".", big.mark = ",")
+  )
 ```
 
 Again this differs significantly from our simpler model, which would have pinned it all on the Daily Mail, as that source has the largest absolute number of UPF articles. The Telegraph is initially surprising given their comparatively low readership, but they have a very high probability of producing UPF articles.
@@ -687,6 +691,31 @@ extract_answer_dist <- function(respondent, choices) {
     arrange(Response)
 }
 
+question_with_articles <- function(question, articles, date_today = today()) {
+  headlines <- articles |>
+    map(function(a) {
+      with(
+        a,
+        {
+          excerpts <- paste(
+            map(highlights, ~ sprintf("> %s", .)),
+            collapse = "\n"
+          )
+          sprintf(
+            "HEADLINE: %s (%s, %s)\nEXCERPTS:\n%s\n\n",
+            title,
+            domain,
+            publish_date,
+            excerpts
+          )
+        }
+      )
+    })
+
+  interpolate(QUESTION_ARTICLE_WRAPPER)
+}
+
+
 multiple_choice_question <- function(question, choices) {
   paste(
     c(
@@ -779,30 +808,6 @@ converged_answer |> kable(digits = 3)
 #| label: tbl-llm-simulation
 #| tbl-cap: Example of simulated AI polling response to a fictional alarming headline.
 #| code-fold: false
-question_with_articles <- function(question, articles, date_today = today()) {
-  headlines <- articles |>
-    map(function(a) {
-      with(
-        a,
-        {
-          excerpts <- paste(
-            map(highlights, ~ sprintf("> %s", .)),
-            collapse = "\n"
-          )
-          sprintf(
-            "HEADLINE: %s (%s, %s)\nEXCERPTS:\n%s\n\n",
-            title,
-            domain,
-            publish_date,
-            excerpts
-          )
-        }
-      )
-    })
-
-  interpolate(QUESTION_ARTICLE_WRAPPER)
-}
-
 fake_articles <- list(
   list(
     title = "Ultra-processed food linked to potential bowel cancer risk, scientists say",
@@ -816,22 +821,21 @@ fake_articles <- list(
 )
 
 ask_converged(
-  create_respondent,
+  \() create_respondent("Average person"),
   question_with_articles(UPF_QUESTION, fake_articles),
   RESPONSE_CATS
 ) |>
   kable(digits = 3)
 ```
 
- We can also manipulate that identity to get a different response distribution.
+ We can also condition the model on a different identity to get a different response distribution.
 
 ```{r}
 #| label: tbl-concerned
 #| tbl-cap: Response distribution of LLM again, this time with the identity of someone very concerned about their health.
+#| code-fold: false
 ask_converged(
-  \() {
-    create_respondent("Someone very concerned about their health")
-  },
+  \() create_respondent("Someone very concerned about their health"),
   question_with_articles(UPF_QUESTION, fake_articles),
   RESPONSE_CATS
 ) |>
@@ -868,7 +872,7 @@ gender_resp |>
 
 There is a little bias there. Normally we would seek to avoid this, but that's the point of AI simulated polling, to exploit the biases to model "typical" responses. If we look at the actual responses by gender, we can see that there really is a gender difference i.e. female respondents were more likely to be highly concerned compared to males.
 
-In my testing, larger models were more likely to demonstrate bias in the same direction as real respondents (i.e. females having more net concern).
+In my testing, larger models were more likely to demonstrate bias in the same direction as real respondents (i.e. females having more net concern). Not all model families were suitable, for example Gemma 3 was more than 90% weighted towards "Highly concerned".
 
 ```{r}
 #| label: fig-actual-gender-split
@@ -1074,6 +1078,7 @@ This suggests that we could be underweighting the influence of media in our mode
 ```{r}
 #| label: fig-media-sim-over-time
 #| fig-cap: Contribution of simulated readers to response trends.
+#| warning: false
 ggplot(
   sim_results |>
     rename(Period = period) |>
@@ -1087,3 +1092,8 @@ ggplot(
 ```
 
 It's interesting that the articles appear to have polarised the simulated readers, with both "Highly concerned" and "Not concerned at all" growing. The rise in "Don't know" might be confusion from contradictory articles, or might be due to articles that only mentioned ultra-processed foods in passing.
+
+# Where next?
+
+- Best results would come from refining our media model. It seems likely that we're underestimating the media influence.
+- So far we've only simulated thousands of "Average person" identities. Some basic demographic splits would be expected to improve realism.
