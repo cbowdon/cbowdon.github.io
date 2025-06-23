@@ -10,7 +10,7 @@
 <atom:link href="https://cbowdon.github.io/index.xml" rel="self" type="application/rss+xml"/>
 <description>Chris Bowdon&#39;s blog</description>
 <generator>quarto-1.6.32</generator>
-<lastBuildDate>Sun, 18 May 2025 23:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 22 Jun 2025 23:00:00 GMT</lastBuildDate>
 <item>
   <title>Ultra-processed food: an AI polling simulation</title>
   <link>https://cbowdon.github.io/posts/food/</link>
@@ -2904,28 +2904,28 @@ font-style: inherit;">3</span>)</span></code></pre></div>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.362</td>
-<td style="text-align: right;">-1.017</td>
+<td style="text-align: right;">0.434</td>
+<td style="text-align: right;">-0.834</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.526</td>
-<td style="text-align: right;">-0.642</td>
+<td style="text-align: right;">0.462</td>
+<td style="text-align: right;">-0.771</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.071</td>
-<td style="text-align: right;">-2.642</td>
+<td style="text-align: right;">0.059</td>
+<td style="text-align: right;">-2.834</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
 <td style="text-align: right;">0.011</td>
-<td style="text-align: right;">-4.517</td>
+<td style="text-align: right;">-4.521</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.030</td>
-<td style="text-align: right;">-3.517</td>
+<td style="text-align: right;">0.033</td>
+<td style="text-align: right;">-3.396</td>
 </tr>
 </tbody>
 </table>
@@ -3078,7 +3078,7 @@ font-style: inherit;">ask_converged</span>(</span>
 <span id="cb17-38">)</span></code></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 7 iters"</code></pre>
+<pre><code>[1] "Converged after 8 iters"</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -3109,23 +3109,23 @@ Table&nbsp;3: Converged response to UPF question.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.413</td>
+<td style="text-align: right;">0.472</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.388</td>
+<td style="text-align: right;">0.346</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.097</td>
+<td style="text-align: right;">0.082</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.024</td>
+<td style="text-align: right;">0.023</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.078</td>
+<td style="text-align: right;">0.077</td>
 </tr>
 </tbody>
 </table>
@@ -3217,15 +3217,15 @@ Table&nbsp;4: Example of simulated AI polling response to a fictional alarming h
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.899</td>
+<td style="text-align: right;">0.879</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.053</td>
+<td style="text-align: right;">0.071</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.012</td>
+<td style="text-align: right;">0.013</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
@@ -3233,7 +3233,7 @@ Table&nbsp;4: Example of simulated AI polling response to a fictional alarming h
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.029</td>
+<td style="text-align: right;">0.030</td>
 </tr>
 </tbody>
 </table>
@@ -3286,11 +3286,11 @@ Table&nbsp;5: Response distribution of LLM again, this time with the identity of
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.948</td>
+<td style="text-align: right;">0.950</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.024</td>
+<td style="text-align: right;">0.021</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
@@ -3356,7 +3356,7 @@ font-style: inherit;">bind_rows</span>()</span></code></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Converged after 4 iters"
-[1] "Converged after 3 iters"</code></pre>
+[1] "Converged after 6 iters"</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -3408,28 +3408,28 @@ Table&nbsp;6: Response distribution of LLM for different genders.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.707</td>
+<td style="text-align: right;">0.701</td>
 <td style="text-align: right;">0.661</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.231</td>
-<td style="text-align: right;">0.276</td>
+<td style="text-align: right;">0.233</td>
+<td style="text-align: right;">0.251</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.021</td>
-<td style="text-align: right;">0.022</td>
+<td style="text-align: right;">0.019</td>
+<td style="text-align: right;">0.023</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
 <td style="text-align: right;">0.009</td>
-<td style="text-align: right;">0.008</td>
+<td style="text-align: right;">0.012</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.032</td>
-<td style="text-align: right;">0.033</td>
+<td style="text-align: right;">0.038</td>
+<td style="text-align: right;">0.052</td>
 </tr>
 </tbody>
 </table>
@@ -4423,18 +4423,28 @@ Figure&nbsp;10: Contribution of simulated readers to response trends.
 <p>It’s interesting that the articles appear to have polarised the simulated readers, with both “Highly concerned” and “Not concerned at all” growing. The rise in “Don’t know” might be confusion from contradictory articles, or might be due to articles that only mentioned ultra-processed foods in passing.</p>
 </section>
 </section>
-<section id="summary" class="level1">
-<h1>Summary</h1>
-<p>We’ve covered a lot of ground here.</p>
-<section id="where-next" class="level2">
-<h2 class="anchored" data-anchor-id="where-next">Where next?</h2>
+<section id="where-next" class="level1">
+<h1>Where next?</h1>
+<p>We could make some big improvements:</p>
 <ul>
-<li>Best results would come from refining our media model. It seems likely that we’re underestimating the media influence.</li>
-<li>So far we’ve only simulated thousands of “Average person” identities. Some basic demographic splits would be expected to improve realism.</li>
+<li>Better results would come from refining our media model. It seems likely that we’re underestimating the media influence.</li>
+<li>So far we’ve only simulated thousands of “Average person” identities. Some basic demographic splits - the “silicon sampling” approach - would be expected to improve realism. That said, UPFs are not a highly polarised issue so the improvement would most likely be modest here.</li>
 </ul>
-
-
+<p>However, this little project could easily turn into a months-long labour. Time to stop, go outside, touch grass.</p>
 </section>
+<section id="wrapping-up" class="level1">
+<h1>Wrapping up</h1>
+<p>We’ve covered a lot of ground here:</p>
+<ol type="1">
+<li>Collated and visualised the FSA’s tracker survey for concern about UPFs.</li>
+<li>Built a probabilistic media readership model that reflects real UK news consumption.</li>
+<li>Built an LLM-based survey respondent simulator.</li>
+<li>Combined the Monte Carlo media model and the LLM respondents to simulate how British people exposed to news media over the last 18 months would respond to the UPF question, i.e.&nbsp;simulated the FSA’s tracker survey with AI.</li>
+</ol>
+<p>We were following the ideas and approach outlined by Argyle et al, but with a much more niche survey question (British public opinion on UPFs vs US voting preference) and with a media model to capture the information that would truly inform opinion.</p>
+<p>The simulated survey showed some promising correlation with the actual survey. It really is exciting considering the relative effort compared to polling a thousand of people every month. I can’t wait to see how this develops.</p>
+
+
 </section>
 
  ]]></description>
@@ -4445,7 +4455,7 @@ Figure&nbsp;10: Contribution of simulated readers to response trends.
   <category>llm</category>
   <category>surveys</category>
   <guid>https://cbowdon.github.io/posts/food/</guid>
-  <pubDate>Sun, 18 May 2025 23:00:00 GMT</pubDate>
+  <pubDate>Sun, 22 Jun 2025 23:00:00 GMT</pubDate>
 </item>
 <item>
   <title>How fast Carlos Sainz Jr learns</title>

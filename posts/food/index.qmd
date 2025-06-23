@@ -1,6 +1,6 @@
 ---
 title: "Ultra-processed food: an AI polling simulation"
-date: "2025-05-19"
+date: "2025-06-23"
 categories: [food, uk, r, ai, llm, surveys]
 code-fold: true
 warning: false
@@ -1092,11 +1092,24 @@ ggplot(
 
 It's interesting that the articles appear to have polarised the simulated readers, with both "Highly concerned" and "Not concerned at all" growing. The rise in "Don't know" might be confusion from contradictory articles, or might be due to articles that only mentioned ultra-processed foods in passing.
 
-# Summary
+# Where next?
 
-We've covered a lot of ground here.
+We could make some big improvements:
 
-## Where next?
+- Better results would come from refining our media model. It seems likely that we're underestimating the media influence.
+- So far we've only simulated thousands of "Average person" identities. Some basic demographic splits - the "silicon sampling" approach - would be expected to improve realism. That said, UPFs are not a highly polarised issue so the improvement would most likely be modest here.
 
-- Best results would come from refining our media model. It seems likely that we're underestimating the media influence.
-- So far we've only simulated thousands of "Average person" identities. Some basic demographic splits would be expected to improve realism.
+However, this little project could easily turn into a months-long labour. Time to stop, go outside, touch grass.
+
+# Wrapping up
+
+We've covered a lot of ground here:
+
+1. Collated and visualised the FSA's tracker survey for concern about UPFs.
+2. Built a probabilistic media readership model that reflects real UK news consumption.
+3. Built an LLM-based survey respondent simulator.
+4. Combined the Monte Carlo media model and the LLM respondents to simulate how British people exposed to news media over the last 18 months would respond to the UPF question, i.e. simulated the FSA's tracker survey with AI.
+
+We were following the ideas and approach outlined by Argyle et al, but with a much more niche survey question (British public opinion on UPFs vs US voting preference) and with a media model to capture the information that would truly inform opinion.
+
+The simulated survey showed some promising correlation with the actual survey. It really is exciting considering the relative effort compared to polling a thousand of people every month. I can't wait to see how this develops.
