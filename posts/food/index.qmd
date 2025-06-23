@@ -1,9 +1,8 @@
 ---
-title: "Ultra-processed food and AI polling simulation"
+title: "Ultra-processed food: an AI polling simulation"
 date: "2025-05-19"
 categories: [food, uk, r, ai, llm, surveys]
 code-fold: true
-freeze: false
 warning: false
 ---
 
@@ -1093,7 +1092,11 @@ ggplot(
 
 It's interesting that the articles appear to have polarised the simulated readers, with both "Highly concerned" and "Not concerned at all" growing. The rise in "Don't know" might be confusion from contradictory articles, or might be due to articles that only mentioned ultra-processed foods in passing.
 
-# Where next?
+# Summary
+
+We've covered a lot of ground here.
+
+## Where next?
 
 - Best results would come from refining our media model. It seems likely that we're underestimating the media influence.
 - So far we've only simulated thousands of "Average person" identities. Some basic demographic splits would be expected to improve realism.
