@@ -596,6 +596,7 @@ Most of the AI code is folded, but it's useful to see the prompts.
 ```{r}
 #| label: prompts
 #| code-fold: false
+
 # This is the system prompt, which initiates every conversation by giving the AI a persona and instructions.
 SYSTEM_PROMPT <- "You are a member of the British public, with your own life experiences and opinions.
 
@@ -629,6 +630,9 @@ library(ellmer)
 create_respondent <- function(
   simulated_identity = "Average person"
 ) {
+  # mlx-omni-server caches some prompts, which can skew distributions.
+  # To avoid this we inject a meaningless random number at the beginning of each system prompt.
+  cache_buster <- sample.int(9999999999, size = 1)
   chat_openai(
     base_url = "http://0.0.0.0:10240/v1/",
     # Gemma is good
@@ -645,7 +649,11 @@ create_respondent <- function(
     # GPT for debugging, do not use with data
     #model = "gpt-4.1-nano",
     api_key = "n/a",
-    system_prompt = interpolate(SYSTEM_PROMPT),
+    system_prompt = interpolate(sprintf(
+      "%s\n\n%s",
+      cache_buster,
+      SYSTEM_PROMPT
+    )),
     params = params(
       # Single output (all the local server supports)
       n = 1,
@@ -813,8 +821,8 @@ fake_articles <- list(
     domain = "dailymail.co.uk",
     publish_date = as.Date("2025-05-01"),
     highlights = c(
-      "Ultra-processed foods increase the cancer risk by 10000%.",
-      "We should all be concerned about ultra-processed foods."
+      "Ultra-processed foods increase the cancer risk by 3%.",
+      "Maybe we should be concerned about ultra-processed foods."
     )
   )
 )

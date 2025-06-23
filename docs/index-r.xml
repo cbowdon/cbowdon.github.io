@@ -2419,137 +2419,166 @@ font-style: inherit;">simulated_identity =</span> <span class="st" style="color:
 background-color: null;
 font-style: inherit;">"Average person"</span></span>
 <span id="cb16-5">) {</span>
-<span id="cb16-6">  <span class="fu" style="color: #4758AB;
+<span id="cb16-6">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># mlx-omni-server caches some prompts, which can skew distributions.</span></span>
+<span id="cb16-7">  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># To avoid this we inject a meaningless random number at the beginning of each system prompt.</span></span>
+<span id="cb16-8">  cache_buster <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sample.int</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9999999999</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">size =</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb16-9">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">chat_openai</span>(</span>
-<span id="cb16-7">    <span class="at" style="color: #657422;
+<span id="cb16-10">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">base_url =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"http://0.0.0.0:10240/v1/"</span>,</span>
-<span id="cb16-8">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Gemma is good</span></span>
-<span id="cb16-9">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#model = "mlx-community/gemma-3-1b-it-4bit-DWQ",</span></span>
-<span id="cb16-10">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#model = "mlx-community/gemma-3-27b-it-4bit-DWQ",</span></span>
 <span id="cb16-11">    <span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">#model = "mlx-community/gemma-3-27b-it-qat-8bit",</span></span>
+font-style: inherit;"># Gemma is good</span></span>
 <span id="cb16-12">    <span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;"># Qwen is great</span></span>
+font-style: inherit;">#model = "mlx-community/gemma-3-1b-it-4bit-DWQ",</span></span>
 <span id="cb16-13">    <span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">#model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",</span></span>
+font-style: inherit;">#model = "mlx-community/gemma-3-27b-it-4bit-DWQ",</span></span>
 <span id="cb16-14">    <span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">#model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125",</span></span>
+font-style: inherit;">#model = "mlx-community/gemma-3-27b-it-qat-8bit",</span></span>
 <span id="cb16-15">    <span class="co" style="color: #5E5E5E;
 background-color: null;
+font-style: inherit;"># Qwen is great</span></span>
+<span id="cb16-16">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",</span></span>
+<span id="cb16-17">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125",</span></span>
+<span id="cb16-18">    <span class="co" style="color: #5E5E5E;
+background-color: null;
 font-style: inherit;">#model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",</span></span>
-<span id="cb16-16">    <span class="at" style="color: #657422;
+<span id="cb16-19">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">model =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"mlx-community/Qwen3-14B-4bit-DWQ-053125"</span>,</span>
-<span id="cb16-17">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Uncensored?</span></span>
-<span id="cb16-18">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",</span></span>
-<span id="cb16-19">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># GPT for debugging, do not use with data</span></span>
 <span id="cb16-20">    <span class="co" style="color: #5E5E5E;
 background-color: null;
+font-style: inherit;"># Uncensored?</span></span>
+<span id="cb16-21">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",</span></span>
+<span id="cb16-22">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># GPT for debugging, do not use with data</span></span>
+<span id="cb16-23">    <span class="co" style="color: #5E5E5E;
+background-color: null;
 font-style: inherit;">#model = "gpt-4.1-nano",</span></span>
-<span id="cb16-21">    <span class="at" style="color: #657422;
+<span id="cb16-24">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">api_key =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"n/a"</span>,</span>
-<span id="cb16-22">    <span class="at" style="color: #657422;
+<span id="cb16-25">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">system_prompt =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
-font-style: inherit;">interpolate</span>(SYSTEM_PROMPT),</span>
-<span id="cb16-23">    <span class="at" style="color: #657422;
+font-style: inherit;">interpolate</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sprintf</span>(</span>
+<span id="cb16-26">      <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%s</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">\n\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">%s"</span>,</span>
+<span id="cb16-27">      cache_buster,</span>
+<span id="cb16-28">      SYSTEM_PROMPT</span>
+<span id="cb16-29">    )),</span>
+<span id="cb16-30">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">params =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">params</span>(</span>
-<span id="cb16-24">      <span class="co" style="color: #5E5E5E;
+<span id="cb16-31">      <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Single output (all the local server supports)</span></span>
-<span id="cb16-25">      <span class="at" style="color: #657422;
+<span id="cb16-32">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">n =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>,</span>
-<span id="cb16-26">      <span class="co" style="color: #5E5E5E;
+<span id="cb16-33">      <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Get max available log probs</span></span>
-<span id="cb16-27">      <span class="at" style="color: #657422;
+<span id="cb16-34">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">log_probs =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">TRUE</span>,</span>
-<span id="cb16-28">      <span class="at" style="color: #657422;
+<span id="cb16-35">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">top_logprobs =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">5</span>,</span>
-<span id="cb16-29">      <span class="co" style="color: #5E5E5E;
+<span id="cb16-36">      <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Keep the full distribution for sampling</span></span>
-<span id="cb16-30">      <span class="at" style="color: #657422;
+<span id="cb16-37">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">top_p =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>,</span>
-<span id="cb16-31">      <span class="co" style="color: #5E5E5E;
+<span id="cb16-38">      <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Do not adjust the distribution, so no cascading randomness</span></span>
-<span id="cb16-32">      <span class="at" style="color: #657422;
+<span id="cb16-39">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">temperature =</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span></span>
-<span id="cb16-33">    ),</span>
-<span id="cb16-34">    <span class="at" style="color: #657422;
+<span id="cb16-40">    ),</span>
+<span id="cb16-41">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">api_args =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">list</span>(</span>
-<span id="cb16-35">      <span class="co" style="color: #5E5E5E;
+<span id="cb16-42">      <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Ensure we disable reasoning from Qwen</span></span>
-<span id="cb16-36">      <span class="at" style="color: #657422;
+<span id="cb16-43">      <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">enable_thinking =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">FALSE</span></span>
-<span id="cb16-37">    )</span>
-<span id="cb16-38">  )</span>
-<span id="cb16-39">}</span>
-<span id="cb16-40"></span>
-<span id="cb16-41">extract_answer_dist <span class="ot" style="color: #003B4F;
+<span id="cb16-44">    )</span>
+<span id="cb16-45">  )</span>
+<span id="cb16-46">}</span>
+<span id="cb16-47"></span>
+<span id="cb16-48">extract_answer_dist <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(respondent, choices) {</span>
-<span id="cb16-42">  rc <span class="ot" style="color: #003B4F;
+<span id="cb16-49">  rc <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">tibble</span>(</span>
-<span id="cb16-43">    <span class="at" style="color: #657422;
+<span id="cb16-50">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">token =</span> LETTERS[<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -2558,7 +2587,7 @@ background-color: null;
 font-style: inherit;">:</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">length</span>(choices)],</span>
-<span id="cb16-44">    <span class="at" style="color: #657422;
+<span id="cb16-51">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">Response =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
@@ -2569,9 +2598,9 @@ background-color: null;
 font-style: inherit;">ordered =</span> <span class="cn" style="color: #8f5902;
 background-color: null;
 font-style: inherit;">TRUE</span>)</span>
-<span id="cb16-45">  )</span>
-<span id="cb16-46"></span>
-<span id="cb16-47">  token <span class="ot" style="color: #003B4F;
+<span id="cb16-52">  )</span>
+<span id="cb16-53"></span>
+<span id="cb16-54">  token <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> respondent<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -2590,7 +2619,7 @@ background-color: null;
 font-style: inherit;">$</span>content <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-48">    <span class="fu" style="color: #4758AB;
+<span id="cb16-55">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">keep</span>(<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -2609,20 +2638,20 @@ background-color: null;
 font-style: inherit;">"|"</span>))) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-49">    <span class="fu" style="color: #4758AB;
+<span id="cb16-56">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">first</span>()</span>
-<span id="cb16-50"></span>
-<span id="cb16-51">  <span class="cf" style="color: #003B4F;
+<span id="cb16-57"></span>
+<span id="cb16-58">  <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">is.null</span>(token)) {</span>
-<span id="cb16-52">    <span class="fu" style="color: #4758AB;
+<span id="cb16-59">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">stop</span>(</span>
-<span id="cb16-53">      respondent<span class="sc" style="color: #5E5E5E;
+<span id="cb16-60">      respondent<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -2633,35 +2662,35 @@ background-color: null;
 font-style: inherit;">$</span>choices[[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>]]</span>
-<span id="cb16-54">    )</span>
-<span id="cb16-55">  }</span>
-<span id="cb16-56"></span>
-<span id="cb16-57">  token<span class="sc" style="color: #5E5E5E;
+<span id="cb16-61">    )</span>
+<span id="cb16-62">  }</span>
+<span id="cb16-63"></span>
+<span id="cb16-64">  token<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span>top_logprobs <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-58">    <span class="fu" style="color: #4758AB;
+<span id="cb16-65">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">bind_rows</span>() <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-59">    <span class="fu" style="color: #4758AB;
+<span id="cb16-66">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">select</span>(token, logprob) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-60">    <span class="fu" style="color: #4758AB;
+<span id="cb16-67">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">unique</span>() <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-61">    <span class="fu" style="color: #4758AB;
+<span id="cb16-68">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">merge</span>(rc) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-62">    <span class="fu" style="color: #4758AB;
+<span id="cb16-69">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">mutate</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -2670,17 +2699,17 @@ background-color: null;
 font-style: inherit;">exp</span>(logprob)) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-63">    <span class="fu" style="color: #4758AB;
+<span id="cb16-70">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">select</span>(Response, Probability, logprob) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-64">    <span class="fu" style="color: #4758AB;
+<span id="cb16-71">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">arrange</span>(Response)</span>
-<span id="cb16-65">}</span>
-<span id="cb16-66"></span>
-<span id="cb16-67">question_with_articles <span class="ot" style="color: #003B4F;
+<span id="cb16-72">}</span>
+<span id="cb16-73"></span>
+<span id="cb16-74">question_with_articles <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
@@ -2690,28 +2719,28 @@ background-color: null;
 font-style: inherit;">date_today =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">today</span>()) {</span>
-<span id="cb16-68">  headlines <span class="ot" style="color: #003B4F;
+<span id="cb16-75">  headlines <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> articles <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-69">    <span class="fu" style="color: #4758AB;
+<span id="cb16-76">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">map</span>(<span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(a) {</span>
-<span id="cb16-70">      <span class="fu" style="color: #4758AB;
+<span id="cb16-77">      <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">with</span>(</span>
-<span id="cb16-71">        a,</span>
-<span id="cb16-72">        {</span>
-<span id="cb16-73">          excerpts <span class="ot" style="color: #003B4F;
+<span id="cb16-78">        a,</span>
+<span id="cb16-79">        {</span>
+<span id="cb16-80">          excerpts <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">paste</span>(</span>
-<span id="cb16-74">            <span class="fu" style="color: #4758AB;
+<span id="cb16-81">            <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">map</span>(highlights, <span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -2720,7 +2749,7 @@ background-color: null;
 font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"&gt; %s"</span>, .)),</span>
-<span id="cb16-75">            <span class="at" style="color: #657422;
+<span id="cb16-82">            <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">collapse =</span> <span class="st" style="color: #20794D;
 background-color: null;
@@ -2729,11 +2758,11 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span></span>
-<span id="cb16-76">          )</span>
-<span id="cb16-77">          <span class="fu" style="color: #4758AB;
+<span id="cb16-83">          )</span>
+<span id="cb16-84">          <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">sprintf</span>(</span>
-<span id="cb16-78">            <span class="st" style="color: #20794D;
+<span id="cb16-85">            <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"HEADLINE: %s (%s, %s)</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -2748,38 +2777,38 @@ background-color: null;
 font-style: inherit;">\n\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>,</span>
-<span id="cb16-79">            title,</span>
-<span id="cb16-80">            domain,</span>
-<span id="cb16-81">            publish_date,</span>
-<span id="cb16-82">            excerpts</span>
-<span id="cb16-83">          )</span>
-<span id="cb16-84">        }</span>
-<span id="cb16-85">      )</span>
-<span id="cb16-86">    })</span>
-<span id="cb16-87"></span>
-<span id="cb16-88">  <span class="fu" style="color: #4758AB;
+<span id="cb16-86">            title,</span>
+<span id="cb16-87">            domain,</span>
+<span id="cb16-88">            publish_date,</span>
+<span id="cb16-89">            excerpts</span>
+<span id="cb16-90">          )</span>
+<span id="cb16-91">        }</span>
+<span id="cb16-92">      )</span>
+<span id="cb16-93">    })</span>
+<span id="cb16-94"></span>
+<span id="cb16-95">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">interpolate</span>(QUESTION_ARTICLE_WRAPPER)</span>
-<span id="cb16-89">}</span>
-<span id="cb16-90"></span>
-<span id="cb16-91"></span>
-<span id="cb16-92">multiple_choice_question <span class="ot" style="color: #003B4F;
+<span id="cb16-96">}</span>
+<span id="cb16-97"></span>
+<span id="cb16-98"></span>
+<span id="cb16-99">multiple_choice_question <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(question, choices) {</span>
-<span id="cb16-93">  <span class="fu" style="color: #4758AB;
+<span id="cb16-100">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">paste</span>(</span>
-<span id="cb16-94">    <span class="fu" style="color: #4758AB;
+<span id="cb16-101">    <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">c</span>(</span>
-<span id="cb16-95">      question,</span>
-<span id="cb16-96">      <span class="st" style="color: #20794D;
+<span id="cb16-102">      question,</span>
+<span id="cb16-103">      <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">""</span>,</span>
-<span id="cb16-97">      <span class="fu" style="color: #4758AB;
+<span id="cb16-104">      <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">imap</span>(choices, <span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -2788,14 +2817,14 @@ background-color: null;
 font-style: inherit;">sprintf</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"%s) %s"</span>, LETTERS[.y], .x)),</span>
-<span id="cb16-98">      <span class="st" style="color: #20794D;
+<span id="cb16-105">      <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">""</span>,</span>
-<span id="cb16-99">      <span class="st" style="color: #20794D;
+<span id="cb16-106">      <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Respond with the letter of your chosen answer."</span></span>
-<span id="cb16-100">    ),</span>
-<span id="cb16-101">    <span class="at" style="color: #657422;
+<span id="cb16-107">    ),</span>
+<span id="cb16-108">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">collapse =</span> <span class="st" style="color: #20794D;
 background-color: null;
@@ -2804,41 +2833,41 @@ background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span></span>
-<span id="cb16-102">  )</span>
-<span id="cb16-103">}</span>
-<span id="cb16-104"></span>
-<span id="cb16-105">ask <span class="ot" style="color: #003B4F;
+<span id="cb16-109">  )</span>
+<span id="cb16-110">}</span>
+<span id="cb16-111"></span>
+<span id="cb16-112">ask <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(respondent, question, choices) {</span>
-<span id="cb16-106">  mcq <span class="ot" style="color: #003B4F;
+<span id="cb16-113">  mcq <span class="ot" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">multiple_choice_question</span>(question, choices)</span>
-<span id="cb16-107">  <span class="fu" style="color: #4758AB;
+<span id="cb16-114">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">tryCatch</span>(</span>
-<span id="cb16-108">    {</span>
-<span id="cb16-109">      respondent<span class="sc" style="color: #5E5E5E;
+<span id="cb16-115">    {</span>
+<span id="cb16-116">      respondent<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">$</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">chat_structured</span>(</span>
-<span id="cb16-110">        mcq,</span>
-<span id="cb16-111">        <span class="at" style="color: #657422;
+<span id="cb16-117">        mcq,</span>
+<span id="cb16-118">        <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">type =</span> <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">type_enum</span>(</span>
-<span id="cb16-112">          <span class="at" style="color: #657422;
+<span id="cb16-119">          <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">description =</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Answer letter"</span>,</span>
-<span id="cb16-113">          <span class="at" style="color: #657422;
+<span id="cb16-120">          <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">values =</span> LETTERS[<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -2847,19 +2876,19 @@ background-color: null;
 font-style: inherit;">:</span><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">length</span>(choices)]</span>
-<span id="cb16-114">        )</span>
-<span id="cb16-115">      )</span>
-<span id="cb16-116">      <span class="fu" style="color: #4758AB;
+<span id="cb16-121">        )</span>
+<span id="cb16-122">      )</span>
+<span id="cb16-123">      <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">extract_answer_dist</span>(respondent, choices)</span>
-<span id="cb16-117">    },</span>
-<span id="cb16-118">    <span class="at" style="color: #657422;
+<span id="cb16-124">    },</span>
+<span id="cb16-125">    <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">error =</span> <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">function</span>(e) {</span>
-<span id="cb16-119">      <span class="fu" style="color: #4758AB;
+<span id="cb16-126">      <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">print</span>(respondent<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -2868,14 +2897,14 @@ background-color: null;
 font-style: inherit;">last_turn</span>()<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">@</span>json)</span>
-<span id="cb16-120">      <span class="fu" style="color: #4758AB;
+<span id="cb16-127">      <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">stop</span>(e)</span>
-<span id="cb16-121">    }</span>
-<span id="cb16-122">  )</span>
-<span id="cb16-123">}</span>
-<span id="cb16-124"></span>
-<span id="cb16-125"><span class="fu" style="color: #4758AB;
+<span id="cb16-128">    }</span>
+<span id="cb16-129">  )</span>
+<span id="cb16-130">}</span>
+<span id="cb16-131"></span>
+<span id="cb16-132"><span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">ask</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
@@ -2884,7 +2913,7 @@ background-color: null;
 font-style: inherit;">"Average person"</span>), UPF_QUESTION, RESPONSE_CATS) <span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">|&gt;</span></span>
-<span id="cb16-126">  <span class="fu" style="color: #4758AB;
+<span id="cb16-133">  <span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">kable</span>(<span class="at" style="color: #657422;
 background-color: null;
@@ -2904,28 +2933,28 @@ font-style: inherit;">3</span>)</span></code></pre></div>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.184</td>
-<td style="text-align: right;">-1.691</td>
+<td style="text-align: right;">0.213</td>
+<td style="text-align: right;">-1.546</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.568</td>
-<td style="text-align: right;">-0.566</td>
+<td style="text-align: right;">0.451</td>
+<td style="text-align: right;">-0.796</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.196</td>
-<td style="text-align: right;">-1.629</td>
+<td style="text-align: right;">0.241</td>
+<td style="text-align: right;">-1.421</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.013</td>
-<td style="text-align: right;">-4.316</td>
+<td style="text-align: right;">0.025</td>
+<td style="text-align: right;">-3.671</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.039</td>
-<td style="text-align: right;">-3.254</td>
+<td style="text-align: right;">0.069</td>
+<td style="text-align: right;">-2.671</td>
 </tr>
 </tbody>
 </table>
@@ -3078,7 +3107,7 @@ font-style: inherit;">ask_converged</span>(</span>
 <span id="cb17-38">)</span></code></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 10 iters"</code></pre>
+<pre><code>[1] "Converged after 5 iters"</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -3109,23 +3138,23 @@ Table&nbsp;3: Converged response to UPF question.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.236</td>
+<td style="text-align: right;">0.237</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.401</td>
+<td style="text-align: right;">0.421</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.239</td>
+<td style="text-align: right;">0.243</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.030</td>
+<td style="text-align: right;">0.025</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.094</td>
+<td style="text-align: right;">0.074</td>
 </tr>
 </tbody>
 </table>
@@ -3167,10 +3196,10 @@ background-color: null;
 font-style: inherit;">c</span>(</span>
 <span id="cb20-7">      <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"Ultra-processed foods increase the cancer risk by 10000%."</span>,</span>
+font-style: inherit;">"Ultra-processed foods increase the cancer risk by 3%."</span>,</span>
 <span id="cb20-8">      <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"We should all be concerned about ultra-processed foods."</span></span>
+font-style: inherit;">"Maybe we should be concerned about ultra-processed foods."</span></span>
 <span id="cb20-9">    )</span>
 <span id="cb20-10">  )</span>
 <span id="cb20-11">)</span>
@@ -3217,23 +3246,23 @@ Table&nbsp;4: Example of simulated AI polling response to a fictional alarming h
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.887</td>
+<td style="text-align: right;">0.105</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.073</td>
+<td style="text-align: right;">0.795</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.014</td>
+<td style="text-align: right;">0.073</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.006</td>
+<td style="text-align: right;">0.009</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.020</td>
+<td style="text-align: right;">0.018</td>
 </tr>
 </tbody>
 </table>
@@ -3286,23 +3315,23 @@ Table&nbsp;5: Response distribution of LLM again, this time with the identity of
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.948</td>
+<td style="text-align: right;">0.378</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.025</td>
+<td style="text-align: right;">0.593</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.005</td>
+<td style="text-align: right;">0.016</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.005</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.017</td>
+<td style="text-align: right;">0.008</td>
 </tr>
 </tbody>
 </table>
@@ -3355,8 +3384,8 @@ background-color: null;
 font-style: inherit;">bind_rows</span>()</span></code></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 13 iters"
-[1] "Converged after 13 iters"</code></pre>
+<pre><code>[1] "Converged after 5 iters"
+[1] "Converged after 5 iters"</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -3408,28 +3437,28 @@ Table&nbsp;6: Response distribution of LLM for different genders.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.461</td>
-<td style="text-align: right;">0.480</td>
+<td style="text-align: right;">0.485</td>
+<td style="text-align: right;">0.404</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.346</td>
-<td style="text-align: right;">0.314</td>
+<td style="text-align: right;">0.359</td>
+<td style="text-align: right;">0.371</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.098</td>
-<td style="text-align: right;">0.101</td>
+<td style="text-align: right;">0.087</td>
+<td style="text-align: right;">0.140</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.021</td>
-<td style="text-align: right;">0.028</td>
+<td style="text-align: right;">0.019</td>
+<td style="text-align: right;">0.025</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.074</td>
-<td style="text-align: right;">0.077</td>
+<td style="text-align: right;">0.049</td>
+<td style="text-align: right;">0.061</td>
 </tr>
 </tbody>
 </table>

@@ -1143,127 +1143,134 @@ Table&nbsp;2: Mean monthly model parameters for each domain.
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>create_respondent <span class="ot">&lt;-</span> <span class="cf">function</span>(</span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">simulated_identity =</span> <span class="st">"Average person"</span></span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>) {</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">chat_openai</span>(</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">base_url =</span> <span class="st">"http://0.0.0.0:10240/v1/"</span>,</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Gemma is good</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/gemma-3-1b-it-4bit-DWQ",</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/gemma-3-27b-it-4bit-DWQ",</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/gemma-3-27b-it-qat-8bit",</span></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Qwen is great</span></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",</span></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125",</span></span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",</span></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">"mlx-community/Qwen3-14B-4bit-DWQ-053125"</span>,</span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Uncensored?</span></span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",</span></span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># GPT for debugging, do not use with data</span></span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "gpt-4.1-nano",</span></span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">api_key =</span> <span class="st">"n/a"</span>,</span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">system_prompt =</span> <span class="fu">interpolate</span>(SYSTEM_PROMPT),</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">params =</span> <span class="fu">params</span>(</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Single output (all the local server supports)</span></span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>      <span class="at">n =</span> <span class="dv">1</span>,</span>
-<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Get max available log probs</span></span>
-<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">log_probs =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>      <span class="at">top_logprobs =</span> <span class="dv">5</span>,</span>
-<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Keep the full distribution for sampling</span></span>
-<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">top_p =</span> <span class="dv">1</span>,</span>
-<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Do not adjust the distribution, so no cascading randomness</span></span>
-<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">temperature =</span> <span class="dv">0</span></span>
-<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">api_args =</span> <span class="fu">list</span>(</span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Ensure we disable reasoning from Qwen</span></span>
-<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">enable_thinking =</span> <span class="cn">FALSE</span></span>
-<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>extract_answer_dist <span class="ot">&lt;-</span> <span class="cf">function</span>(respondent, choices) {</span>
-<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>  rc <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">token =</span> LETTERS[<span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(choices)],</span>
-<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">Response =</span> <span class="fu">factor</span>(choices, <span class="at">levels =</span> choices, <span class="at">ordered =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># mlx-omni-server caches some prompts, which can skew distributions.</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># To avoid this we inject a meaningless random number at the beginning of each system prompt.</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  cache_buster <span class="ot">&lt;-</span> <span class="fu">sample.int</span>(<span class="dv">9999999999</span>, <span class="at">size =</span> <span class="dv">1</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">chat_openai</span>(</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">base_url =</span> <span class="st">"http://0.0.0.0:10240/v1/"</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Gemma is good</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/gemma-3-1b-it-4bit-DWQ",</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/gemma-3-27b-it-4bit-DWQ",</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/gemma-3-27b-it-qat-8bit",</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Qwen is great</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125",</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">model =</span> <span class="st">"mlx-community/Qwen3-14B-4bit-DWQ-053125"</span>,</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Uncensored?</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># GPT for debugging, do not use with data</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">#model = "gpt-4.1-nano",</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">api_key =</span> <span class="st">"n/a"</span>,</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">system_prompt =</span> <span class="fu">interpolate</span>(<span class="fu">sprintf</span>(</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>      <span class="st">"%s</span><span class="sc">\n\n</span><span class="st">%s"</span>,</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>      cache_buster,</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>      SYSTEM_PROMPT</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>    )),</span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">params =</span> <span class="fu">params</span>(</span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Single output (all the local server supports)</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">n =</span> <span class="dv">1</span>,</span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Get max available log probs</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">log_probs =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">top_logprobs =</span> <span class="dv">5</span>,</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Keep the full distribution for sampling</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>      <span class="at">top_p =</span> <span class="dv">1</span>,</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Do not adjust the distribution, so no cascading randomness</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>      <span class="at">temperature =</span> <span class="dv">0</span></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">api_args =</span> <span class="fu">list</span>(</span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Ensure we disable reasoning from Qwen</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>      <span class="at">enable_thinking =</span> <span class="cn">FALSE</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>  token <span class="ot">&lt;-</span> respondent<span class="sc">$</span><span class="fu">last_turn</span>()<span class="sc">@</span>json<span class="sc">$</span>choices[[<span class="dv">1</span>]]<span class="sc">$</span>logprobs<span class="sc">$</span>content <span class="sc">|&gt;</span></span>
-<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">keep</span>(<span class="sc">~</span> <span class="fu">str_detect</span>(.x<span class="sc">$</span>token, <span class="fu">paste</span>(rc<span class="sc">$</span>token, <span class="at">collapse =</span> <span class="st">"|"</span>))) <span class="sc">|&gt;</span></span>
-<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">first</span>()</span>
-<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(token)) {</span>
-<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(</span>
-<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>      respondent<span class="sc">$</span><span class="fu">last_turn</span>()<span class="sc">@</span>json<span class="sc">$</span>choices[[<span class="dv">1</span>]]</span>
-<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>  token<span class="sc">$</span>top_logprobs <span class="sc">|&gt;</span></span>
-<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>() <span class="sc">|&gt;</span></span>
-<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(token, logprob) <span class="sc">|&gt;</span></span>
-<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>    <span class="fu">unique</span>() <span class="sc">|&gt;</span></span>
-<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">merge</span>(rc) <span class="sc">|&gt;</span></span>
-<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Probability =</span> <span class="fu">exp</span>(logprob)) <span class="sc">|&gt;</span></span>
-<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(Response, Probability, logprob) <span class="sc">|&gt;</span></span>
-<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(Response)</span>
-<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a>question_with_articles <span class="ot">&lt;-</span> <span class="cf">function</span>(question, articles, <span class="at">date_today =</span> <span class="fu">today</span>()) {</span>
-<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a>  headlines <span class="ot">&lt;-</span> articles <span class="sc">|&gt;</span></span>
-<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(<span class="cf">function</span>(a) {</span>
-<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>      <span class="fu">with</span>(</span>
-<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>        a,</span>
-<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>        {</span>
-<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a>          excerpts <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
-<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>            <span class="fu">map</span>(highlights, <span class="sc">~</span> <span class="fu">sprintf</span>(<span class="st">"&gt; %s"</span>, .)),</span>
-<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>            <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span></span>
-<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a>          )</span>
-<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a>          <span class="fu">sprintf</span>(</span>
-<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a>            <span class="st">"HEADLINE: %s (%s, %s)</span><span class="sc">\n</span><span class="st">EXCERPTS:</span><span class="sc">\n</span><span class="st">%s</span><span class="sc">\n\n</span><span class="st">"</span>,</span>
-<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a>            title,</span>
-<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a>            domain,</span>
-<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a>            publish_date,</span>
-<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>            excerpts</span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>extract_answer_dist <span class="ot">&lt;-</span> <span class="cf">function</span>(respondent, choices) {</span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>  rc <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">token =</span> LETTERS[<span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(choices)],</span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">Response =</span> <span class="fu">factor</span>(choices, <span class="at">levels =</span> choices, <span class="at">ordered =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>  token <span class="ot">&lt;-</span> respondent<span class="sc">$</span><span class="fu">last_turn</span>()<span class="sc">@</span>json<span class="sc">$</span>choices[[<span class="dv">1</span>]]<span class="sc">$</span>logprobs<span class="sc">$</span>content <span class="sc">|&gt;</span></span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">keep</span>(<span class="sc">~</span> <span class="fu">str_detect</span>(.x<span class="sc">$</span>token, <span class="fu">paste</span>(rc<span class="sc">$</span>token, <span class="at">collapse =</span> <span class="st">"|"</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>    <span class="fu">first</span>()</span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(token)) {</span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stop</span>(</span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>      respondent<span class="sc">$</span><span class="fu">last_turn</span>()<span class="sc">@</span>json<span class="sc">$</span>choices[[<span class="dv">1</span>]]</span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>  token<span class="sc">$</span>top_logprobs <span class="sc">|&gt;</span></span>
+<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_rows</span>() <span class="sc">|&gt;</span></span>
+<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(token, logprob) <span class="sc">|&gt;</span></span>
+<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a>    <span class="fu">unique</span>() <span class="sc">|&gt;</span></span>
+<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a>    <span class="fu">merge</span>(rc) <span class="sc">|&gt;</span></span>
+<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">Probability =</span> <span class="fu">exp</span>(logprob)) <span class="sc">|&gt;</span></span>
+<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(Response, Probability, logprob) <span class="sc">|&gt;</span></span>
+<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(Response)</span>
+<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>question_with_articles <span class="ot">&lt;-</span> <span class="cf">function</span>(question, articles, <span class="at">date_today =</span> <span class="fu">today</span>()) {</span>
+<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>  headlines <span class="ot">&lt;-</span> articles <span class="sc">|&gt;</span></span>
+<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(<span class="cf">function</span>(a) {</span>
+<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a>      <span class="fu">with</span>(</span>
+<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a>        a,</span>
+<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a>        {</span>
+<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a>          excerpts <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a>            <span class="fu">map</span>(highlights, <span class="sc">~</span> <span class="fu">sprintf</span>(<span class="st">"&gt; %s"</span>, .)),</span>
+<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>            <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span></span>
 <span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a>          )</span>
-<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb16-85"><a href="#cb16-85" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb16-86"><a href="#cb16-86" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>  <span class="fu">interpolate</span>(QUESTION_ARTICLE_WRAPPER)</span>
-<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a>multiple_choice_question <span class="ot">&lt;-</span> <span class="cf">function</span>(question, choices) {</span>
-<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(</span>
-<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(</span>
-<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a>      question,</span>
-<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a>      <span class="st">""</span>,</span>
-<span id="cb16-97"><a href="#cb16-97" aria-hidden="true" tabindex="-1"></a>      <span class="fu">imap</span>(choices, <span class="sc">~</span> <span class="fu">sprintf</span>(<span class="st">"%s) %s"</span>, LETTERS[.y], .x)),</span>
-<span id="cb16-98"><a href="#cb16-98" aria-hidden="true" tabindex="-1"></a>      <span class="st">""</span>,</span>
-<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Respond with the letter of your chosen answer."</span></span>
-<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a>    <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span></span>
-<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a>ask <span class="ot">&lt;-</span> <span class="cf">function</span>(respondent, question, choices) {</span>
-<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a>  mcq <span class="ot">&lt;-</span> <span class="fu">multiple_choice_question</span>(question, choices)</span>
-<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
-<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a>    {</span>
-<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a>      respondent<span class="sc">$</span><span class="fu">chat_structured</span>(</span>
-<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a>        mcq,</span>
-<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a>        <span class="at">type =</span> <span class="fu">type_enum</span>(</span>
-<span id="cb16-112"><a href="#cb16-112" aria-hidden="true" tabindex="-1"></a>          <span class="at">description =</span> <span class="st">"Answer letter"</span>,</span>
-<span id="cb16-113"><a href="#cb16-113" aria-hidden="true" tabindex="-1"></a>          <span class="at">values =</span> LETTERS[<span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(choices)]</span>
-<span id="cb16-114"><a href="#cb16-114" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb16-115"><a href="#cb16-115" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb16-116"><a href="#cb16-116" aria-hidden="true" tabindex="-1"></a>      <span class="fu">extract_answer_dist</span>(respondent, choices)</span>
-<span id="cb16-117"><a href="#cb16-117" aria-hidden="true" tabindex="-1"></a>    },</span>
-<span id="cb16-118"><a href="#cb16-118" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
-<span id="cb16-119"><a href="#cb16-119" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(respondent<span class="sc">$</span><span class="fu">last_turn</span>()<span class="sc">@</span>json)</span>
-<span id="cb16-120"><a href="#cb16-120" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(e)</span>
-<span id="cb16-121"><a href="#cb16-121" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb16-122"><a href="#cb16-122" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb16-123"><a href="#cb16-123" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-124"><a href="#cb16-124" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-125"><a href="#cb16-125" aria-hidden="true" tabindex="-1"></a><span class="fu">ask</span>(<span class="fu">create_respondent</span>(<span class="st">"Average person"</span>), UPF_QUESTION, RESPONSE_CATS) <span class="sc">|&gt;</span></span>
-<span id="cb16-126"><a href="#cb16-126" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a>          <span class="fu">sprintf</span>(</span>
+<span id="cb16-85"><a href="#cb16-85" aria-hidden="true" tabindex="-1"></a>            <span class="st">"HEADLINE: %s (%s, %s)</span><span class="sc">\n</span><span class="st">EXCERPTS:</span><span class="sc">\n</span><span class="st">%s</span><span class="sc">\n\n</span><span class="st">"</span>,</span>
+<span id="cb16-86"><a href="#cb16-86" aria-hidden="true" tabindex="-1"></a>            title,</span>
+<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a>            domain,</span>
+<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>            publish_date,</span>
+<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a>            excerpts</span>
+<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a>          )</span>
+<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a>  <span class="fu">interpolate</span>(QUESTION_ARTICLE_WRAPPER)</span>
+<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-97"><a href="#cb16-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-98"><a href="#cb16-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a>multiple_choice_question <span class="ot">&lt;-</span> <span class="cf">function</span>(question, choices) {</span>
+<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(</span>
+<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(</span>
+<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a>      question,</span>
+<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a>      <span class="st">""</span>,</span>
+<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a>      <span class="fu">imap</span>(choices, <span class="sc">~</span> <span class="fu">sprintf</span>(<span class="st">"%s) %s"</span>, LETTERS[.y], .x)),</span>
+<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a>      <span class="st">""</span>,</span>
+<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Respond with the letter of your chosen answer."</span></span>
+<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a>    <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span></span>
+<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-112"><a href="#cb16-112" aria-hidden="true" tabindex="-1"></a>ask <span class="ot">&lt;-</span> <span class="cf">function</span>(respondent, question, choices) {</span>
+<span id="cb16-113"><a href="#cb16-113" aria-hidden="true" tabindex="-1"></a>  mcq <span class="ot">&lt;-</span> <span class="fu">multiple_choice_question</span>(question, choices)</span>
+<span id="cb16-114"><a href="#cb16-114" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tryCatch</span>(</span>
+<span id="cb16-115"><a href="#cb16-115" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb16-116"><a href="#cb16-116" aria-hidden="true" tabindex="-1"></a>      respondent<span class="sc">$</span><span class="fu">chat_structured</span>(</span>
+<span id="cb16-117"><a href="#cb16-117" aria-hidden="true" tabindex="-1"></a>        mcq,</span>
+<span id="cb16-118"><a href="#cb16-118" aria-hidden="true" tabindex="-1"></a>        <span class="at">type =</span> <span class="fu">type_enum</span>(</span>
+<span id="cb16-119"><a href="#cb16-119" aria-hidden="true" tabindex="-1"></a>          <span class="at">description =</span> <span class="st">"Answer letter"</span>,</span>
+<span id="cb16-120"><a href="#cb16-120" aria-hidden="true" tabindex="-1"></a>          <span class="at">values =</span> LETTERS[<span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(choices)]</span>
+<span id="cb16-121"><a href="#cb16-121" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb16-122"><a href="#cb16-122" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb16-123"><a href="#cb16-123" aria-hidden="true" tabindex="-1"></a>      <span class="fu">extract_answer_dist</span>(respondent, choices)</span>
+<span id="cb16-124"><a href="#cb16-124" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb16-125"><a href="#cb16-125" aria-hidden="true" tabindex="-1"></a>    <span class="at">error =</span> <span class="cf">function</span>(e) {</span>
+<span id="cb16-126"><a href="#cb16-126" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(respondent<span class="sc">$</span><span class="fu">last_turn</span>()<span class="sc">@</span>json)</span>
+<span id="cb16-127"><a href="#cb16-127" aria-hidden="true" tabindex="-1"></a>      <span class="fu">stop</span>(e)</span>
+<span id="cb16-128"><a href="#cb16-128" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb16-129"><a href="#cb16-129" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb16-130"><a href="#cb16-130" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-131"><a href="#cb16-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-132"><a href="#cb16-132" aria-hidden="true" tabindex="-1"></a><span class="fu">ask</span>(<span class="fu">create_respondent</span>(<span class="st">"Average person"</span>), UPF_QUESTION, RESPONSE_CATS) <span class="sc">|&gt;</span></span>
+<span id="cb16-133"><a href="#cb16-133" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
@@ -1277,28 +1284,28 @@ Table&nbsp;2: Mean monthly model parameters for each domain.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.184</td>
-<td style="text-align: right;">-1.691</td>
+<td style="text-align: right;">0.213</td>
+<td style="text-align: right;">-1.546</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.568</td>
-<td style="text-align: right;">-0.566</td>
+<td style="text-align: right;">0.451</td>
+<td style="text-align: right;">-0.796</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.196</td>
-<td style="text-align: right;">-1.629</td>
+<td style="text-align: right;">0.241</td>
+<td style="text-align: right;">-1.421</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.013</td>
-<td style="text-align: right;">-4.316</td>
+<td style="text-align: right;">0.025</td>
+<td style="text-align: right;">-3.671</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.039</td>
-<td style="text-align: right;">-3.254</td>
+<td style="text-align: right;">0.069</td>
+<td style="text-align: right;">-2.671</td>
 </tr>
 </tbody>
 </table>
@@ -1350,7 +1357,7 @@ Table&nbsp;2: Mean monthly model parameters for each domain.
 <span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 10 iters"</code></pre>
+<pre><code>[1] "Converged after 5 iters"</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -1373,23 +1380,23 @@ Table&nbsp;3: Converged response to UPF question.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.236</td>
+<td style="text-align: right;">0.237</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.401</td>
+<td style="text-align: right;">0.421</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.239</td>
+<td style="text-align: right;">0.243</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.030</td>
+<td style="text-align: right;">0.025</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.094</td>
+<td style="text-align: right;">0.074</td>
 </tr>
 </tbody>
 </table>
@@ -1405,8 +1412,8 @@ Table&nbsp;3: Converged response to UPF question.
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">domain =</span> <span class="st">"dailymail.co.uk"</span>,</span>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">publish_date =</span> <span class="fu">as.Date</span>(<span class="st">"2025-05-01"</span>),</span>
 <span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">highlights =</span> <span class="fu">c</span>(</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Ultra-processed foods increase the cancer risk by 10000%."</span>,</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>      <span class="st">"We should all be concerned about ultra-processed foods."</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Ultra-processed foods increase the cancer risk by 3%."</span>,</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Maybe we should be concerned about ultra-processed foods."</span></span>
 <span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -1437,23 +1444,23 @@ Table&nbsp;4: Example of simulated AI polling response to a fictional alarming h
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.887</td>
+<td style="text-align: right;">0.105</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.073</td>
+<td style="text-align: right;">0.795</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.014</td>
+<td style="text-align: right;">0.073</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.006</td>
+<td style="text-align: right;">0.009</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.020</td>
+<td style="text-align: right;">0.018</td>
 </tr>
 </tbody>
 </table>
@@ -1490,23 +1497,23 @@ Table&nbsp;5: Response distribution of LLM again, this time with the identity of
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.948</td>
+<td style="text-align: right;">0.378</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.025</td>
+<td style="text-align: right;">0.593</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.005</td>
+<td style="text-align: right;">0.016</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.004</td>
+<td style="text-align: right;">0.005</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.017</td>
+<td style="text-align: right;">0.008</td>
 </tr>
 </tbody>
 </table>
@@ -1531,8 +1538,8 @@ Table&nbsp;5: Response distribution of LLM again, this time with the identity of
 <span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "Converged after 13 iters"
-[1] "Converged after 13 iters"</code></pre>
+<pre><code>[1] "Converged after 5 iters"
+[1] "Converged after 5 iters"</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -1564,28 +1571,28 @@ Table&nbsp;6: Response distribution of LLM for different genders.
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Highly concerned</td>
-<td style="text-align: right;">0.461</td>
-<td style="text-align: right;">0.480</td>
+<td style="text-align: right;">0.485</td>
+<td style="text-align: right;">0.404</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Somewhat concerned</td>
-<td style="text-align: right;">0.346</td>
-<td style="text-align: right;">0.314</td>
+<td style="text-align: right;">0.359</td>
+<td style="text-align: right;">0.371</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Not very concerned</td>
-<td style="text-align: right;">0.098</td>
-<td style="text-align: right;">0.101</td>
+<td style="text-align: right;">0.087</td>
+<td style="text-align: right;">0.140</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Not concerned at all</td>
-<td style="text-align: right;">0.021</td>
-<td style="text-align: right;">0.028</td>
+<td style="text-align: right;">0.019</td>
+<td style="text-align: right;">0.025</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Don’t know</td>
-<td style="text-align: right;">0.074</td>
-<td style="text-align: right;">0.077</td>
+<td style="text-align: right;">0.049</td>
+<td style="text-align: right;">0.061</td>
 </tr>
 </tbody>
 </table>
