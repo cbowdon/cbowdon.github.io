@@ -630,9 +630,6 @@ library(ellmer)
 create_respondent <- function(
   simulated_identity = "Average person"
 ) {
-  # mlx-omni-server caches some prompts, which can skew distributions.
-  # To avoid this we inject a meaningless random number at the beginning of each system prompt.
-  cache_buster <- sample.int(9999999999, size = 1)
   chat_openai(
     base_url = "http://0.0.0.0:10240/v1/",
     # Gemma is good
@@ -642,18 +639,14 @@ create_respondent <- function(
     # Qwen is great
     #model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",
     #model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125",
-    #model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",
-    model = "mlx-community/Qwen3-14B-4bit-DWQ-053125",
+    model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",
+    #model = "mlx-community/Qwen3-14B-4bit-DWQ-053125",
     # Uncensored?
     #model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",
     # GPT for debugging, do not use with data
     #model = "gpt-4.1-nano",
     api_key = "n/a",
-    system_prompt = interpolate(sprintf(
-      "%s\n\n%s",
-      cache_buster,
-      SYSTEM_PROMPT
-    )),
+    system_prompt = interpolate(SYSTEM_PROMPT),
     params = params(
       # Single output (all the local server supports)
       n = 1,
@@ -755,61 +748,26 @@ ask <- function(respondent, question, choices) {
     }
   )
 }
-
-ask(create_respondent("Average person"), UPF_QUESTION, RESPONSE_CATS) |>
-  kable(digits = 3)
 ```
 
 We can now get the probability that the LLM would have selected each response in this conversation, given its identity.
 
-Note that I've removed the response category "I don't know enough to comment" for the practical reason that only 5 top log probs are available from the LLM.
-
-Although we have fixed the temperature to zero to avoid cascading randomness from token sampling, there is still some non-determinism at the hardware level. It almost never affects the most likely token, but it does affect the log probs, so we need to sample until the distribution starts to converge.
-
 ```{r}
-#| label: tbl-converged
-#| tbl-cap: Converged response to UPF question.
-
-ask_converged <- function(
-  respondent_fn,
-  question,
-  choices,
-  min_n_samples = 5,
-  max_n_samples = 30,
-  tolerance = 0.005
-) {
-  samples <- matrix(0, nrow = max_n_samples, ncol = length(choices))
-
-  old_col_means <- colSums(samples) # zeros
-
-  for (i in 1:max_n_samples) {
-    respondent <- respondent_fn()
-    answer <- ask(respondent, question, choices)
-    samples[i, ] = answer$Probability
-
-    new_col_means <- colSums(samples) / i
-
-    max_diff <- max(abs(new_col_means - old_col_means))
-    old_col_means <- new_col_means
-
-    if (i >= min_n_samples && max_diff < tolerance) {
-      print(sprintf("Converged after %d iters", i))
-      break
-    }
-  }
-  tibble(
-    Response = choices,
-    Probability = new_col_means
-  )
-}
-
-converged_answer <- ask_converged(
-  create_respondent,
+#| label: tbl-default-response
+#| tbl-cap: The response distribution for the UPF survey question with a default "Average person" identity.
+default_response <- ask(
+  create_respondent("Average person"),
   UPF_QUESTION,
   RESPONSE_CATS
 )
-converged_answer |> kable(digits = 3)
+default_response |> kable(digits = 3)
 ```
+
+Note that I've removed the response category "I don't know enough to comment" for technical reasons and its similarity to "Don't know".
+
+Although we have fixed the temperature to zero to avoid cascading randomness from token sampling, there is still some non-determinism at the hardware level. It almost never affects the most likely token and logits.
+
+We can now present the AI with an example article, to understand the article's influence on its position.
 
 ```{r}
 #| label: tbl-llm-simulation
@@ -827,8 +785,8 @@ fake_articles <- list(
   )
 )
 
-ask_converged(
-  \() create_respondent("Average person"),
+ask(
+  create_respondent("Average person"),
   question_with_articles(UPF_QUESTION, fake_articles),
   RESPONSE_CATS
 ) |>
@@ -841,8 +799,8 @@ ask_converged(
 #| label: tbl-concerned
 #| tbl-cap: Response distribution of LLM again, this time with the identity of someone very concerned about their health.
 #| code-fold: false
-ask_converged(
-  \() create_respondent("Someone very concerned about their health"),
+ask(
+  create_respondent("Someone very concerned about their health"),
   question_with_articles(UPF_QUESTION, fake_articles),
   RESPONSE_CATS
 ) |>
@@ -857,8 +815,8 @@ A basic model, but already quite interesting. Let's test it for bias.
 
 gender_resp <- c("Female", "Male") |>
   map(
-    ~ ask_converged(
-      \() create_respondent(.),
+    ~ ask(
+      create_respondent(.),
       UPF_QUESTION,
       RESPONSE_CATS
     ) |>
@@ -1000,7 +958,7 @@ sim_results <- samples_per_reader |> merge(article_responses)
 We have now asked every simulated reader the poll question every month. We have a probability distribution of possible answers for each, so we can up-sample. We also can assume that the readers we didn't simulate saw nothing that would change their minds. This is ignoring word-of-mouth and other forms of media, so for a better model we will need to consider those.
 
 What we need to do now is combine the default probability distribution with the article-readers.
-We'll do that month by month, and we can sample from the converged distribution for the non-readers and sample from the individual distributions for readers. That would be much the same as a weighted sum, which is the simpler option.
+We'll do that month by month, and we can sample from the default distribution for the non-readers and sample from the individual distributions for readers. That would be much the same as a weighted sum, which is the simpler option.
 
 ```{r}
 #| label: fig-sum-distibutions
@@ -1011,7 +969,7 @@ for (i in seq_along(PERIODS)) {
   period_sim_results <- sim_results |> filter(period == PERIODS[i])
   n_non_readers <- N_SIM_READERS - n_distinct(period_sim_results$reader)
 
-  non_reader_dist <- n_non_readers * converged_answer$Probability
+  non_reader_dist <- n_non_readers * default_response$Probability
   reader_dist <- (period_sim_results |>
     group_by(Response) |>
     summarise(p = sum(Probability)))$p
@@ -1058,7 +1016,7 @@ plot_sim_breakdown <- ggplot(sim_breakdown) +
 plot_actual_breakdown + plot_sim_breakdown
 ```
 
-This is encouraging! Remember the AI has _not_ been calibrated on the actual survey data, only on our media model, and yet its predictions are not too far from reality.
+This is encouraging! Remember the AI has _not_ been calibrated on the actual survey data, only on our media model, and hasn't had demographic conditioning at this point. Despite this, it predicts similar trends to reality: a small percentage point increase in high concern, with similar drops in "somewhat" and "not very". The starting points for each trend are mostly wrong though, which points to the default response needing refining.
 
 ## Digging deeper
 
