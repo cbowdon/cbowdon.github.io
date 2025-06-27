@@ -4,6 +4,7 @@ date: "2025-06-23"
 categories: [food, uk, r, ai, llm, surveys]
 code-fold: true
 warning: false
+freeze: false
 ---
 
 There's a little drip drip drip of scare stories about ultra-processed food (UPF) a phrase that I'd never heard until this year. I'm starting to get worried. Is everyone else worried? Well it turns out the Food Standards Agency (FSA) has been running a tracker survey containing this question since mid-2023, so we can find out.
@@ -639,8 +640,8 @@ create_respondent <- function(
     # Qwen is great
     #model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",
     #model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125",
-    model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",
-    #model = "mlx-community/Qwen3-14B-4bit-DWQ-053125",
+    #model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",
+    model = "mlx-community/Qwen3-14B-4bit-DWQ-053125",
     # Uncensored?
     #model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",
     # GPT for debugging, do not use with data
@@ -888,12 +889,18 @@ To make a useful gender comparison, we'd need to calibrate the LLM such that its
 
 # Running AI over the dataset
 
-Let's apply this to our articles now. We can use `furrr` to run every simulated survey respondent in parallel. We'll start with a single "average person" identity.
+Let's apply this to our articles now. We can use `furrr` to run every simulated survey respondent in parallel. We'll start with almost the dumbest possible demographic breakdown: readers are randomly assigned a gender.
 
 ```{r}
 #| label: simulate-readers
 #| warning: false
 library(furrr)
+
+genders <- tibble(
+  reader = seq(N_SIM_READERS),
+  gender = rdunif(N_SIM_READERS, 2)
+) |>
+  mutate(gender = if_else(gender == 1, "Female", "Male"))
 
 samples_per_reader <- sampled_articles |>
   group_by(period, reader) |>
@@ -901,35 +908,34 @@ samples_per_reader <- sampled_articles |>
     sample_key = str_flatten_comma(sort(article_id)),
     article_ids = list(sort(article_id)),
     n_article = n_distinct(article_id),
-  )
+  ) |>
+  merge(genders)
 
 unique_samples <- samples_per_reader |>
-  distinct(period, sample_key, article_ids)
-
-sim_ident <- "Average person"
+  distinct(period, gender, sample_key, article_ids)
 
 simulate_reader <- function(row) {
   tryCatch(
     {
       arts <- upf_articles |> filter(article_id %in% row$article_ids)
       dist <- ask(
-        create_respondent(sim_ident),
+        create_respondent(row$gender),
         question_with_articles(
           UPF_QUESTION,
           pmap(arts, list),
-          date_today = row$period
+          date_today = row$period # TODO this is off by one - maybe we just remove the date from prompt, and offset all results at the end?
         ),
         RESPONSE_CATS
       )
       dist |>
-        mutate(sample_key = row$sample_key, simulated_identity = sim_ident)
+        mutate(sample_key = row$sample_key, simulated_identity = row$gender)
     },
     error = \(e) print(e, row)
   )
 }
 
-map_simulated_readers <- function(unique_samples, sim_ident, force = FALSE) {
-  datafile <- sprintf("data/article-responses - %s.rds", sim_ident)
+map_simulated_readers <- function(unique_samples, force = FALSE) {
+  datafile <- "data/article-responses.rds"
 
   if (!file.exists(datafile) || force) {
     with(plan(multisession, workers = 4), {
@@ -947,8 +953,7 @@ map_simulated_readers <- function(unique_samples, sim_ident, force = FALSE) {
 }
 
 article_responses <- map_simulated_readers(
-  unique_samples,
-  sim_ident,
+  unique_samples
   #force = TRUE
 )
 
@@ -966,14 +971,21 @@ We'll do that month by month, and we can sample from the default distribution fo
 period_sim_dists <- matrix(nrow = length(PERIODS), ncol = length(RESPONSE_CATS))
 
 for (i in seq_along(PERIODS)) {
-  period_sim_results <- sim_results |> filter(period == PERIODS[i])
-  n_non_readers <- N_SIM_READERS - n_distinct(period_sim_results$reader)
+  readers <- sim_results |>
+    filter(period == PERIODS[i]) |>
+    select(reader, gender, Response, Probability)
+  non_readers <- genders |>
+    merge(gender_resp) |>
+    select(reader, gender, Response, Probability)
 
-  non_reader_dist <- n_non_readers * default_response$Probability
-  reader_dist <- (period_sim_results |>
+  all_respondents <- bind_rows(
+    readers,
+    non_readers
+  )
+
+  total_dist <- (all_respondents |>
     group_by(Response) |>
     summarise(p = sum(Probability)))$p
-  total_dist <- non_reader_dist + reader_dist
   period_sim_dists[i, ] <- total_dist / sum(total_dist)
 }
 
@@ -1016,7 +1028,7 @@ plot_sim_breakdown <- ggplot(sim_breakdown) +
 plot_actual_breakdown + plot_sim_breakdown
 ```
 
-This is encouraging! Remember the AI has _not_ been calibrated on the actual survey data, only on our media model, and hasn't had demographic conditioning at this point. Despite this, it predicts similar trends to reality: a small percentage point increase in high concern, with similar drops in "somewhat" and "not very". The starting points for each trend are mostly wrong though, which points to the default response needing refining.
+This is encouraging! Remember the AI has _not_ been calibrated on the actual survey data, only on our media model, and hasn't had demographic conditioning at this point. Despite this, ~~it predicts similar trends to reality: a small percentage point increase in high concern, with similar drops in "somewhat" and "not very". The starting points for each trend are mostly wrong though, which points to the default response needing refining.~~
 
 ## Digging deeper
 
