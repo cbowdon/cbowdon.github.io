@@ -109,9 +109,7 @@ extract_question <- function(file, question_prefix) {
     \(x, y) str_c(x, y, sep = ":: ")
   )
   combined_headers[1] <- "QCategory"
-  combined_headers[2] <- "Total"
-
-  colnames(data) <- combined_headers
+  combined_headers[2] <- "Total(data) <- combined_headers
 
   has_question <- any(str_starts(pull(data, QCategory), question_prefix))
 
@@ -611,6 +609,16 @@ You are being asked for your views as part of a survey. Respond to each question
 # This is the question precisely as asked in the YouGov survey.
 UPF_QUESTION <- "At the moment, how concerned, if at all, do you personally feel about ultra-processed, or over-processing of food?"
 
+
+# TODO do we give their position prior? This would help with the tendency towards "somewhat".
+# Or we could train the AI to be more emotive. Probably not.
+# Maybe the AI needs to think more? But does that make it likely to equivocate?
+# When I experimented with Qwen3 0.6B reasoning in chat, thinking didn't help.
+# So maybe longitudinal studies are the way to go. We simulate the evolving opinion of each person.
+
+# The problem that would most likely most improve results if solved, is this "somewhat" tendency.
+# Second is a better media exposure model.
+
 # This is how we wrap the question with relevant articles (and a date, for context).
 QUESTION_ARTICLE_WRAPPER <- "Answer the question, recalling that you have seen the following articles that may or may not have influenced your opinion.
 
@@ -618,10 +626,7 @@ QUESTION_ARTICLE_WRAPPER <- "Answer the question, recalling that you have seen t
 {{headlines}}
 </articles>
 
-(Today's date is {{date_today}}.)
-
 QUESTION: {{question}}"
-
 ```
 
 ```{r}
@@ -629,23 +634,23 @@ QUESTION: {{question}}"
 library(ellmer)
 
 create_respondent <- function(
-  simulated_identity = "Average person"
+  simulated_identity = "Average person",
+  # Gemma is good
+  #model = "mlx-community/gemma-3-1b-it-4bit-DWQ"
+  model = "mlx-community/gemma-3-27b-it-4bit-DWQ"
+  # Qwen is great
+  #model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125"
+  #model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125"
+  #model = "mlx-community/Qwen3-4B-4bit-DWQ-053125"
+  #model = "mlx-community/Qwen3-14B-4bit-DWQ-053125"
+  # Uncensored?
+  #model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit"
+  # GPT for debugging, do not use with data
+  #model = "gpt-4.1-nano"
 ) {
   chat_openai(
     base_url = "http://0.0.0.0:10240/v1/",
-    # Gemma is good
-    #model = "mlx-community/gemma-3-1b-it-4bit-DWQ",
-    #model = "mlx-community/gemma-3-27b-it-4bit-DWQ",
-    #model = "mlx-community/gemma-3-27b-it-qat-8bit",
-    # Qwen is great
-    #model = "mlx-community/Qwen3-0.6B-4bit-DWQ-053125",
-    #model = "mlx-community/Qwen3-1.7B-4bit-DWQ-053125",
-    #model = "mlx-community/Qwen3-4B-4bit-DWQ-053125",
-    model = "mlx-community/Qwen3-14B-4bit-DWQ-053125",
-    # Uncensored?
-    #model = "mlx-community/Josiefied-Qwen3-0.6B-abliterated-v1-4bit",
-    # GPT for debugging, do not use with data
-    #model = "gpt-4.1-nano",
+    model = model,
     api_key = "n/a",
     system_prompt = interpolate(SYSTEM_PROMPT),
     params = params(
@@ -692,7 +697,7 @@ extract_answer_dist <- function(respondent, choices) {
     arrange(Response)
 }
 
-question_with_articles <- function(question, articles, date_today = today()) {
+question_with_articles <- function(question, articles) {
   headlines <- articles |>
     map(function(a) {
       with(
@@ -787,7 +792,9 @@ fake_articles <- list(
 )
 
 ask(
-  create_respondent("Average person"),
+  create_respondent(
+    "Female who previously considered herself 'highly concerned' about UPFs."
+  ),
   question_with_articles(UPF_QUESTION, fake_articles),
   RESPONSE_CATS
 ) |>
@@ -889,13 +896,11 @@ To make a useful gender comparison, we'd need to calibrate the LLM such that its
 
 # Running AI over the dataset
 
-Let's apply this to our articles now. We can use `furrr` to run every simulated survey respondent in parallel. We'll start with almost the dumbest possible demographic breakdown: readers are randomly assigned a gender.
+Let's apply this to our articles now. We'll start with almost the dumbest possible demographic breakdown: readers are randomly assigned a gender.
 
 ```{r}
 #| label: simulate-readers
 #| warning: false
-library(furrr)
-
 genders <- tibble(
   reader = seq(N_SIM_READERS),
   gender = rdunif(N_SIM_READERS, 2)
@@ -922,8 +927,7 @@ simulate_reader <- function(row) {
         create_respondent(row$gender),
         question_with_articles(
           UPF_QUESTION,
-          pmap(arts, list),
-          date_today = row$period # TODO this is off by one - maybe we just remove the date from prompt, and offset all results at the end?
+          pmap(arts, list)
         ),
         RESPONSE_CATS
       )
@@ -934,28 +938,74 @@ simulate_reader <- function(row) {
   )
 }
 
-map_simulated_readers <- function(unique_samples, force = FALSE) {
-  datafile <- "data/article-responses.rds"
-
-  if (!file.exists(datafile) || force) {
-    with(plan(multisession, workers = 4), {
-      tasks <- future_map(
-        pmap(unique_samples, list),
-        simulate_reader,
-        .progress = TRUE
-      )
-    })
-
-    article_responses <- bind_rows(tasks) |> as_tibble()
-    article_responses |> write_rds(datafile)
+map_simulated_readers <- function(
+  unique_samples,
+  datafile = "data/article-responses.rds",
+  batch_size = 10,
+  read_datafile = TRUE,
+  write_datafile = TRUE
+) {
+  dataset <- tibble(
+    Response = character(),
+    Probability = numeric(),
+    logprob = numeric(),
+    sample_key = character(),
+    simulated_identity = character()
+  )
+  if (read_datafile && file.exists(datafile)) {
+    dataset <- read_rds(datafile)
   }
-  read_rds(datafile)
+  print(sprintf("Loaded %i rows from datafile", nrow(dataset)))
+
+  samples_to_process <- unique_samples |>
+    merge(dataset, all.x = TRUE) |>
+    filter(is.na(Probability))
+
+  if (nrow(samples_to_process) == 0) {
+    print("All examples cached")
+    return(dataset)
+  }
+
+  seq(1, nrow(samples_to_process), batch_size) |>
+    reduce(
+      function(ds, i) {
+        batch <- samples_to_process[i:(i + batch_size), ] |>
+          filter(!is.na(sample_key))
+
+        print(sprintf(
+          "Batch [%i, %i) of %i unprocessed samples",
+          i,
+          i + batch_size,
+          nrow(samples_to_process)
+        ))
+
+        batch_responses <- batch |>
+          pmap(list) |>
+          map(simulate_reader) |>
+          bind_rows() |>
+          as_tibble()
+
+        ds <- rows_upsert(
+          ds,
+          batch_responses,
+          by = c("sample_key", "simulated_identity", "Response")
+        )
+
+        if (write_datafile) {
+          write_rds(ds, datafile)
+        }
+        ds
+      },
+      .init = dataset
+    )
 }
 
 article_responses <- map_simulated_readers(
-  unique_samples
-  #force = TRUE
-)
+  unique_samples,
+  read_datafile = T
+) |>
+  mutate(Response = factor(Response, levels = RESPONSE_CATS, ordered = T)) |>
+  rename(gender = simulated_identity)
 
 sim_results <- samples_per_reader |> merge(article_responses)
 ```
@@ -974,19 +1024,18 @@ for (i in seq_along(PERIODS)) {
   readers <- sim_results |>
     filter(period == PERIODS[i]) |>
     select(reader, gender, Response, Probability)
-  non_readers <- genders |>
-    merge(gender_resp) |>
-    select(reader, gender, Response, Probability)
 
-  all_respondents <- bind_rows(
-    readers,
-    non_readers
-  )
+  all_respondents <- genders |>
+    merge(gender_resp |> rename(gender = simulated_identity)) |>
+    select(reader, gender, Response, Probability) |>
+    rows_update(
+      readers,
+      by = c("reader", "Response")
+    )
 
-  total_dist <- (all_respondents |>
+  period_sim_dists[i, ] <- (all_respondents |>
     group_by(Response) |>
-    summarise(p = sum(Probability)))$p
-  period_sim_dists[i, ] <- total_dist / sum(total_dist)
+    summarise(p = mean(Probability)))$p
 }
 
 rownames(period_sim_dists) <- as.character(PERIODS)
