@@ -1,0 +1,129 @@
+---
+title: "Introduction to Generalised Linear Models with Prussian Horse Kick Deaths"
+date: "2025-07-29"
+categories: [r, stats, glms]
+code-fold: true
+warning: false
+freeze: false
+---
+
+Time to finally patch a hole in the leaky roof of my knowledge: what are Generalised Linear Models anyway?
+
+It turns out Antony Unwin and Bill Venables have contributed a fun dataset to CRAN that we can use to practice: [horse kick deaths in the Prussian army](https://cloud.r-project.org/web/packages/Horsekicks/vignettes/hkdeaths.html). It's a record of accidental deaths in the Prussian army during 30 years of peace, from three causes: drowning, falling off a horse, or being kicked by a horse.
+
+```{r}
+#| label: tbl-hkdeaths
+#| tbl-cap: "Sample of the horse kick data (tidied)."
+library(tidyverse)
+library(knitr)
+library(Horsekicks)
+
+hk.tidy <- hkdeaths |>
+  pivot_longer(
+    c(kick, drown, fall),
+    names_to = "death.type",
+    values_to = "death.count"
+  )
+
+hk.tidy |> head() |> kable()
+```
+
+If plot this over time, death by equestrian misadventure seem quite stable, but drowning is improving.
+
+```{r}
+#| label: fig-deaths-over-time
+#| fig-cap: Death by type over time.
+ggplot(
+  hk.tidy |>
+    group_by(year, death.type) |>
+    summarise(death.count = sum(death.count))
+) +
+  aes(x = year, y = death.count, group = death.type, colour = death.type) +
+  geom_line()
+```
+
+We'll try and fit a Generalised Linear Model to the drowning deaths now. It's count data, so we expect a Poisson distribution, and if we histogram it we do get what we expect.
+
+```{r}
+#| label: fig-deaths-distribution
+ggplot(hk.tidy) +
+  aes(x = death.count) +
+  facet_wrap(~death.type) +
+  geom_histogram()
+```
+
+We don't have a reason to provide a different link function, so we just take the canonical link function for Poisson (log).
+
+```{r}
+glm(drown ~ year, family = poisson, data = hkdeaths)
+```
+
+Kick
+
+```{r}
+glm(kick ~ year, family = poisson, data = hkdeaths)
+```
+
+Fall
+
+```{r}
+glm(fall ~ year, family = poisson, data = hkdeaths)
+```
+
+Plot
+
+```{r}
+#| label: fig-deaths-over-time
+#| fig-cap: Death by type over time.
+#|
+hk.year <- hk.tidy |>
+  group_by(year, death.type) |>
+  summarise(death.count = sum(death.count))
+
+ggplot(hk.year) +
+  aes(x = year, y = death.count, group = death.type, colour = death.type) +
+  geom_point() +
+  stat_smooth(
+    method = "glm",
+    formula = y ~ x,
+    method.args = list(family = poisson)
+  )
+```
+
+When intersect?
+
+```{r}
+extrapolate.range <- 1875:1914
+
+extrapolated.data <- c("drown", "fall", "kick") |>
+  map(function(type) {
+    hk.year.type <- filter(hk.year, death.type == type)
+    model <- glm(death.count ~ year, family = poisson, data = hk.year.type)
+    death.count <- predict.glm(
+      model,
+      newdata = data.frame(year = extrapolate.range),
+      type = "response"
+    )
+    data.frame(
+      year = extrapolate.range,
+      death.type = type,
+      death.count = death.count
+    )
+  }) |>
+  bind_rows() |>
+  mutate(extrapolated = year > 1907)
+
+ggplot() +
+  aes(
+    x = year,
+    y = death.count,
+    group = death.type,
+    colour = death.type,
+  ) +
+  geom_point(data = hk.year) +
+  geom_line(
+    data = filter(extrapolated.data, !extrapolated),
+    linetype = "solid"
+  ) +
+  geom_line(data = extrapolated.data, linetype = "dashed")
+```
