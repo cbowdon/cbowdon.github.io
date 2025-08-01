@@ -9,6 +9,62 @@ freeze: false
 
 Time to finally patch a hole in the leaky roof of my knowledge: what are Generalised Linear Models anyway?
 
+## Groundwork: what are Linear Models anyway?
+
+Generalised Linear Models (GLMs) are a short step from Linear Models, _provided you have the right understanding of linear models_. There's also some stats jargon to get a handle on. So we'll start with an intuitive explanation of linear models.
+
+With a linear model, we have some quantity (the response variable) that we're trying to predict from some other quantities (the predictors). The predictors are knowable things that you can measure with good precision, such as age and weight. The response variable is something with natural variation and/or measurement uncertainty, like maximum jump height. Different people of the same age and weight will have different maximum jumps. For every age and weight combination, we aim to predict the average jump height.
+
+The natural variation usually (but not always) follows a _normal_ distribution for given predictors. That is to say, we should expect a bell curve of jump heights for people who are 80 years of age and weigh 80kg. For people who are 18 years of age and weight 60kg, we should expect a bell curve with a different (probably higher) mean but the same variance. Having the the variance in jump height _not_ change for different ages and weights is important, we'll come back to that later.
+
+What we do in a linear model is devise a weighted sum of our predictors (a linear combination, in the lingo) that best predicts the mean of the bell curve. Here's the general form of it:
+
+$$
+E[Y] = \beta_0 + \beta_1 X_1 + \beta_2 X_2 ...
+$$
+
+$X_1$ could be age and $X_2$ could be weight. The $\beta$ values are the intercept and coefficients that we learn.
+
+Here $E[Y]$ means the _expectation_ of Y, which in this case is just the mean. Strictly speaking, we should say that we're predicting the mean _conditioned on the predictors_ because it's not the mean of all maximum jump height observations, it's the mean of the maximum jump heights for a particular age and weight. So we ought to write $E[Y | X]$.
+
+To determine those coefficients we use an algorithm like Ordinary Least Squares (OLS) which works to find the coefficients that give the means with the smallest (squared) residuals, i.e. minimal squared distance between the observations and the mean for any given predictors. We don't need to know too much about how this works today, just that it's an efficient and useful.
+
+## Next level: the GLM
+
+With that under our belt, GLMs aren't so scary. There are just two things to recognise.
+
+First, a normal distribution isn't always appropriate for the natural variation. What if rather than jump height, our response variable was something discrete, like number of pets? You can't have a non-integer or negative number of pets. We'd want to swap the normal distribution for a discrete distribution from the same exponential family, most likely a Poisson distribution.
+
+That leads directly to the second thing: the mean of a Poisson distribution must be positive, so we need to transform the result of that weighted sum in some way that maps it into the valid range of Poisson means. This transformation is called the _link function_. The form of this would be:
+
+$$
+g(\mu) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 ...
+$$
+
+where $g$ is the link function, and $\mu$ is the mean of the target distribution. If we had a normal distribution and no need to transform the result of the weighted sum, $g$ would simply be the identity function. For a Poisson distribution, the usual choice is $log$, because it's the inverse of a function $exp$ that maps any number to positive number.
+
+For different types of data, you'd choose a different type of distribution:
+
+- Poisson for counts
+- Binomial for binary probabilities
+- Gamma for positive continuous data
+- Normal for normally distributed data
+
+Each of these has a "canonical" (standard) link function:
+
+- Poisson: log
+- Binomial: logit
+- Gamma: inverse
+- Normal: identity
+
+You can choose another link function, but let's leave that for another day.
+
+Remember that the linear model assumed the variance was constant? GLMs don't need this, because for distributions other than the normal distribution, the variance is a function of the mean. The technical term for this property is heteroscedasticity (whereas a constant mean is homoscedasticity).
+
+One more important consequence: because of the link function, we don't necessarily have a mean of the response variable that varies linearly with the predictors. In other words we can model non-linear relationships, which is of course _powerful_.
+
+## Play time
+
 It turns out Antony Unwin and Bill Venables have contributed a fun dataset to CRAN that we can use to practice: [horse kick deaths in the Prussian army](https://cloud.r-project.org/web/packages/Horsekicks/vignettes/hkdeaths.html). It's a record of accidental deaths in the Prussian army during 30 years of peace, from three causes: drowning, falling off a horse, or being kicked by a horse.
 
 ```{r}
@@ -42,17 +98,7 @@ ggplot(
   geom_line()
 ```
 
-We'll try and fit a Generalised Linear Model to the drowning deaths now. It's count data, so we expect a Poisson distribution, and if we histogram it we do get what we expect.
-
-```{r}
-#| label: fig-deaths-distribution
-ggplot(hk.tidy) +
-  aes(x = death.count) +
-  facet_wrap(~death.type) +
-  geom_histogram()
-```
-
-We don't have a reason to provide a different link function, so we just take the canonical link function for Poisson (log).
+We'll try and fit a Generalised Linear Model to the drowning deaths now. We don't have a reason to provide a different link function, so we just take the canonical link function for Poisson (log).
 
 ```{r}
 glm(drown ~ year, family = poisson, data = hkdeaths)
