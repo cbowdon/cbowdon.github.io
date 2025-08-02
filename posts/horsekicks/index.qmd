@@ -1,8 +1,8 @@
 ---
-title: "Introduction to Generalised Linear Models with Prussian Horse Kick Deaths"
-date: "2025-07-29"
+title: "Introduction to Generalised Linear Models with Prussian Horse Kicks"
+date: "2025-08-02"
 categories: [r, stats, glms]
-code-fold: true
+code-fold: false
 warning: false
 freeze: false
 ---
@@ -65,7 +65,7 @@ One more important consequence: because of the link function, we don't necessari
 
 ## Play time
 
-It turns out Antony Unwin and Bill Venables have contributed a fun dataset to CRAN that we can use to practice: [horse kick deaths in the Prussian army](https://cloud.r-project.org/web/packages/Horsekicks/vignettes/hkdeaths.html). It's a record of accidental deaths in the Prussian army during 30 years of peace, from three causes: drowning, falling off a horse, or being kicked by a horse.
+Time to learn by playing. We can use a quirky dataset compiled by Russian statistician Ladislaus von Bortkiewicz in the late 1800s: deaths by horse kick per year for regiments in the Prussian army. In February 2025 Antony Unwin and Bill Venables updated the dataset with additional data and realised von Bortkiewicz's original dream of [publishing it to CRAN](https://cloud.r-project.org/web/packages/Horsekicks/vignettes/hkdeaths.html).
 
 ```{r}
 #| label: tbl-hkdeaths
@@ -84,48 +84,60 @@ hk.tidy <- hkdeaths |>
 hk.tidy |> head() |> kable()
 ```
 
-If plot this over time, death by equestrian misadventure seem quite stable, but drowning is improving.
+Unwin and Venables added deaths by drowning, and deaths by falling off a horse among other improvements. The data cover 14 corps, each with a fixed number of regiments, over 33 years. A regiment is about 500 soldiers, as far as I can tell. I have no idea where Prussia was or where it's gone.
+
+Let's explore data visually. Plotting deaths over time shows that equestrian misadventures seem quite stable, but deaths by drowning did reduce. We will fit a GLM to these time series.
 
 ```{r}
 #| label: fig-deaths-over-time
-#| fig-cap: Death by type over time.
-ggplot(
-  hk.tidy |>
-    group_by(year, death.type) |>
-    summarise(death.count = sum(death.count))
-) +
-  aes(x = year, y = death.count, group = death.type, colour = death.type) +
-  geom_line()
-```
+#| fig-cap: Accidental death by type over time.
+prussian.colours <- c("#333333", "#F9BE11", "#BE0007")
 
-We'll try and fit a Generalised Linear Model to the drowning deaths now. We don't have a reason to provide a different link function, so we just take the canonical link function for Poisson (log).
-
-```{r}
-glm(drown ~ year, family = poisson, data = hkdeaths)
-```
-
-Kick
-
-```{r}
-glm(kick ~ year, family = poisson, data = hkdeaths)
-```
-
-Fall
-
-```{r}
-glm(fall ~ year, family = poisson, data = hkdeaths)
-```
-
-Plot
-
-```{r}
-#| label: fig-deaths-over-time
-#| fig-cap: Death by type over time.
-#|
 hk.year <- hk.tidy |>
   group_by(year, death.type) |>
   summarise(death.count = sum(death.count))
 
+ggplot(hk.year) +
+  aes(x = year, y = death.count, group = death.type, colour = death.type) +
+  geom_line() +
+  scale_colour_manual(values = prussian.colours, name = "Death type") +
+  labs(x = "Year", y = "Number of deaths") +
+  theme_minimal()
+```
+
+Note that for each death type and each year we actually have a distribution across all regiments, not just a single number. We could choose to plot the distributions as a series of box plots.
+
+```{r}
+#| label: fig-boxplots
+#| fig-cap: Distributions of deaths for each year and death type.
+ggplot(hk.tidy) +
+  aes(x = year, y = death.count, group = year, fill = death.type) +
+  facet_wrap(~death.type, dir = "v") +
+  geom_boxplot(alpha = 0.5) +
+  scale_fill_manual(values = prussian.colours, name = "Death type") +
+  theme_minimal() +
+  labs(x = "Year", y = "Number of deaths")
+```
+
+Time for that model. Since you can't literally be kicked half to death, at least not as far as _Preussische Statistik_ was concerned, all the death statistics are integer counts. Therefore the obvious choice for the distribution is Poisson. We don't have a reason to provide a different link function, so we just take the canonical link function for Poisson (log).
+
+R makes this trivial to do. `glm` is a built-in function:
+
+```{r}
+glm(
+  formula = drown ~ year, # i.e. drownings are the response variable, year is the predictor
+  family = poisson,
+  data = hkdeaths
+)
+```
+
+The result is an intercept (which we con't care much about) and a coefficient for the year of -0.022, which tells us that the model predicts drownings are decreasing 2.2% every year.
+
+`ggplot2` makes it even easier by allowing us to bung the above model into `stat_smooth`.
+
+```{r}
+#| label: fig-deaths-over-time-fitted
+#| fig-cap: Death by type over time, with GLM fits.
 ggplot(hk.year) +
   aes(x = year, y = death.count, group = death.type, colour = death.type) +
   geom_point() +
@@ -133,43 +145,10 @@ ggplot(hk.year) +
     method = "glm",
     formula = y ~ x,
     method.args = list(family = poisson)
-  )
+  ) +
+  scale_colour_manual(values = prussian.colours, name = "Death type") +
+  theme_minimal() +
+  labs(x = "Year", y = "Number of deaths")
 ```
 
-When intersect?
-
-```{r}
-extrapolate.range <- 1875:1914
-
-extrapolated.data <- c("drown", "fall", "kick") |>
-  map(function(type) {
-    hk.year.type <- filter(hk.year, death.type == type)
-    model <- glm(death.count ~ year, family = poisson, data = hk.year.type)
-    death.count <- predict.glm(
-      model,
-      newdata = data.frame(year = extrapolate.range),
-      type = "response"
-    )
-    data.frame(
-      year = extrapolate.range,
-      death.type = type,
-      death.count = death.count
-    )
-  }) |>
-  bind_rows() |>
-  mutate(extrapolated = year > 1907)
-
-ggplot() +
-  aes(
-    x = year,
-    y = death.count,
-    group = death.type,
-    colour = death.type,
-  ) +
-  geom_point(data = hk.year) +
-  geom_line(
-    data = filter(extrapolated.data, !extrapolated),
-    linetype = "solid"
-  ) +
-  geom_line(data = extrapolated.data, linetype = "dashed")
-```
+Et voila. That's really all there  was to it!
