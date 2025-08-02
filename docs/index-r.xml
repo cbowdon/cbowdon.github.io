@@ -10,7 +10,490 @@
 <atom:link href="https://cbowdon.github.io/index-r.xml" rel="self" type="application/rss+xml"/>
 <description>Chris Bowdon&#39;s blog</description>
 <generator>quarto-1.6.32</generator>
-<lastBuildDate>Sun, 22 Jun 2025 23:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 01 Aug 2025 23:00:00 GMT</lastBuildDate>
+<item>
+  <title>Introduction to Generalised Linear Models with Prussian Horse Kicks</title>
+  <link>https://cbowdon.github.io/posts/horsekicks/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Time to finally patch a hole in the leaky roof of my knowledge: what are Generalised Linear Models anyway?</p>
+<section id="groundwork-what-are-linear-models-anyway" class="level2">
+<h2 class="anchored" data-anchor-id="groundwork-what-are-linear-models-anyway">Groundwork: what are Linear Models anyway?</h2>
+<p>Generalised Linear Models (GLMs) are a short step from Linear Models, <em>provided you have the right understanding of linear models</em>. There’s also some stats jargon to get a handle on. So we’ll start with an intuitive explanation of linear models.</p>
+<p>With a linear model, we have some quantity (the response variable) that we’re trying to predict from some other quantities (the predictors). The predictors are knowable things that you can measure with good precision, such as age and weight. The response variable is something with natural variation and/or measurement uncertainty, like maximum jump height. Different people of the same age and weight will have different maximum jumps. For every age and weight combination, we aim to predict the average jump height.</p>
+<p>The natural variation usually (but not always) follows a <em>normal</em> distribution for given predictors. That is to say, we should expect a bell curve of jump heights for people who are 80 years of age and weigh 80kg. For people who are 18 years of age and weight 60kg, we should expect a bell curve with a different (probably higher) mean but the same variance. Having the the variance in jump height <em>not</em> change for different ages and weights is important, we’ll come back to that later.</p>
+<p>What we do in a linear model is devise a weighted sum of our predictors (a linear combination, in the lingo) that best predicts the mean of the bell curve. Here’s the general form of it:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AE%5BY%5D%20=%20%5Cbeta_0%20+%20%5Cbeta_1%20X_1%20+%20%5Cbeta_2%20X_2%20...%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?X_1"> could be age and <img src="https://latex.codecogs.com/png.latex?X_2"> could be weight. The <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> values are the intercept and coefficients that we learn.</p>
+<p>Here <img src="https://latex.codecogs.com/png.latex?E%5BY%5D"> means the <em>expectation</em> of Y, which in this case is just the mean. Strictly speaking, we should say that we’re predicting the mean <em>conditioned on the predictors</em> because it’s not the mean of all maximum jump height observations, it’s the mean of the maximum jump heights for a particular age and weight. So we ought to write <img src="https://latex.codecogs.com/png.latex?E%5BY%20%7C%20X%5D">.</p>
+<p>To determine those coefficients we use an algorithm like Ordinary Least Squares (OLS) which works to find the coefficients that give the means with the smallest (squared) residuals, i.e.&nbsp;minimal squared distance between the observations and the mean for any given predictors. We don’t need to know too much about how this works today, just that it’s an efficient and useful.</p>
+</section>
+<section id="next-level-the-glm" class="level2">
+<h2 class="anchored" data-anchor-id="next-level-the-glm">Next level: the GLM</h2>
+<p>With that under our belt, GLMs aren’t so scary. There are just two things to recognise.</p>
+<p>First, a normal distribution isn’t always appropriate for the natural variation. What if rather than jump height, our response variable was something discrete, like number of pets? You can’t have a non-integer or negative number of pets. We’d want to swap the normal distribution for a discrete distribution from the same exponential family, most likely a Poisson distribution.</p>
+<p>That leads directly to the second thing: the mean of a Poisson distribution must be positive, so we need to transform the result of that weighted sum in some way that maps it into the valid range of Poisson means. This transformation is called the <em>link function</em>. The form of this would be:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ag(%5Cmu)%20=%20%5Cbeta_0%20+%20%5Cbeta_1%20X_1%20+%20%5Cbeta_2%20X_2%20...%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?g"> is the link function, and <img src="https://latex.codecogs.com/png.latex?%5Cmu"> is the mean of the target distribution. If we had a normal distribution and no need to transform the result of the weighted sum, <img src="https://latex.codecogs.com/png.latex?g"> would simply be the identity function. For a Poisson distribution, the usual choice is <img src="https://latex.codecogs.com/png.latex?log">, because it’s the inverse of a function <img src="https://latex.codecogs.com/png.latex?exp"> that maps any number to positive number.</p>
+<p>For different types of data, you’d choose a different type of distribution:</p>
+<ul>
+<li>Poisson for counts</li>
+<li>Binomial for binary probabilities</li>
+<li>Gamma for positive continuous data</li>
+<li>Normal for normally distributed data</li>
+</ul>
+<p>Each of these has a “canonical” (standard) link function:</p>
+<ul>
+<li>Poisson: log</li>
+<li>Binomial: logit</li>
+<li>Gamma: inverse</li>
+<li>Normal: identity</li>
+</ul>
+<p>You can choose another link function, but let’s leave that for another day.</p>
+<p>Remember that the linear model assumed the variance was constant? GLMs don’t need this, because for distributions other than the normal distribution, the variance is a function of the mean. The technical term for this property is heteroscedasticity (whereas a constant mean is homoscedasticity).</p>
+<p>One more important consequence: because of the link function, we don’t necessarily have a mean of the response variable that varies linearly with the predictors. In other words we can model non-linear relationships, which is of course <em>powerful</em>.</p>
+</section>
+<section id="play-time" class="level2">
+<h2 class="anchored" data-anchor-id="play-time">Play time</h2>
+<p>Time to learn by playing. We can use a quirky dataset compiled by Russian statistician Ladislaus von Bortkiewicz in the late 1800s: deaths by horse kick per year for regiments in the Prussian army. In February 2025 Antony Unwin and Bill Venables updated the dataset with additional data and realised von Bortkiewicz’s original dream of <a href="https://cloud.r-project.org/web/packages/Horsekicks/vignettes/hkdeaths.html">publishing it to CRAN</a>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(tidyverse)</span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(knitr)</span>
+<span id="cb1-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(Horsekicks)</span>
+<span id="cb1-4"></span>
+<span id="cb1-5">hk.tidy <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> hkdeaths <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb1-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pivot_longer</span>(</span>
+<span id="cb1-7">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(kick, drown, fall),</span>
+<span id="cb1-8">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">names_to =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"death.type"</span>,</span>
+<span id="cb1-9">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values_to =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"death.count"</span></span>
+<span id="cb1-10">  )</span>
+<span id="cb1-11"></span>
+<span id="cb1-12">hk.tidy <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">head</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">kable</span>()</span></code></pre></div>
+<div id="tbl-hkdeaths" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-hkdeaths-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Sample of the horse kick data (tidied).
+</figcaption>
+<div aria-describedby="tbl-hkdeaths-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">year</th>
+<th style="text-align: left;">corps</th>
+<th style="text-align: right;">regiments</th>
+<th style="text-align: right;">NCOs</th>
+<th style="text-align: right;">vonB_kick</th>
+<th style="text-align: left;">death.type</th>
+<th style="text-align: right;">death.count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1875</td>
+<td style="text-align: left;">G</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">kick</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1875</td>
+<td style="text-align: left;">G</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">drown</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1875</td>
+<td style="text-align: left;">G</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">fall</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1875</td>
+<td style="text-align: left;">I</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">kick</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1875</td>
+<td style="text-align: left;">I</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">drown</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1875</td>
+<td style="text-align: left;">I</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">fall</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Unwin and Venables added deaths by drowning, and deaths by falling off a horse among other improvements. The data cover 14 corps, each with a fixed number of regiments, over 33 years. A regiment is about 500 soldiers, as far as I can tell. I have no idea where Prussia was or where it’s gone.</p>
+<p>Let’s explore data visually. Plotting deaths over time shows that equestrian misadventures seem quite stable, but deaths by drowning did reduce. We will fit a GLM to these time series.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">prussian.colours <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#333333"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#F9BE11"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#BE0007"</span>)</span>
+<span id="cb2-2"></span>
+<span id="cb2-3">hk.year <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> hk.tidy <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">group_by</span>(year, death.type) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|&gt;</span></span>
+<span id="cb2-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summarise</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">death.count =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(death.count))</span>
+<span id="cb2-6"></span>
+<span id="cb2-7"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(hk.year) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-8">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> year, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> death.count, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">group =</span> death.type, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> death.type) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_line</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-10">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_colour_manual</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values =</span> prussian.colours, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Death type"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-11">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Year"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Number of deaths"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb2-12">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>()</span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-deaths-over-time" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-deaths-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://cbowdon.github.io/posts/horsekicks/index_files/figure-html/fig-deaths-over-time-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-deaths-over-time-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Accidental death by type over time.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Note that for each death type and each year we actually have a distribution across all regiments, not just a single number. We could choose to plot the distributions as a series of box plots.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(hk.tidy) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> year, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> death.count, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">group =</span> year, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill =</span> death.type) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">facet_wrap</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>death.type, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dir =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"v"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_boxplot</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">alpha =</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.5</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-5">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_fill_manual</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values =</span> prussian.colours, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Death type"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-6">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb3-7">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Year"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Number of deaths"</span>)</span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-boxplots" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-boxplots-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://cbowdon.github.io/posts/horsekicks/index_files/figure-html/fig-boxplots-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-boxplots-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Distributions of deaths for each year and death type.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Time for that model. Since you can’t literally be kicked half to death, at least not as far as <em>Preussische Statistik</em> was concerned, all the death statistics are integer counts. Therefore the obvious choice for the distribution is Poisson. We don’t have a reason to provide a different link function, so we just take the canonical link function for Poisson (log).</p>
+<p>R makes this trivial to do. <code>glm</code> is a built-in function:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">glm</span>(</span>
+<span id="cb4-2">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">formula =</span> drown <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> year, <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># i.e. drownings are the response variable, year is the predictor</span></span>
+<span id="cb4-3">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">family =</span> poisson,</span>
+<span id="cb4-4">  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data =</span> hkdeaths</span>
+<span id="cb4-5">)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:  glm(formula = drown ~ year, family = poisson, data = hkdeaths)
+
+Coefficients:
+(Intercept)         year  
+   44.05820     -0.02256  
+
+Degrees of Freedom: 461 Total (i.e. Null);  460 Residual
+Null Deviance:      854.3 
+Residual Deviance: 766.9    AIC: 2170</code></pre>
+</div>
+</div>
+<p>The result is an intercept (which we con’t care much about) and a coefficient for the year of -0.022, which tells us that the model predicts drownings are decreasing 2.2% every year.</p>
+<p><code>ggplot2</code> makes it even easier by allowing us to bung the above model into <code>stat_smooth</code> and run it for each death type.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ggplot</span>(hk.year) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb6-2">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">aes</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> year, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> death.count, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">group =</span> death.type, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">colour =</span> death.type) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb6-3">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">geom_point</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb6-4">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stat_smooth</span>(</span>
+<span id="cb6-5">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">method =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"glm"</span>,</span>
+<span id="cb6-6">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">formula =</span> y <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> x,</span>
+<span id="cb6-7">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">method.args =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">family =</span> poisson)</span>
+<span id="cb6-8">  ) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb6-9">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">scale_colour_manual</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">values =</span> prussian.colours, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">name =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Death type"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb6-10">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">theme_minimal</span>() <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span></span>
+<span id="cb6-11">  <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">labs</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Year"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">y =</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Number of deaths"</span>)</span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-deaths-over-time-fitted" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-deaths-over-time-fitted-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://cbowdon.github.io/posts/horsekicks/index_files/figure-html/fig-deaths-over-time-fitted-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-deaths-over-time-fitted-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Death by type over time, with GLM fits.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Et voila. That’s really all there was to it!</p>
+
+
+</section>
+
+ ]]></description>
+  <category>r</category>
+  <category>stats</category>
+  <category>glms</category>
+  <guid>https://cbowdon.github.io/posts/horsekicks/</guid>
+  <pubDate>Fri, 01 Aug 2025 23:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Ultra-processed food: an AI polling simulation</title>
   <link>https://cbowdon.github.io/posts/food/</link>

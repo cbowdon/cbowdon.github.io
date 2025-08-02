@@ -4,7 +4,6 @@ date: "2025-08-02"
 categories: [r, stats, glms]
 code-fold: false
 warning: false
-freeze: false
 ---
 
 Time to finally patch a hole in the leaky roof of my knowledge: what are Generalised Linear Models anyway?
@@ -133,7 +132,7 @@ glm(
 
 The result is an intercept (which we con't care much about) and a coefficient for the year of -0.022, which tells us that the model predicts drownings are decreasing 2.2% every year.
 
-`ggplot2` makes it even easier by allowing us to bung the above model into `stat_smooth`.
+`ggplot2` makes it even easier by allowing us to bung the above model into `stat_smooth` and run it for each death type.
 
 ```{r}
 #| label: fig-deaths-over-time-fitted
