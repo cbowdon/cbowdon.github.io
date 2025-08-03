@@ -10,7 +10,7 @@
 <atom:link href="https://cbowdon.github.io/index.xml" rel="self" type="application/rss+xml"/>
 <description>Chris Bowdon&#39;s blog</description>
 <generator>quarto-1.6.32</generator>
-<lastBuildDate>Fri, 01 Aug 2025 23:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 02 Aug 2025 23:00:00 GMT</lastBuildDate>
 <item>
   <title>Introduction to Generalised Linear Models with Prussian Horse Kicks</title>
   <link>https://cbowdon.github.io/posts/horsekicks/</link>
@@ -185,7 +185,7 @@ Table&nbsp;1: Sample of the horse kick data (tidied).
 </div>
 </div>
 <p>Unwin and Venables added deaths by drowning, and deaths by falling off a horse among other improvements. The data cover 14 corps, each with a fixed number of regiments, over 33 years. A regiment is about 500 soldiers, as far as I can tell. I have no idea where Prussia was or where it’s gone.</p>
-<p>Let’s explore data visually. Plotting deaths over time shows that equestrian misadventures seem quite stable, but deaths by drowning did reduce. We will fit a GLM to these time series.</p>
+<p>Let’s explore the data visually. Plotting deaths over time shows that equestrian misadventures seem quite stable, but deaths by drowning did reduce. We will fit a GLM to these time series.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">prussian.colours <span class="ot" style="color: #003B4F;
 background-color: null;
@@ -393,8 +393,8 @@ Null Deviance:      854.3
 Residual Deviance: 766.9    AIC: 2170</code></pre>
 </div>
 </div>
-<p>The result is an intercept (which we con’t care much about) and a coefficient for the year of -0.022, which tells us that the model predicts drownings are decreasing 2.2% every year.</p>
-<p><code>ggplot2</code> makes it even easier by allowing us to bung the above model into <code>stat_smooth</code> and run it for each death type.</p>
+<p>The result is an intercept (which we don’t care much about) and a coefficient for the year of -0.022, which tells us that the model predicts that every year the mean number of drownings is 2.2% lower. There’s a little gotcha in that interpretation: we need to remember to invert the link function. It’s actually predicting that the mean number of drownings is <img src="https://latex.codecogs.com/png.latex?exp(-0.022)"> times lower, but that’s a small number and <img src="https://latex.codecogs.com/png.latex?exp"> behaves quite linearly with small numbers: <img src="https://latex.codecogs.com/png.latex?exp(-0.022)%20%5Capprox%200.978">.</p>
+<p><code>ggplot2</code> makes all the above even easier by allowing us to bung the above model into <code>stat_smooth</code> and run it for each death type.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="fu" style="color: #4758AB;
 background-color: null;
@@ -482,7 +482,7 @@ Figure&nbsp;3: Death by type over time, with GLM fits.
 </div>
 </div>
 </div>
-<p>Et voila. That’s really all there was to it!</p>
+<p>Et voila, we even get shaded confidence intervals. That’s really all there was to it!</p>
 
 
 </section>
@@ -492,7 +492,7 @@ Figure&nbsp;3: Death by type over time, with GLM fits.
   <category>stats</category>
   <category>glms</category>
   <guid>https://cbowdon.github.io/posts/horsekicks/</guid>
-  <pubDate>Fri, 01 Aug 2025 23:00:00 GMT</pubDate>
+  <pubDate>Sat, 02 Aug 2025 23:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Ultra-processed food: an AI polling simulation</title>

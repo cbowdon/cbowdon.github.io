@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2025-08-02">
+<meta name="dcterms.date" content="2025-08-03">
 
 <title>Introduction to Generalised Linear Models with Prussian Horse Kicks – Chris Bowdon</title>
 <style>
@@ -252,7 +252,7 @@ window.Quarto = {
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">August 2, 2025</p>
+        <p class="date">August 3, 2025</p>
       </div>
     </div>
     
@@ -410,7 +410,7 @@ Table&nbsp;1: Sample of the horse kick data (tidied).
 </div>
 </div>
 <p>Unwin and Venables added deaths by drowning, and deaths by falling off a horse among other improvements. The data cover 14 corps, each with a fixed number of regiments, over 33 years. A regiment is about 500 soldiers, as far as I can tell. I have no idea where Prussia was or where it’s gone.</p>
-<p>Let’s explore data visually. Plotting deaths over time shows that equestrian misadventures seem quite stable, but deaths by drowning did reduce. We will fit a GLM to these time series.</p>
+<p>Let’s explore the data visually. Plotting deaths over time shows that equestrian misadventures seem quite stable, but deaths by drowning did reduce. We will fit a GLM to these time series.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>prussian.colours <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"#333333"</span>, <span class="st">"#F9BE11"</span>, <span class="st">"#BE0007"</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -480,8 +480,8 @@ Null Deviance:      854.3
 Residual Deviance: 766.9    AIC: 2170</code></pre>
 </div>
 </div>
-<p>The result is an intercept (which we con’t care much about) and a coefficient for the year of -0.022, which tells us that the model predicts drownings are decreasing 2.2% every year.</p>
-<p><code>ggplot2</code> makes it even easier by allowing us to bung the above model into <code>stat_smooth</code> and run it for each death type.</p>
+<p>The result is an intercept (which we don’t care much about) and a coefficient for the year of -0.022, which tells us that the model predicts that every year the mean number of drownings is 2.2% lower. There’s a little gotcha in that interpretation: we need to remember to invert the link function. It’s actually predicting that the mean number of drownings is <span class="math inline">\(exp(-0.022)\)</span> times lower, but that’s a small number and <span class="math inline">\(exp\)</span> behaves quite linearly with small numbers: <span class="math inline">\(exp(-0.022) \approx 0.978\)</span>.</p>
+<p><code>ggplot2</code> makes all the above even easier by allowing us to bung the above model into <code>stat_smooth</code> and run it for each death type.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(hk.year) <span class="sc">+</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(<span class="at">x =</span> year, <span class="at">y =</span> death.count, <span class="at">group =</span> death.type, <span class="at">colour =</span> death.type) <span class="sc">+</span></span>
@@ -507,7 +507,7 @@ Figure&nbsp;3: Death by type over time, with GLM fits.
 </div>
 </div>
 </div>
-<p>Et voila. That’s really all there was to it!</p>
+<p>Et voila, we even get shaded confidence intervals. That’s really all there was to it!</p>
 
 
 </section>
