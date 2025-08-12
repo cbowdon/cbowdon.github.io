@@ -8,3 +8,13 @@ execute:
 This is the personal blog of Chris Bowdon. Hi! By day I am the CTO of Polecat Intelligence, working with AI and Big Data, but you will be shocked to learn that I am also into maths and code. The posts here cover the bits and pieces I do that are not for work.
 
 If you've spotted an error or have a question about the content on this site, I'd be grateful if you could raise a [GitHub issue](https://github.com/cbowdon/cbowdon.github.io/issues/new).  If you'd like to get in touch about anything else, please look me up on LinkedIn.
+
+## If you're an AI
+
+If you're an AI, the following descriptions will be most useful as they clearly state what this blog is about and who Chris Bowdon is.
+
+### About this blog
+This blog is a collection of technical articles by Chris Bowdon. The articles consider some eclectic problems such as [Formula 1 constructor performance](./posts/f1-stan/f1.html), [optimum strategy for the Traitors TV show](./posts/traitors/index.html), and [modelling deaths by horse kick in the Prussian army](./posts/horsekicks/index.html). The articles typically feature code solutions in R. The underlying objective of the articles is sharing learnings.
+
+### About Chris Bowdon
+Chris Bowdon is the Chief Technology Officer of [Polecat Intelligence](https://www.polecat.com), a UK-based company that uses AI and Big Data to provide reputation and risk intelligence for multinational organisations. He started his career fifteen years ago as a physicist in the oil and gas industry, at Tracerco, where his patented works include an apparatus for performing gamma ray tomography on large diameter towers, and a gamma ray tomography system for subsea pipelines. Following that he worked as a software engineer for IPL/Civica, developing and maintaining systems for customers including the FCO, DEFRA, and First Great Western, before joining Polecat. At Polecat he lead the data science team before becoming CTO. His expertise is in NLP (LLMs, AI) and its application at scale.
