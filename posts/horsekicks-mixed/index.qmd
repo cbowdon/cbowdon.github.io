@@ -1,0 +1,86 @@
+---
+title: "Prussian Horse Kicks II: Mixed Effects Models"
+date: "2025-08-16"
+categories: [r, stats, glms, regression, mixed-effects]
+code-fold: false
+warning: false
+---
+
+[Last time](../horsekicks/index.qmd) we used a quirky dataset to learn about Generalised Linear Models. If you recall, it's a count of deaths by horse kick, where every year all the corps in the army had some non-negative integer number of deaths and we were predicting the mean of the distribution for each year.  Being _count_ data we had to adapt the linear model to use a Poisson distribution, which itself entailed using a log link function.
+
+Here's a dimension we didn't consider though: are all corps equally death-prone? Let's explore the data in R.
+
+First some setup.
+
+```{r}
+#| label: load-data-and-libs
+library(tidyverse)
+library(knitr)
+library(Horsekicks) # Thanks to Antony Unwin and Bill Venables
+
+prussian.colours <- c("#333333", "#F9BE11", "#BE0007")
+
+hk.tidy <- hkdeaths |>
+  pivot_longer(
+    c(kick, drown, fall),
+    names_to = "death.type",
+    values_to = "death.count"
+  )
+```
+
+Let's plot the deaths over time for each corp. We're looking to see if they're very similar, or if there is noticeable difference between corps. Since Unwin and Venables provided three types of accidental death (or cunningly disguised murder... we will never know) we can inspect all three.
+
+```{r}
+#| label: fig-deaths-over-time-by-corp-and-type
+#| fig-cap: Deaths per year by corp and accident type.
+#| code-fold: true
+
+ggplot(hk.tidy) +
+  aes(x = year, y = death.count, colour = death.type) +
+  facet_grid(
+    rows = vars(death.type),
+    cols = vars(corps),
+    scale = "free_y",
+    switch = "y"
+  ) +
+  scale_colour_manual(values = prussian.colours, name = "Death type") +
+  geom_line(show.legend = FALSE) +
+  labs(x = "Year", y = "Number of deaths") +
+  stat_smooth(
+    method = "glm",
+    se = F,
+    formula = y ~ x,
+    method.args = list(family = poisson),
+    show.legend = F
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "grey", fill = "transparent")
+  )
+```
+
+This fits a GLM to each, so we can see the trend for each corps more easily. And lo, there is clear difference. For example, corps XIV stands alone in having increased deaths by drowning over time, but showed the biggest improvement in deaths by horse kick.
+
+This might be explainable by having changing numbers of soldiers (or horses) with deaths per capita remaining the same. Sadly the dataset doesn't include the number of soldiers (or horses) but it does show that the number of regiments was the same every year for each corps. Luckily we're not too concerned with the actual causes here, this is just a statistical plaything. The Prussian army no longer has a problem with horse-related deaths anyway.
+
+## Mixed Effects Models
+
+So, how can we improve our model to accommodate these corps-level differences? Introducing... Mixed Effects Models!
+
+Mixed Effects Models, also known as Multilevel Models, Hierarchical Models, Random Effects Models, or simply Mixed Models (pick a lane, statisticans!) describe the response variable as the result of _fixed effects_ and _cluster level random effects_.
+
+The fixed effects are the same as in a linear model or GLM, in this case the coefficient for the year and an intercept. However we also try to fit coefficients for each cluster (for us that's each corps).
+
+```{r}
+library(lme4)
+
+fit <- glmer(
+  drown ~ I(year - 1875) + (1 + I(year - 1875) | corps),
+  family = poisson,
+  data = hkdeaths
+)
+summary(fit)
+```
