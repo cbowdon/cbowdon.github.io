@@ -62,7 +62,7 @@ ggplot(hk.tidy) +
   )
 ```
 
-This fits a GLM to each, so we can see the trend for each corps more easily. And lo, there is clear difference. For example, corps XIV stands alone in having increased deaths by drowning over time, but showed the biggest improvement in deaths by horse kick.
+This fits a GLM to each, so we can see the trend for each corps more easily. And lo, there is clear difference. For example, corps XIV stands alone in having increased deaths by drowning over time, but showed the biggest improvement in deaths by horse kick. That said, these are visibly not the best fits - the amount of data for each corp is quite low.
 
 This might be explainable by having changing numbers of soldiers (or horses) with deaths per capita remaining the same. Sadly the dataset doesn't include the number of soldiers (or horses) but it does show that the number of regiments was the same every year for each corps. Luckily we're not too concerned with the actual causes here, this is just a statistical plaything. The Prussian army no longer has a problem with horse-related deaths anyway.
 
@@ -70,17 +70,42 @@ This might be explainable by having changing numbers of soldiers (or horses) wit
 
 So, how can we improve our model to accommodate these corps-level differences? Introducing... Mixed Effects Models!
 
-Mixed Effects Models, also known as Multilevel Models, Hierarchical Models, Random Effects Models, or simply Mixed Models (pick a lane, statisticans!) describe the response variable as the result of _fixed effects_ and _cluster level random effects_.
+Mixed Effects Models, also known as Multilevel Models, Hierarchical Models, Random Effects Models, or simply Mixed Models (pick a lane, statisticans!) describe the response variable as the result of _fixed effects_ and _cluster level random effects_. This means as well as a global trend across all observations, there are also trends for each group (for us that's each corps).
 
-The fixed effects are the same as in a linear model or GLM, in this case the coefficient for the year and an intercept. However we also try to fit coefficients for each cluster (for us that's each corps).
+The fixed effects are the same as in a linear model or GLM, in this case the coefficient for the year and an intercept. However we also try to fit coefficients for each corps, taking into account the fixed effects.
+
+Let's consider it as a linear model first, rather than a GLM. Here's what that looks like:
+
+$$
+E[Y]_{corps} = \beta_0 + \beta_1 X + ( \beta'_0 + \beta'_1 X )_{corps} + \epsilon
+$$
+
+Here the response variable Y is the number of deaths, and the predictor X is the year. We have _two_ pairs of coefficients. The \beta coefficents are the fixed effects, while the \beta' coefficients are the random effects for each corps. These are assumed to be normally distributed, with a mean of 0. The variance of the random effects is something we'll learn. \epsilon is the (normal) error. All this is to say that for each corps, the expectation of the number of deaths is a linear combination of the fixed effects and the corps-specific random effects, plus error.
+
+Extending this to a generalised linear mixed model (GLMM) is conceptually easy - pick a distribution and a link function. As per the previous post, for this dataset that would be the Poisson distribution and the log link function.
+
+Here's how we fit it in R, using the `lme4` package. This model fits deaths by drowning.
 
 ```{r}
+#| label: glmer-fit
 library(lme4)
 
+midyear <- quantile(hkdeaths$year, 0.5)
+
 fit <- glmer(
-  drown ~ I(year - 1875) + (1 + I(year - 1875) | corps),
+  drown ~ I(year - midyear) + (1 + I(year - midyear) | corps),
   family = poisson,
   data = hkdeaths
 )
 summary(fit)
+```
+
+Note that this time the year predictor is redefined as a distance from the median year, which avoids convergence issues and makes the intercepts easier to interpret.
+
+We can inspect the random effects for each corps. Remember this is in addition to the fixed effects, so a positive slope here means less decline than average, rather than an increase in deaths.
+
+```{r}
+#| label: tbl-ranef
+#| tbl-cap: Random effects for each corps.
+ranef(fit)$corps |> kable(digits = 3)
 ```
