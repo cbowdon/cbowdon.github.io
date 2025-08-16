@@ -1,16 +1,18 @@
 ---
 title: "Working with (around) proxies"
+date: "2015-01-01"
 format: html
 execute:
   enabled: false
 freeze: true
+code-fold: false
 ---
 
 N.B. This article is ten years old and certainly does not represent best practices in the 2020s.
 
 This is something that I seem to have to do on a monthly basis on various projects: a throwaway script that includes getting some resource from the Internet. This means I have to spar with my old nemesis the corporate proxy and her minions, the 407 and the SSL verification error.
 
-$DAYJOB uses an authenticated proxy and their own root certificate. It's seamless for Office and IE users because their system is pre-configured. But not for those of us who are spinning up VMs and installing packages and come to think of it almost everything you need to do as a software engineer. (It also can /weaken/ rather than enhance security, the stated aim, but that's an article for another day.)
+$DAYJOB uses an authenticated proxy and their own root certificate. It's seamless for Office and IE users because their system is pre-configured. But not for those of us who are spinning up VMs and installing packages and come to think of it almost everything you need to do as a software engineer. (It also can _weaken_ rather than enhance security, the stated aim, but that's an article for another day.)
 
 This is a quick guide-by-example for how to authenticated against a proxy and ignore any SSL verification errors in a variety of scripting languages. The examples use only the standard library for a widely available (read: old) version of each language. The assumption is that if you can't reach the Internet, you don't have better packages or newer versions.
 

@@ -20,8 +20,6 @@ website:
         menu:
           - text: Medium posts
             href: https://medium.com/@cbowdon
-          - text: Working with (around) proxies
-            href: proxy.qmd
       - text: "Open Source Software"
         menu:
           - text: "TsMonad"
