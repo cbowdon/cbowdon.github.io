@@ -1,0 +1,8 @@
+{
+    "positron.assistant.enable": true,
+    "positron.assistant.inlineCompletionExcludes": [
+        "**/.*",
+        "*.qmd"
+    ],
+    "positron.assistant.gitIntegration.enable": true
+}
