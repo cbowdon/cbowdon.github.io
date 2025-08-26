@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/gpt-params/index.html",
       "/posts/horsekicks/index.html",
       "/posts/food/index.html",
       "/posts/sainz/index.html",

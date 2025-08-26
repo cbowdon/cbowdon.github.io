@@ -1,8 +1,20 @@
 ---
 title: "How many parameters does GPT-5 have?"
 code-fold: true
-freeze: false
+date: "2025-08-26"
+categories: [r, stats, llm, ai, gpt]
+warning: false
 ---
+
+One of the many arguments I've been having with o3 recently was on how many parameters GPT models have. It's quite often that I want to benchmark open source models against a comparable proprietary model, but Unfortunately since OpenAI (and Anthropic and Google and ...) don't reveal the parameter counts of their models.
+
+In hopes that there was a decent estimate somewhere on the web, I dispatched DeepResearch. Unfortunately the only mention in the literature was a passing reference in a MedrXiv article which claimed 4o-mini was on the same order as Llama 8B. DeepResearch presented this like God's Own Word, but it turned out to be a sloppy reference to an off-hand comment in a hand-wavy email that OpenAI's marketing team allegedly once sent a journalist. Sigh.
+
+If we want to estimate how many parameters the proprietary GPT models have, we're on our own. But where there's a will, there's a way. We can estimate the parameters based on their performance relative to other models using a simple regression model in R.
+
+## The input data
+
+There's multiple LLM leaderboards out there. Artificial Analysis.AI is quite a nice and complete one, and quite easy to scrape too.
 
 ```{r}
 #| label: tbl-scoreboard
@@ -11,7 +23,7 @@ library(tidyverse)
 library(rvest)
 library(knitr)
 
-html <- read_html("./posts/gpt-params/aaai-table.html")
+html <- read_html("aaai-table")
 table <- html_table(html)[[1]]
 headers <- colnames(table)
 subheaders <- table[1, ]
@@ -39,27 +51,59 @@ scoreboard <- table |>
     across(starts_with("Intelligence"), read_percent),
     ContextWindow = read_context(ContextWindow),
     # TODO not quite good enough
-    Reasoning = if_else(
-      str_detect(
-        Model,
-        "Reasoning|Thinking|high|medium|low"
-      ),
-      "Reasoning model",
-      "Standard model"
+    Reasoning = str_detect(
+      Model,
+      "Reasoning|Thinking|high|medium|low|o3|o1|Magistral"
     ),
-    Parameters = as.integer(str_extract(Model, "([0-9]+)[BM]", group = 1)),
+    Reasoning = factor(
+      if_else(Reasoning, "Reasoning", "Standard"),
+      levels = c("Standard", "Reasoning")
+    ),
+    Family = case_when(
+      str_detect(Model, "Gemma") ~ "Gemma",
+      str_detect(Model, "Gemini") ~ "Gemma",
+      str_detect(Model, "Command-R") ~ "Command-R",
+      str_detect(Model, "DeepSeek") ~ "DeepSeek",
+      str_detect(Model, "Claude") ~ "Claude",
+      str_detect(Model, "GPT") ~ "GPT",
+      str_detect(Model, "gpt") ~ "GPT",
+      str_detect(Model, "Grok") ~ "Grok",
+      str_detect(Model, "Granite") ~ "Granite",
+      str_detect(Model, "Phi") ~ "Phi",
+      str_detect(Model, "Ministral") ~ "Ministral",
+      str_detect(Model, "Mistral") ~ "Mistral",
+      str_detect(Model, "Mixtral") ~ "Mixtral",
+      str_detect(Model, "EXAONE") ~ "EXAONE",
+      str_detect(Model, "Aya") ~ "Aya",
+      str_detect(Model, "Qwen") ~ "Qwen",
+      str_detect(Model, "QwQ") ~ "QwQ",
+      str_detect(Model, "LFM") ~ "LFM",
+      str_detect(Model, "Llama") ~ "Llama",
+      .default = Model
+    ),
+    Family = factor(Family),
+    Parameters = as.integer(str_extract(
+      Model,
+      "([0-9]+)[BM]",
+      group = 1
+    )),
     License = `Features::License`
   ) |>
   select(
     -starts_with("Intelligence::Arti"),
   ) |>
   select(
+    Family,
     Model,
     License,
     ContextWindow,
     Parameters,
     Reasoning,
     starts_with("Intelligence")
+  ) |>
+  rename_with(
+    \(x) str_replace(x, "\\s+\\(.*\\)", ""),
+    .cols = starts_with("Intelligence::")
   )
 
 scoreboard |>
@@ -67,32 +111,115 @@ scoreboard |>
   kable()
 ```
 
-There's a fairly obvious relationship between the number of parameters an LLM has and its benchmark performance.
+I've extracted parameter counts, family, and reasoning status from the model names. This is a bit brittle, and if it weren't 10pm I'd look for a more authoritative source. But it _is_ 10pm, I've only got about 30 minutes of usefulness left, let's roll with it.
+
+Before proceeding, we'd better validate the main assumption about parameter counts and benchmark scores.
 
 ```{r}
 #| label: fig-mmlu-params
-#| fig-cap: Bigger LLMs perform better on MMLU-Pro and other benchmarks.
+#| fig-cap: LLMs with more parameters and/or reasoning capability perform better on benchmarks.
 ggplot(
-  scoreboard |> filter(!is.na(Parameters))
+  scoreboard |>
+    filter(!is.na(Parameters)) |>
+    pivot_longer(
+      starts_with("Intelligence::"),
+      names_to = "Benchmark",
+      values_to = "Score"
+    ) |>
+    mutate(Benchmark = str_replace(Benchmark, "Intelligence::", ""))
 ) +
-  aes(x = Parameters, y = `Intelligence::MMLU-Pro (Reasoning & Knowledge)`) +
-  facet_wrap(~Reasoning) +
+  aes(
+    x = Parameters,
+    y = Score,
+    colour = Family
+  ) +
+  facet_grid(
+    rows = vars(Benchmark),
+    cols = vars(Reasoning),
+    scales = "free_y"
+  ) +
   scale_x_log10() +
-  stat_smooth(method = "lm", se = FALSE) +
+  geom_smooth(
+    method = "lm",
+    formula = y ~ x,
+    se = FALSE,
+    inherit.aes = FALSE,
+    mapping = aes(
+      x = Parameters,
+      y = Score,
+    )
+  ) +
   geom_point() +
-  labs(x = "Billions of parameters", y = "MMLU-Pro performance")
+  labs(
+    title = "Benchmark scores of open source LLMs",
+    x = "Size (billions of parameters)",
+    y = "Benchmark performance"
+  ) +
+  theme_minimal()
 ```
 
-Can we predict the number of parameters from the benchmarks then?
+For the most part there's a clear relationship between the (logged) parameter size and benchmark scores. The only odd one is "Humanity's Last Exam", which is too challenging for most non-reasoning models.
+
+## Linear model
+
+Can we predict the number of parameters from the benchmarks then? We also expect that model family matters, as does whether a model is a reasoning model or not. Let's pop it into a simple linear regression to start with.
 
 ```{r}
 #| label: reg
+#| code-fold: show
 
-lm(
+reg <- lm(
   I(log10(Parameters)) ~
-    `Intelligence::MMLU-Pro (Reasoning & Knowledge)` + Reasoning,
+    Family +
+      Reasoning +
+      `Intelligence::MMLU-Pro` +
+      `Intelligence::GPQA Diamond` +
+      `Intelligence::Humanity's Last Exam` +
+      `Intelligence::LiveCodeBench` +
+      `Intelligence::SciCode` +
+      `Intelligence::IFBench` +
+      `Intelligence::AIME 2025` +
+      `Intelligence::AA-LCR`,
+  # These help the model, but there's no GPT family scores so I've had to remove them.
+  #`Intelligence::AIME 2024` +
+  #`Intelligence::Math 500` +
+  #`Intelligence::HumanEval`,
   data = scoreboard |> filter(!is.na(Parameters))
-) |>
-  summary()
+)
 
+summary(reg)
 ```
+
+Our adjusted R-squared is 0.8, i.e. this model explains 80% of the variance. The residuals are roughly random about zero. It's good enough for our purposes!
+
+```{r}
+#| label: fig-resid
+#| fig-cap: Residuals for the linear model.
+hist(resid(reg))
+```
+
+We could potentially use something like a mixed effects model here, but really if we wanted to improve it the first stop should be fixing the sloppy feature extraction from model names. Another improvement is that different generations of LLM families will have slightly different architectures. It might also be worth separating the Mixture-of-Expert models from the rest, and multimodal models, which might have more parameters to handle vision.
+
+## Predictions
+
+What does the model say about GPTs though? It produces some reasonable estimates.
+
+```{r}
+#| label: tbl-gpt-params
+#| tbl-cap: Predicted sizes (billions of parameters) of GPT family models.
+#|
+GPTs <- scoreboard |> filter(Family == "GPT")
+gpt_preds <- predict(reg, newdata = GPTs)
+gpt_family_params <- tibble(
+  Model = GPTs$Model,
+  Parameters = 10^gpt_preds,
+) |>
+  drop_na() |>
+  arrange(desc(Parameters))
+
+kable(gpt_family_params, digits = 0)
+```
+
+At 635B parameters, GPT-5 (high) would be considerably beyond the largest open source model on the scoreboard, Qwen3 Coder 480B. However, things are complicated by its scalable reasoning, which boosts performance for a given parameter size. According to the model, reasoning reduces the required parameters by a factor of $10^{-0.363} \approx 0.4$. I'd consider that figure a very rough ballpark estimate, given how much variation there is between reasoning models.
+
+For what it's worth, last time I benchmarked GPT-4.1-mini and GPT-4.1-nano for some NLP tasks I was running, they performed similarly to Mistral Small 24B and Ministral 8B respectively. The predictions from this model seem to support that too. _Maybe_ OpenAI are holding back some secret sauce that makes them able to squeeze more from their models, that's always a possibility, but I suspect these estimates aren't too far away from the truth.
