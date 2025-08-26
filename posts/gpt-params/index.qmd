@@ -1,0 +1,98 @@
+---
+title: "How many parameters does GPT-5 have?"
+code-fold: true
+freeze: false
+---
+
+```{r}
+#| label: tbl-scoreboard
+#| tbl-cap: The Artifical Analysis.AI leaderboard as of late August 2025.
+library(tidyverse)
+library(rvest)
+library(knitr)
+
+html <- read_html("./posts/gpt-params/aaai-table.html")
+table <- html_table(html)[[1]]
+headers <- colnames(table)
+subheaders <- table[1, ]
+joint_headers <- map2(
+  headers,
+  subheaders,
+  ~ if_else(
+    .x == "",
+    .y,
+    sprintf("%s::%s", .x, .y)
+  )
+)
+colnames(table) <- joint_headers
+table <- table[2:nrow(table), ]
+
+read_percent <- function(val) {
+  val |> str_replace("%", "") |> as.integer()
+}
+read_context <- function(val) {
+  val |> str_replace("k", "000") |> as.integer()
+}
+
+scoreboard <- table |>
+  mutate(
+    across(starts_with("Intelligence"), read_percent),
+    ContextWindow = read_context(ContextWindow),
+    # TODO not quite good enough
+    Reasoning = if_else(
+      str_detect(
+        Model,
+        "Reasoning|Thinking|high|medium|low"
+      ),
+      "Reasoning model",
+      "Standard model"
+    ),
+    Parameters = as.integer(str_extract(Model, "([0-9]+)[BM]", group = 1)),
+    License = `Features::License`
+  ) |>
+  select(
+    -starts_with("Intelligence::Arti"),
+  ) |>
+  select(
+    Model,
+    License,
+    ContextWindow,
+    Parameters,
+    Reasoning,
+    starts_with("Intelligence")
+  )
+
+scoreboard |>
+  head() |>
+  kable()
+```
+
+There's a fairly obvious relationship between the number of parameters an LLM has and its benchmark performance.
+
+```{r}
+#| label: fig-mmlu-params
+#| fig-cap: Bigger LLMs perform better on MMLU-Pro and other benchmarks.
+ggplot(
+  scoreboard |> filter(!is.na(Parameters))
+) +
+  aes(x = Parameters, y = `Intelligence::MMLU-Pro (Reasoning & Knowledge)`) +
+  facet_wrap(~Reasoning) +
+  scale_x_log10() +
+  stat_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  labs(x = "Billions of parameters", y = "MMLU-Pro performance")
+```
+
+Can we predict the number of parameters from the benchmarks then?
+
+```{r}
+#| label: reg
+
+lm(
+  I(log10(Parameters)) ~
+    `Intelligence::MMLU-Pro (Reasoning & Knowledge)` + Reasoning,
+  data = scoreboard |> filter(!is.na(Parameters))
+) |>
+  summary()
+
+```
