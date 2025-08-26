@@ -6,7 +6,7 @@ code-fold: false
 warning: false
 ---
 
-[Last time](../horsekicks/index.qmd) we used a quirky dataset to learn about Generalised Linear Models. If you recall, it's a count of deaths by horse kick, where every year all the corps in the army had some non-negative integer number of deaths and we were predicting the mean of the distribution for each year.  Being _count_ data we had to adapt the linear model to use a Poisson distribution, which itself entailed using a log link function.
+[Last time](../horsekicks/index.qmd) we used a quirky dataset to get acquainted with Generalised Linear Models. If you recall, the dataset is a count of deaths by horse kick, where every year all the corps in the army had some non-negative integer number of deaths and we were predicting the mean of the distribution for each year.  Being _count_ data we had to adapt the linear model to use a Poisson distribution, which itself entailed using a log link function. All hail the GLM.
 
 Here's a dimension we didn't consider though: are all corps equally death-prone? Let's explore the data in R.
 
@@ -18,7 +18,7 @@ library(tidyverse)
 library(knitr)
 library(Horsekicks) # Thanks to Antony Unwin and Bill Venables
 
-prussian.colours <- c("#333333", "#F9BE11", "#BE0007")
+prussian.colours <- c("#333333", "#F9BE11", "#BE0007") # Prussia is/was Germany!
 
 hk.tidy <- hkdeaths |>
   pivot_longer(
