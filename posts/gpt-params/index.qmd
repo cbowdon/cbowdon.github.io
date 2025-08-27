@@ -1,7 +1,7 @@
 ---
 title: "How many parameters does GPT-5 have?"
 code-fold: true
-date: "2025-08-26"
+date: "2025-08-27"
 categories: [r, stats, llm, ai, gpt]
 warning: false
 ---

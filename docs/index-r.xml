@@ -10,7 +10,7 @@
 <atom:link href="https://cbowdon.github.io/index-r.xml" rel="self" type="application/rss+xml"/>
 <description>Chris Bowdon&#39;s blog</description>
 <generator>quarto-1.6.32</generator>
-<lastBuildDate>Mon, 25 Aug 2025 23:00:00 GMT</lastBuildDate>
+<lastBuildDate>Tue, 26 Aug 2025 23:00:00 GMT</lastBuildDate>
 <item>
   <title>How many parameters does GPT-5 have?</title>
   <link>https://cbowdon.github.io/posts/gpt-params/</link>
@@ -1223,7 +1223,7 @@ Table&nbsp;2: Predicted sizes (billions of parameters) of GPT family models.
   <category>ai</category>
   <category>gpt</category>
   <guid>https://cbowdon.github.io/posts/gpt-params/</guid>
-  <pubDate>Mon, 25 Aug 2025 23:00:00 GMT</pubDate>
+  <pubDate>Tue, 26 Aug 2025 23:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Introduction to Generalised Linear Models with Prussian Horse Kicks</title>
