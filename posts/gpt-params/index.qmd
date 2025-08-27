@@ -195,7 +195,7 @@ Our adjusted R-squared is 0.8, i.e. this model explains 80% of the variance. The
 ```{r}
 #| label: fig-resid
 #| fig-cap: Residuals for the linear model.
-hist(resid(reg))
+plot(resid(reg))
 ```
 
 We could potentially use something like a mixed effects model here, but really if we wanted to improve it the first stop should be fixing the sloppy feature extraction from model names. Another improvement is that different generations of LLM families will have slightly different architectures. It might also be worth separating the Mixture-of-Expert models from the rest, and multimodal models, which might have more parameters to handle vision.

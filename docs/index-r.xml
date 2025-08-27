@@ -1039,7 +1039,7 @@ F-statistic: 11.45 on 18 and 28 DF,  p-value: 1.528e-08</code></pre>
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="fu" style="color: #4758AB;
 background-color: null;
-font-style: inherit;">hist</span>(<span class="fu" style="color: #4758AB;
+font-style: inherit;">plot</span>(<span class="fu" style="color: #4758AB;
 background-color: null;
 font-style: inherit;">resid</span>(reg))</span></code></pre></div>
 </details>
