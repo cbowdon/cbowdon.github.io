@@ -1,6 +1,6 @@
 ---
 title: "Prussian Horse Kicks II: Mixed Effects Models"
-date: "2025-08-16"
+date: "2025-11-01"
 categories: [r, stats, glms, regression, mixed-effects]
 code-fold: false
 warning: false
@@ -62,7 +62,7 @@ ggplot(hk.tidy) +
   )
 ```
 
-This fits a GLM to each, so we can see the trend for each corps more easily. And lo, there is clear difference. For example, corps XIV stands alone in having increased deaths by drowning over time, but showed the biggest improvement in deaths by horse kick. That said, these are visibly not the best fits - the amount of data for each corp is quite low.
+This fits a GLM to each, so we can see the trend for each corps more easily. And lo, there is clear difference. For example, corps _XIV_ stands alone in having increased deaths by drowning over time, but showed the biggest improvement in deaths by horse kick. That said, these are visibly not the best fits - the amount of data for each corp is quite low.
 
 This might be explainable by having changing numbers of soldiers (or horses) with deaths per capita remaining the same. Sadly the dataset doesn't include the number of soldiers (or horses) but it does show that the number of regiments was the same every year for each corps. Luckily we're not too concerned with the actual causes here, this is just a statistical plaything. The Prussian army no longer has a problem with horse-related deaths anyway.
 
@@ -100,12 +100,16 @@ fit <- glmer(
 summary(fit)
 ```
 
-Note that this time the year predictor is redefined as a distance from the median year, which avoids convergence issues and makes the intercepts easier to interpret.
+Note that this time the year predictor is redefined as a distance from the median year, which avoids convergence issues and makes the intercepts easier to interpret. The bit of the formula with `(...| corps)` defines the corps-specific intercept and slope.
 
-We can inspect the random effects for each corps. Remember this is in addition to the fixed effects, so a positive slope here means less decline than average, rather than an increase in deaths.
+We can inspect the random effects for each corps. Remember this is in addition to the fixed effects, so a positive slope here means less decline than average, not necessarily an increase in deaths.
 
 ```{r}
 #| label: tbl-ranef
 #| tbl-cap: Random effects for each corps.
 ranef(fit)$corps |> kable(digits = 3)
 ```
+
+This model actually considers corps _I_ to have a slightly more positive slope than corps _XIV_. That's a surprise, although somewhat understandable if you eyeball the earlier chart.
+
+So there we have it, a simple example of using a Mixed Effects Model to model global fixed effects and cluster-level random effects. For more on Mixed Effects Models, I strongly recommend [Michael Clark's online book](https://m-clark.github.io/mixed-models-with-R/introduction.html).
