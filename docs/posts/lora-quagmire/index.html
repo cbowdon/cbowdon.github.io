@@ -6,9 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2015-01-01">
+<meta name="dcterms.date" content="2025-11-11">
 
-<title>Working with (around) proxies – Chris Bowdon</title>
+<title>The quagmire of LoRA training on MPS – Chris Bowdon</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,40 +20,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -113,7 +79,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 
 
 <link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="Working with (around) proxies – Chris Bowdon">
+<meta property="og:title" content="The quagmire of LoRA training on MPS – Chris Bowdon">
 <meta property="og:description" content="Chris Bowdon’s blog">
 <meta property="og:site_name" content="Chris Bowdon">
 </head>
@@ -203,8 +169,14 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Working with (around) proxies</h1>
-                      </div>
+      <h1 class="title">The quagmire of LoRA training on MPS</h1>
+                                <div class="quarto-categories">
+                <div class="quarto-category">python</div>
+                <div class="quarto-category">ai</div>
+                <div class="quarto-category">llm</div>
+                <div class="quarto-category">lora</div>
+              </div>
+                  </div>
   </div>
     
   
@@ -214,7 +186,7 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">January 1, 2015</p>
+        <p class="date">November 11, 2025</p>
       </div>
     </div>
     
@@ -233,118 +205,40 @@ gtag('config', 'G-QC160P51EN', { 'anonymize_ip': true});
 
 
 
-<p>N.B. This article is ten years old and certainly does not represent best practices in the 2020s.</p>
-<p>This is something that I seem to have to do on a monthly basis on various projects: a throwaway script that includes getting some resource from the Internet. This means I have to spar with my old nemesis the corporate proxy and her minions, the 407 and the SSL verification error.</p>
-<p>$DAYJOB uses an authenticated proxy and their own root certificate. It’s seamless for Office and IE users because their system is pre-configured. But not for those of us who are spinning up VMs and installing packages and come to think of it almost everything you need to do as a software engineer. (It also can <em>weaken</em> rather than enhance security, the stated aim, but that’s an article for another day.)</p>
-<p>This is a quick guide-by-example for how to authenticated against a proxy and ignore any SSL verification errors in a variety of scripting languages. The examples use only the standard library for a widely available (read: old) version of each language. The assumption is that if you can’t reach the Internet, you don’t have better packages or newer versions.</p>
-<p>It is <em>not</em> an example of how to write good production software. It is a catalogue of dirty workarounds. You have been warned.</p>
-<section id="bash" class="level2">
-<h2 class="anchored" data-anchor-id="bash">Bash</h2>
-<p>Many applications respect the =$http_proxy= environmental argument, so it’s worth setting this in your =.bash_profile=. Those that don’t often take command line flags for a proxy and to ignore SSL verification.</p>
-<pre class="{sh}"><code>  http_proxy=http://username:password@host:port
-  export $http_proxy
-
-  curl --proxy $http_proxy --insecure --url ... 
-
-  git -c http.proxy=$http_proxy -c http.sslVerify=false clone ...</code></pre>
-</section>
-<section id="python-2" class="level2">
-<h2 class="anchored" data-anchor-id="python-2">Python 2</h2>
-<p>This works in Python 2.6 and 2.7. In Python 3 the principles are the same but <code>urllib</code> has been reorganized.</p>
-<div id="18aeb82b" class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>  <span class="im">import</span> logging</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="im">import</span> ssl</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="im">import</span> urllib2</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  logger <span class="op">=</span> logging.getLogger(<span class="st">'demo'</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>   </span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">def</span> proxy_opener(http_proxy):</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>      <span class="co">"""Return an opener that uses the given proxy and ignores SSL certs(!).</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">      Proxy is of the form: http(s)://username:password@host:port"""</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>      logger.warn(<span class="st">'Ignoring SSL certificates'</span>)</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>      <span class="cf">try</span>:</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>          ctx <span class="op">=</span> ssl.create_default_context()</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>          ctx.check_hostname <span class="op">=</span> <span class="va">False</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>          ctx.verify_mode <span class="op">=</span> ssl.CERT_NONE</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>   </span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>          https <span class="op">=</span> urllib2.HTTPSHandler(context<span class="op">=</span>ctx)</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>   </span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>      <span class="cf">except</span> <span class="pp">AttributeError</span>:</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>          logger.debug(<span class="st">'Python 2.6 does not support cert verification anyway'</span>)</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>          https <span class="op">=</span> urllib2.HTTPSHandler()</span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>          proxy <span class="op">=</span> urllib2.ProxyHandler({<span class="st">'http'</span>: http_proxy,</span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>                                        <span class="st">'https'</span>: http_proxy})</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>   </span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>      opener <span class="op">=</span> urllib2.build_opener(proxy, https)</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>   </span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> opener</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I’ve accumulated some knowledge and it’s time to give back to the community. The knowledge was earned the old-fashioned way, but ramming my head into different machine learning walls whilst trying to adapt a Gemma3 model on my MBP M2 Max (96GB).</p>
+<section id="first-wall-mlx-is-amazing-but-has-very-sharp-edges" class="level1">
+<h1>First wall: MLX is amazing, but has very sharp edges</h1>
+<p>MLX runs noticeably faster than Pytorch on Apple Silicon, which is why apps like LM Studio use it as an inference engine alongside llama.cpp with GGUF. The <code>mlx-lm</code> project supports LoRA among many other goodies, so it’s always my first stop. But there are two issues that always make me have to drop it, one chronic and one acute.</p>
+<p>The chronic issue is that if I’m writing MLX code I’m doing something novel and fun and probably need help. AI coding assistants are awful at helping with MLX. Codex hallucinates Pytorch code left right and centre until you give it a stern prompt, at which point it hallucinates MLX APIs that don’t exist or are out of date. Not unusual for working with non-mainstream and AI.</p>
+<p>The acute issue is that Gemma causes an internal error that crashes MLX. Awni of MLX is incredibly productive, but the issues (<a href="https://github.com/ml-explore/mlx/issues/1363">1</a>, <a href="https://github.com/ml-explore/mlx-examples/issues/664">2</a>) have been open for over a year so I’m guessing it’s a tough one to solve.</p>
+<p>Either way, that about wraps it up for MLX if it happens to be Gemma that I want to train, which for this project I do. Gemma is great: convenient range of sizes, and its output passes the “vibe check”, that intuition one develops to detect whether a model is actually strong or just benchmark-optimised.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./llama-benchmarks.png" class="img-fluid figure-img" width="300"></p>
+<figcaption>Ahem.</figcaption>
+</figure>
 </div>
 </section>
-<section id="ruby" class="level2">
-<h2 class="anchored" data-anchor-id="ruby">Ruby</h2>
-<p>This is basically a wrapper over <code>Net::HTTP.start</code> that pulls the proxy from the usual environment variable and disables SSL validation.</p>
-<p>Make sure that your Ruby is compiled with OpenSSL support. This definitely works in Ruby 2.3; as far as I can see it will work back to 1.8 but this hasn’t been tested.</p>
-<pre class="{ruby}"><code>  require 'net/http'
-  require 'openssl'
-   
-  class CorporateProxy
-   
-    @@rgx = %r{
-              https?://  # scheme
-              (\w.+)     # user
-              :(.+)      # pass
-              @([\w.-]+) # host
-              :(\d+)?    # port
-            }x
-   
-    def self.start(uri, opt, &amp;block)
-      if not ENV.key?('http_proxy')
-        raise "You'll need to define a proxy environment variable to continue."
-      end
-   
-      proxy = @@rgx.match(ENV['http_proxy']) do |match|
-        OpenStruct.new(:user =&gt; match[1],
-                       :pass =&gt; match[2],
-                       :addr =&gt; match[3],
-                       :port =&gt; match[4])
-      end
-   
-      Net::HTTP.start(uri.host, uri.port,
-                      proxy.addr, proxy.port,
-                      proxy.user, proxy.pass,
-                      opt.update(:verify_mode =&gt; OpenSSL::SSL::VERIFY_NONE),
-                      &amp;block)
-    end
-  end</code></pre>
+<section id="so-youve-decided-to-use-huggingface-transformers-with-mps" class="level1">
+<h1>So you’ve decided to use Huggingface Transformers with MPS</h1>
+<p>Being back in the mainstream has its benefits; AI coders can comfortably generate training scripts and let you get on with the business of research rather than spending your time in low-level APIs. You’ll have something up and running in no time at all.</p>
+<p>And you’ll think to yourself: damn, this is running really slowly. You start to dig, and you eventually hear about the significant performance gains of changing dtypes. Have you considered float16, or bfloat16? These are both faster than the default float32 and are supported by your system. It looks like a quick win.</p>
 </section>
-<section id="emacs-lisp" class="level2">
-<h2 class="anchored" data-anchor-id="emacs-lisp">Emacs Lisp</h2>
-<p>This works in Emacs 24.5 or newer. I’ve included an interactive function for setting the proxy password, which I’ve found to be quite convenient.</p>
-<pre class="{emacs-lisp}"><code>  (defconst proxy-host "example.com")
-  (defconst proxy-port 1234)
-   
-  (defun make-proxy-url (host port &amp;optional username password)
-    (concat
-     (when (or username password)
-       (format "%s:%s@"
-               (if (not username) "" username)
-               (if (not password) "" password)))
-     (format "%s:%s" host port)))
-   
-  (defun set-proxy (http-proxy)
-    "Set proxy variables that Emacs uses from the provided HTTP-PROXY string."
-    (setenv "HTTP_PROXY" (format "https://%s" http-proxy))
-    (setq url-proxy-services (list (cons "http" http-proxy)
-                                   (cons "https" http-proxy))))
-   
-  (defun set-user-proxy ()
-    "Set proxy using current user login name and asking for password."
-    (interactive)
-    (set-proxy (make-proxy-url proxy-host
-                               proxy-port
-                               (user-login-name)
-                               (read-passwd "Password: "))))</code></pre>
+<section id="the-illusion-of-bfloat16" class="level1">
+<h1>The illusion of bfloat16</h1>
+<p>The gist of bfloat16 is that it is smaller than float32 (so your models take up less memory and operations are faster) but with reduced precision. That’s a tradeoff most people would be happy to make. But for a MPS on an M2 it’s a dead end. No, worse than that, it’s a road that secretly takes you the long way round back to float32. The M2 hardware and operating system supports bfloat16, but Pytorch’s MPS backend doesn’t fully support it so it often ends up quietly falling back to float32. In my most recent project it’s been about 20% slower than float32, presumably because of the fallbacks. It was a surprise.</p>
+<p>It’s at this point that your AI assistant will suggest trying float16, which is also smaller than float32 but much more established.</p>
+</section>
+<section id="the-outright-con-of-float16" class="level1">
+<h1>The outright con of float16</h1>
+<p>Whereas bfloat16 goes smaller than float32 by reducing precision, float16 goes smaller by reducing exponent range. This introduces overflow problems for some operations, which means casting up to float32 before calculating loss if you don’t want to see <code>nan</code> everywhere. You can use autocasting to coax MPS to automatically select the right dtype for each operation, using the <code>torch.autocast</code> context manager. The conventional way to do this is to load in full precision and then cast down for the forward pass. You can also load in fp16 and cast up before calculating loss. It adds a little complexity to your training code, but that is very worth it for the reported speed ups of 1.3-1.6x!</p>
+<p>If only. In fact it’s slower by a similar multiple, <a href="https://medium.com/@michael.hannecke/unleashing-apple-silicons-hidden-ai-superpower-a-technical-deep-dive-into-mps-accelerated-image-9573ba90570a">apparently due to a lack of optimisations and some internal conversions.</a></p>
+<p>I wasted a lot of time on assurances from Codex that this was an “easy win” only to find that after I fixed the exponent range issues, everything trained slower.</p>
+</section>
+<section id="a-frustrating-end" class="level1">
+<h1>A frustrating end</h1>
+<p>For this project I’ve ended up on bfloat16 with the Pytorch MPS backend. It’s slower than float32, but the reduced model size in memory is helpful. It’s frustrating, because I’m sure the hardware can do better, but I’ve already too much wasted time going in a circle. A smarter man would have ditched Gemma or fired up a VM to use CUDA; if I had known all of the above from the outset, those would have been more obvious choices.</p>
+<p>So there you go. A lot of micro-lessons, I hope that some of them can spare you the same tribulations.</p>
 
 
 </section>
