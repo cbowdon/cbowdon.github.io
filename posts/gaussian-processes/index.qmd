@@ -83,7 +83,7 @@ labeller <- function(variable, value) {
 
 ggplot(samples) +
   aes(x = x, y = y, group = sample, colour = sample) +
-  facet_wrap(~ alpha * ~lambda, labeller = labeller) +
+  facet_wrap(~ alpha * ~lambda) + #, labeller = labeller) +
   geom_line(show.legend = FALSE) +
   labs(title = "Samples of f(x) from GP") +
   theme_minimal()
@@ -101,6 +101,8 @@ df6 <- data.frame(
   x = c(-2.76, 2.46, -1.52, -4.34, 4.54, 1),
   y = c(-0.81, -0.85, 0.76, -0.41, -1.48, 0.2)
 )
+
+ggplot(df6) + aes(x = x, y = y) + geom_point()
 ```
 
 We intend to predict the values of $y$ at some other $x$ beyond the ones we've observed, to see what $f(x)$ might look like. We'll choose [-5, 5] as the domain.
@@ -168,10 +170,23 @@ draws <- samples$draws(format = "draws_matrix") |>
   )
 
 ggplot() +
-  geom_line(data = draws, mapping = aes(x = x, y = y, group = draw), alpha = 0.01) +
+  geom_line(
+    data = draws,
+    mapping = aes(x = x, y = y, group = draw),
+    alpha = 0.01
+  ) +
   geom_point(data = df6, mapping = aes(x = x, y = y), colour = "red") +
-  geom_text(data = mutate(df6, n = rank(x)), mapping = aes(x = x, y = y, label = n), nudge_x = 0, nudge_y = 1.1) +
-  geom_segment(data = df6, mapping = aes(x = x, y = y, yend = y + 1), linetype = "dashed") +
+  geom_text(
+    data = mutate(df6, n = rank(x)),
+    mapping = aes(x = x, y = y, label = n),
+    nudge_x = 0,
+    nudge_y = 1.1
+  ) +
+  geom_segment(
+    data = df6,
+    mapping = aes(x = x, y = y, yend = y + 1),
+    linetype = "dashed"
+  ) +
   theme_minimal()
 ```
 
@@ -191,7 +206,10 @@ We can speed up the simulation with a trick call Cholesky decomposition. We deco
 
 ```{r}
 #| label: cholesky
-model <- cmdstan_model(stan_file = "gp-cholesky.stan", exe = "gp-cholesky.stan.bin")
+model <- cmdstan_model(
+  stan_file = "gp-cholesky.stan",
+  exe = "gp-cholesky.stan.bin"
+)
 
 samples <- model$sample(
   list(
@@ -221,14 +239,14 @@ What's the benefit of this approach? It's pretty trivial to fit a polynomial or 
 #| label: fig-poly
 x <- df6$x
 y <- df6$y
-polyfit <- lm(y ~ poly(x, degree=4))
-p_y <- predict(polyfit, data.frame(x=-5:5))
+polyfit <- lm(y ~ poly(x, degree = 4))
+p_y <- predict(polyfit, data.frame(x = -5:5))
 
 ggplot() +
-    aes(x=x, y=y) +
-    geom_point(data=df6, colour="red") +
-    geom_line(data=data.frame(x=-5:5, y=p_y), stat="smooth") +
-    theme_minimal()
+  aes(x = x, y = y) +
+  geom_point(data = df6, colour = "red") +
+  geom_line(data = data.frame(x = -5:5, y = p_y), stat = "smooth") +
+  theme_minimal()
 ```
 
 I can think of three benefits to using a Gaussian Process:
