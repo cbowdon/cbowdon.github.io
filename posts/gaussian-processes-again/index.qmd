@@ -3,7 +3,7 @@ title: Gaussian Processes Again
 subtitle: Yet another low-budget sequel
 date: "2025-11-29"
 categories: [gaussian, bayesian, stan, r, optimisation]
-code-fold: false
+code-fold: show
 engine: knitr
 execute: 
   cache: false
@@ -20,7 +20,7 @@ R will be our weapon of choice, as usual.
 ```{r}
 #| label: setup
 #| code-fold: true
-#| echo: false
+# Some setup code: libraries, seed, dummy function
 SEED <- 42
 set.seed(SEED)
 library(tidyverse)
@@ -173,7 +173,7 @@ Time for Stan. As per the last blog, this Stan code was taken from an excellent 
 
 I maintain that the best way to read Stan is back-to-front, so here is some invalid Stan that I've inverted and annotated.
 
-```
+```{{stan}}
 {{< include gp-backwards.stan >}}
 ```
 
