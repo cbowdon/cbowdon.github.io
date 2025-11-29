@@ -7,3 +7,4 @@
 .env
 
 posts.json
+**/*.quarto_ipynb
