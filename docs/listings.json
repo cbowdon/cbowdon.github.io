@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/gaussian-processes-again/index.html",
       "/posts/lora-quagmire/index.html",
       "/posts/horsekicks-mixed/index.html",
       "/posts/gpt-params/index.html",
