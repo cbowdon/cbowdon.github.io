@@ -40,7 +40,7 @@ query <- "\"deadlift PR\" -anatoly"
 
 search_videos(query)
 
-dates <- seq(as.Date("2025-01-01"), as.Date("2025-12-01"), by = "month")
+dates <- seq(as.Date("2020-01-01"), as.Date("2025-12-01"), by = "month")
 
 afters <- dates[-length(dates)]
 befores <- dates[-1]
@@ -60,19 +60,10 @@ query_results <- purrr::map2(
 
 df <- query_results |>
   purrr::map(\(r) unnest(r$items, snippet)) |>
-  bind_rows()
+  bind_rows() |>
+  mutate(publish.date = as.Date(df$publishedAt))
 
-weight_to_kg <- function(x) {
-  if (identical(x$unit, "kg")) {
-    return(as.numeric(x$weight))
-  }
-  if (identical(x$unit, "lb")) {
-    return(as.numeric(x$weight) * 0.45359237)
-  }
-  NA
-}
-
-extract_deadlift_weight <- function(title, descripion) {
+extract_dl_weight_chat <- {
   system_prompt <- "The user will provide the title and description of a YouTube video. If they describe a weight being deadlifted, you must extract the amount that was deadlifted and the unit.
 
 Return your answer in a JSON object with keys `weight` (numeric) and `unit` (kg, lb or n/a). 
@@ -83,18 +74,18 @@ Return n/a as the unit if the description doesn't mention a weight deadlifted or
     UserTurn(list(ContentText(
       "Title: 300kg deadlift PR\nDescription: hit this at my meet"
     ))),
-    AssistantTurn(list(ContentText("{\"weight\":300,\"unit\":\"kg\"}"))),
+    AssistantTurn(list(ContentText("{\"weight\":300, \"unit\":\"kg\"}"))),
     UserTurn(list(ContentText(
       "Title: 585 lb pull at 198 bodyweight\nDescription: new deadlift personal record"
     ))),
-    AssistantTurn(list(ContentText("{\"weight\":585,\"unit\":\"lb\"}"))),
+    AssistantTurn(list(ContentText("{\"weight\":585, \"unit\":\"lb\"}"))),
     UserTurn(list(ContentText(
       "Title: Big deadlift day\nDescription: felt strong today"
     ))),
-    AssistantTurn(list(ContentText("{\"weight\":0,\"unit\":\"n/a\"}")))
+    AssistantTurn(list(ContentText("{\"weight\":0, \"unit\":\"n/a\"}")))
   )
 
-  chat_icl <- chat_openai_compatible(
+  chat <- chat_openai_compatible(
     "http://localhost:1234/v1",
     model = "mistralai/ministral-3-3b",
     credentials = function() "",
@@ -102,20 +93,55 @@ Return n/a as the unit if the description doesn't mention a weight deadlifted or
     system_prompt = system_prompt
   )
 
-  chat_icl$set_turns(turns)
-
-  pred <- chat_icl$chat_structured(
-    interpolate("Title: {{title}}\nDescription: {{description}}"),
-    type = type_object(
-      weight = type_number("The weight deadlifted, as a number."),
-      unit = type_enum(values = c("kg", "lb", "n/a"))
-    )
-  )
-
-  weight_to_kg(pred)
+  chat$set_turns(turns)
+  chat
 }
 
-title <- "665 lbs deadlift at 188 lbs weight #deadlift #pr #powerlifting #powerlifter #usapl #ipf #shortsfeed"
-description <- ""
+extract_dl_type <- type_object(
+  weight = type_number("The weight deadlifted, as a number."),
+  unit = type_enum(values = c("kg", "lb", "n/a"))
+)
 
-extract_deadlift_weight(title, descripion)
+# Example use
+extract_dl_weight_chat$chat_structured(
+  "Title: 665 lbs deadlift at 188 lbs weight #deadlift #pr #powerlifting #powerlifter #usapl #ipf #shortsfeed\nDescription: ",
+  type = extract_dl_type
+)
+
+extractions <- parallel_chat_structured(
+  chat = extract_dl_weight_chat,
+  prompts = df |>
+    mutate(
+      prompt = interpolate("Title: {{title}}\nDescription: {{description}}")
+    ) |>
+    pull(prompt),
+  type = extract_dl_type,
+  max_active = 5
+)
+
+df$weight.kg <- extractions |>
+  mutate(
+    weight.kg = case_when(
+      unit == "kg" ~ as.numeric(weight),
+      unit == "lb" ~ as.numeric(weight) * 0.45359237,
+      .default = NA
+    )
+  ) |>
+  pull(weight.kg)
+
+ggplot(df) +
+  aes(x = publish.date, y = weight.kg) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+ggplot(
+  df |> mutate(yr = year(publish.date))
+) +
+  aes(x = weight.kg) +
+  facet_wrap(~yr, ncol = 1) +
+  geom_histogram(binwidth = 10) +
+  scale_x_continuous(breaks = scales::breaks_width(50)) +
+  theme_minimal()
+
+saveRDS(df, file = "posts/gymflation/youtube_df.rds", compress = FALSE)
+df <- readRDS("posts/gymflation/youtube_df.rds")
