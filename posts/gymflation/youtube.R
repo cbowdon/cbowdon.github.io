@@ -5,6 +5,7 @@ library(memoise)
 library(cachem)
 
 API_KEY <- Sys.getenv("YOUTUBE_API_KEY")
+LLM_SERVER_URL <- "http://localhost:8080/v1"
 
 search_videos_cache <- cache_disk(".cache/youtube")
 
@@ -92,7 +93,7 @@ Return n/a as the unit if the description doesn't mention a weight deadlifted or
   )
 
   chat <- chat_openai_compatible(
-    "http://localhost:1234/v1",
+    LLM_SERVER_URL,
     model = "mistralai/ministral-3-3b",
     credentials = function() "",
     params = params(max_tokens = 50),
@@ -229,7 +230,9 @@ save_image <- function(resp) {
   img_file
 }
 
-image_paths <- image_resps |> map(save_image, .progress = TRUE)
+image_resps |> map(save_image, .progress = TRUE)
+image_paths <- unnest(df$id, cols = c())$videoId |>
+  map(~ sprintf("posts/gymflation/data/stills/_vi_%s_hqdefault.jpg", .))
 
 predict_gender_chat <- {
   system_prompt <- "The user will provide an image.  You must predict the gender of the main person in the image.
@@ -237,7 +240,7 @@ Return your answer in a JSON object with a single key `gender` with value `M`, `
 Respond NA if you can't tell or there is no one in the image."
 
   chat_openai_compatible(
-    "http://localhost:1234/v1",
+    LLM_SERVER_URL,
     model = "mistralai/ministral-3-3b",
     credentials = function() "",
     params = params(max_tokens = 50),

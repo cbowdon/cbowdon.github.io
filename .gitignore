@@ -5,6 +5,7 @@
 /.quarto/
 *.bin
 .env
+.Renviron
 
 posts.json
 **/*.quarto_ipynb
