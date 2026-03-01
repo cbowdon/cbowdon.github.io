@@ -4,6 +4,8 @@ library(ellmer)
 library(memoise)
 library(cachem)
 
+set.seed(42)
+
 API_KEY <- Sys.getenv("YOUTUBE_API_KEY")
 LLM_SERVER_URL <- "http://localhost:8080/v1"
 
@@ -68,49 +70,36 @@ query_results <- purrr::map2(
 df <- query_results |>
   purrr::map(\(r) unnest(r$items, snippet)) |>
   bind_rows() |>
-  mutate(publish.date = as.Date(publishedAt))
+  mutate(publish.date = as.Date(publishedAt)) |>
+  unnest(c(id, thumbnails), names_sep = ".") |>
+  unnest(starts_with("thumb"), names_sep = ".")
 
-extract_dl_weight_chat <- {
-  system_prompt <- "The user will provide the title and description of a YouTube video. If they describe a weight being deadlifted, you must extract the amount that was deadlifted and the unit.
+# We will need to check accuracy, otherwise we've not delegated a task to AI we've delegated it to a magic 8-ball.
+# I'm dumping a small sample into a CSV to be labelled manually, which I'd always recommend in the first instance so that you get to know your own data.
+# If you need a larger sample then it could be delegated to a larger LLM than the one you are using (which may or may not equal human accuracy on this task... you may need to evaluate your evaluator...)
+# Another approach is to code your own labelling app so that a human can label as efficiently as possible - but beware human bias and error too.
+df |>
+  slice_sample(n = 100) |>
+  select(id.videoId, title, description) |>
+  write_csv("posts/gymflation/data/unannotated-weight.csv")
 
-Return your answer in a JSON object with keys `weight` (numeric) and `unit` (kg, lb or n/a). 
-Do not perform unit conversion.
-Return n/a as the unit if the description doesn't mention a weight deadlifted or the unit isn't clear."
+# Annotate and save as a new file
 
-  turns <- list(
-    UserTurn(list(ContentText(
-      "Title: 300kg deadlift PR\nDescription: hit this at my meet"
-    ))),
-    AssistantTurn(list(ContentText("{\"weight\":300, \"unit\":\"kg\"}"))),
-    UserTurn(list(ContentText(
-      "Title: 585 lb pull at 198 bodyweight\nDescription: new deadlift personal record"
-    ))),
-    AssistantTurn(list(ContentText("{\"weight\":585, \"unit\":\"lb\"}"))),
-    UserTurn(list(ContentText(
-      "Title: Big deadlift day\nDescription: felt strong today"
-    ))),
-    AssistantTurn(list(ContentText("{\"weight\":0, \"unit\":\"n/a\"}")))
-  )
-
-  chat <- chat_openai_compatible(
-    LLM_SERVER_URL,
-    model = "mistralai/ministral-3-3b",
-    credentials = function() "",
-    params = params(max_tokens = 50),
-    system_prompt = system_prompt
-  )
-
-  chat$set_turns(turns)
-  chat
+epley_1rm <- function(weight_kg, reps) {
+  round(weight_kg * (1 + reps / 30) * 2) / 2
 }
 
-extract_dl_type <- type_object(
-  weight = type_number("The weight deadlifted, as a number."),
-  unit = type_enum(values = c("kg", "lb", "n/a"))
-)
+labels <- read_csv("posts/gymflation/data/annotated-weight.csv") |>
+  filter(reviewed) |>
+  mutate(
+    weight.kg = convert_kg(weight, unit),
+    weight.kg.1rm = epley_1rm(weight.kg, reps)
+  )
+
+eval_acc <- function() {}
 
 # Example use
-extract_dl_weight_chat$chat_structured(
+extract_dl_weight_chat(turns)$chat_structured(
   "Title: 665 lbs deadlift at 188 lbs weight #deadlift #pr #powerlifting #powerlifter #usapl #ipf #shortsfeed\nDescription: ",
   type = extract_dl_type
 )
@@ -126,17 +115,15 @@ extractions <- parallel_chat_structured(
   max_active = 5
 )
 
-# TODO classify gender
-
 df$weight.kg <- extractions |>
   mutate(
-    weight.kg = case_when(
-      unit == "kg" ~ as.numeric(weight),
-      unit == "lb" ~ as.numeric(weight) * 0.45359237,
-      .default = NA
-    )
+    weight.kg = convert_kg(weight, unit)
   ) |>
   pull(weight.kg)
+
+world.records <- read_csv("posts/gymflation/data/deadlifts.csv")
+
+df |> filter(weight.kg < max(world.records$kg))
 
 df$form <- if_else(
   str_detect(df$title, "sumo") | str_detect(df$description, "sumo"),
@@ -156,7 +143,7 @@ hline <- function(yint.kg) {
 }
 
 ggplot(df) +
-  aes(x = publish.date, y = weight.kg) +
+  aes(x = publish.date, y = weight.kg, colour = gender) +
   geom_point(alpha = 0.9, size = 1) +
   geom_smooth() +
   hline(200 / 2.2) +
@@ -186,9 +173,6 @@ ggplot(df) +
   geom_histogram(binwidth = 10) +
   scale_x_continuous(breaks = scales::breaks_width(50)) +
   theme_minimal()
-
-saveRDS(df, file = "posts/gymflation/youtube_df.rds", compress = FALSE)
-df <- readRDS("posts/gymflation/youtube_df.rds")
 
 ggplot(
   df |>
@@ -265,3 +249,15 @@ gender_predictions <- parallel_chat_structured(
   type = predict_gender_type,
   max_active = 5
 )
+
+df$gender <- gender_predictions |>
+  mutate(gender = if_else(gender == "NA", NA, gender)) |>
+  pull(gender)
+
+ggplot(df |> drop_na(gender)) +
+  aes(x = publish.date, y = weight.kg) +
+  facet_wrap(~gender) +
+  geom_point(alpha = 0.5, size = 0.5)
+
+saveRDS(df, file = "posts/gymflation/youtube_df.rds", compress = FALSE)
+df <- readRDS("posts/gymflation/youtube_df.rds")

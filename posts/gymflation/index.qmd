@@ -1,0 +1,403 @@
+---
+title: Tackling Gymflation with AI
+subtitle: Is it real? Using YouTube data, and Ellmer (R) to find out.
+date: "2026-03-01"
+tags: [r, ai, llm, gym, youtube]
+engine: knitr
+code-fold: show
+execute: 
+  cache: false
+  warning: false
+  freeze: false
+---
+
+Gonna:
+
+- Scrape the YouTube API for deadlift PR data with httr2
+- Use disk caching so errors don't set us back
+- Use ICL and structured responses to extract the lifted weight with AI
+- Use a caching proxy to avoid tears
+- Evaluate the quality of our extraction and improve it
+- Be surprised!
+- Use a multimodal model (spoiler, same model) to judge the lifter's gender
+- Come away with a sense of tremendous satisfaction
+
+This serves as something of a walkthrough for how to use APIs and LLMs in an R project. As usual the full code is below the folds.
+
+```{r}
+#| label: imports
+library(tidyverse)
+library(httr2)
+library(ellmer)
+library(memoise)
+library(cachem)
+
+set.seed(42)
+```
+
+# Scraping YouTube data with httr2 and a disk cache
+
+```{r}
+#| label: youtube
+YOUTUBE_API_KEY <- Sys.getenv("YOUTUBE_API_KEY")
+
+# It's useful to memoise this to save quota
+search_videos_cache <- cache_disk("posts/gymflation/.cache/youtube")
+
+search_videos <- memoise(
+  function(
+    query,
+    published_after = "2026-01-01T00:00:00Z",
+    published_before = "2026-01-02T00:00:00Z"
+  ) {
+    query <- trimws(paste(query, collapse = " "))
+
+    req <- request("https://youtube.googleapis.com/youtube/v3/search") |>
+      req_cache(".cache/httr2") |> # happily this endpoint is a GET so we can cache
+      req_url_query(
+        part = "snippet",
+        q = query,
+        type = "video",
+        maxResults = 50,
+        duration = "short",
+        region = "UK",
+        published_after = published_after,
+        published_before = published_before,
+        key = YOUTUBE_API_KEY
+      ) |>
+      req_headers(Accept = "application/json") |>
+      req_timeout(30)
+
+    resp <- req_perform(req)
+    if (resp_is_error(resp)) {
+      stop("YouTube API request failed: HTTP ", httr2::resp_status(resp))
+    }
+
+    resp_body_json(resp, simplifyVector = TRUE)
+  },
+  cache = search_videos_cache
+)
+```
+
+This is the kind of raw result we get. The `-anatoly` term is to get rid of the wildly popular but irrelevant Anatoly videos. (He's an elite powerlifter who dresses as a cleaner to prank bodybuilders. Apparently the Internet can't get enough of this.)
+
+```{r}
+#| label: tbl-raw-items
+#| tbl-cap: Example of data from the YouTube API.
+query <- "\"deadlift PR\" -anatoly"
+raw_yt_resp <- search_videos(query)
+head(raw_yt_resp$items)
+```
+
+The YouTube free API is quite restrictive so we are forced to compromise. We sample only the first day of each month, and only the first page of results (up to 50). If anyone is willing to fund my stupid research I will gladly resolve these issues.
+
+```{r}
+#| label: fig-map-youtube
+#| fig-cap: Distribution of videos by date. The uniformity indicates that there are usually other pages that we haven't fetched, though it's not guaranteed that these are relevant results.
+dates <- seq(as.Date("2015-01-01"), as.Date("2025-12-01"), by = "month")
+
+afters <- dates[-length(dates)]
+befores <- dates[-1]
+
+query_results <- purrr::map2(
+  afters,
+  befores,
+  .f = function(a, b) {
+    search_videos(
+      query,
+      published_after = sprintf("%sT00:00:00Z", a),
+      published_before = sprintf("%sT00:00:00Z", b)
+    )
+  },
+  .progress = TRUE
+)
+
+df <- query_results |>
+  purrr::map(\(r) unnest(r$items, snippet)) |>
+  bind_rows() |>
+  mutate(publish.date = as.Date(publishedAt)) |>
+  unnest(c(id, thumbnails), names_sep = ".") |>
+  unnest(starts_with("thumb"), names_sep = ".")
+
+ggplot(df) +
+  aes(x = publish.date) +
+  geom_histogram() +
+  theme_minimal() +
+  labs(x = "Publish date", y = "Count of videos")
+```
+
+# Evaluating extraction accuracy
+
+We will need to check accuracy, otherwise we've not delegated a task to AI we've delegated it to a wish and a prayer. I'm dumping a small sample into a CSV to be labelled manually, which I'd always recommend in the first instance so that you get to know your own data. 
+
+If you need a larger sample then it could be delegated to a larger LLM than the one you are using (which may or may not equal human accuracy on this task... you may need to evaluate your evaluator...) Another approach is to (vibe) code your own labelling app so that a human can label as efficiently as possible. You can buy a labelling app like Prodigy, but in 2026 it's cheaper to spend the tokens vibe-coding something bespoke to your data. If you take this approach beware human bias too.
+
+```{r}
+df |>
+  slice_sample(n = 100) |>
+  select(id.videoId, title, description) |>
+  write_csv("posts/gymflation/data/unannotated-weight.csv")
+```
+
+Labelling this data I discovered that sometimes people post a multi-repetition PR and include their body weight, e.g. 180x2 @ 83kg, meaning they lifted 180kg twice and their bodyweight is 83kg. We will need to account for multiple reps, because the weight will be lower. A decent approach is to use Epley's 1 Rep Max (1RM) formula to estimate the lifter's maximum for a single repetition.
+
+```{r}
+#| label: labelled
+labelled <- read_csv("posts/gymflation/data/annotated-weight.csv") |>
+  # putting a flag in your CSV for whether the row has been reviewed or not is helpful because you often won't label it all
+  filter(reviewed)
+```
+
+We'll therefore apply two conversions: unit conversion and 1RM conversion.
+
+```{r}
+#| label: tbl-labels
+#| tbl-cap: Example of labelled dataset
+convert_kg <- function(weight, unit) {
+  case_when(
+    unit == "kg" ~ weight,
+    unit == "lb" ~ weight * 0.45359237,
+    .default = -1
+  )
+}
+
+epley_1rm <- function(weight_kg, reps) {
+  if_else(
+    reps == 1,
+    weight_kg,
+    # rounded to nearest 0.5
+    round(weight_kg * (1 + reps / 30) * 2) / 2
+  )
+}
+
+labelled <- labelled |>
+  mutate(
+    reps = coalesce(reps, 1), # default all unspecified rep counts to 1
+    weight.kg = convert_kg(weight, unit),
+    weight.kg.1rm = epley_1rm(weight.kg, reps)
+  )
+
+head(labelled)
+```
+
+The NAs are actually useful, because we want to confirm that the LLM has correctly identified these as non-extractable.
+
+In labelling I also noticed that a small percent of cases are trap or hex bar deadlifts. This is a special type of bar that's heavier but easier to lift. We'll filter those out with a plain old regular expression.
+
+```{r}
+labelled <- labelled |> filter(is.na(special))
+df <- df |>
+  filter(!str_detect(title, "trap|hex") | str_detect(description, "trap|hex"))
+```
+
+Finally we're split the data into a test and dev set. We hold out the test set for evaluation
+
+```{r}
+test <- labelled |> slice_head(n = 50)
+dev <- labelled |> slice_tail(n = nrow(labelled) - 50)
+tibble(nrow(test), nrow(dev))
+```
+
+At this point we're ready to build an extraction "model".
+
+# Building LLM "models"
+
+Why the quotes? Well it's very unlike modelling in the traditional sense. What we're going to do is advanced prompting. Some of it speaks for itself: the system prompt sets the model up to expect a consistent input and to respond in a certain way.
+
+Note that we specify that we're expecting a JSON response with certain keys, because we want consistent and easy-to-parse output.
+
+```{r}
+#| label: model-base
+LLM_SERVER_URL <- "http://localhost:8080/v1"
+
+extract_dl_weight_model <- function(turns = list()) {
+  system_prompt <- "The user will provide the title and description of a YouTube video. If they describe a weight being deadlifted, you must extract the weight that was deadlifted, with the unit, and the number of repetitions.
+
+Note that the deadlift world record is currently 510kg/1122lb.
+Return only a JSON object with keys:
+
+- `weight` (numeric)
+- `unit` (kg, lb or NA)
+- `reps` (numeric, assume 1 if not provided). 
+
+Do not perform unit conversion.
+Return NA as the unit if the description doesn't mention a weight deadlifted or the unit isn't clear."
+
+  chat <- chat_openai_compatible(
+    LLM_SERVER_URL,
+    model = "mistralai/ministral-3-3b",
+    credentials = function() "", # local, just ignore creds
+    params = params(max_tokens = 50), # don't generate more than we need
+    system_prompt = system_prompt
+  )
+
+  chat$set_turns(turns)
+  chat
+}
+```
+
+What's all that `set_turns` business? That's so we can prime the conversation history - more on that later.
+
+## Structured response generation
+
+Simply asking for JSON response is good enough most of the time, but we can do better and use structured responses to enforce it. With _Ellmer_ we can build a JSON schema describing what we want to receive. It's also an opportunity to add a description of each field for further guidance to the LLM.
+
+```{r}
+#| label: model-type
+extract_dl_weight_type <- type_object(
+  weight = type_number("The weight deadlifted, as a number."),
+  unit = type_enum(values = c("kg", "lb", "NA")),
+  reps = type_integer("Number of repetitions (1 if unspecified)")
+)
+```
+
+Structured responses are quite simple: at each step, the LLM generates a probability distribution over all possible next tokens (hundreds of thousands of them). Usually we sample one from the top _k_ most likely tokens, tack it onto the end of our input and repeat. However with structured responses we only include tokens that adhere to a specified _grammar_ in the distribution, not those that would be invalid. Any grammar is possible, but JSON schema is the most popular implementation.
+
+This works nicely, even with the fairly weak model we're using here (Ministral 3B, a open source vision-language model from Mistral).
+
+```{r}
+example.response <- extract_dl_weight_model()$chat_structured(
+  "Title: 665 lbs deadlift at 188 lbs bodyweight #deadlift #pr #powerlifting #powerlifter #usapl #ipf #shortsfeed\nDescription: ",
+  type = extract_dl_type
+)
+as_tibble(example.response)
+```
+
+## Not wasting your life or worse, tokens
+
+It's really handy to set up a caching mechanism. You could do this with a memoized function in code, or with a proxy. The proxy is a little easier because we can still use Ellmer's parallelisation functions easily. I have a little vibe-coded proxy that runs with Deno [here](./caching_proxy.ts).
+
+# Evaluating the model
+
+How does our model do out of the box?
+
+```{r}
+#| label: first-eval
+run_extraction <- function(df, turns = list()) {
+  extracted <- parallel_chat_structured(
+    chat = extract_dl_weight_model(turns),
+    prompts = df |>
+      mutate(
+        prompt = interpolate("Title: {{title}}\nDescription: {{description}}")
+      ) |>
+      pull(prompt),
+    type = extract_dl_type,
+    max_active = 5
+  )
+
+  extracted |>
+    mutate(
+      weight.kg = convert_kg(weight, unit),
+      weight.kg.1rm = epley_1rm(weight.kg, reps)
+    )
+}
+
+extracted <- run_extraction(dev)
+
+eval_accuracy <- function(pred, truth) {
+  if (length(pred) != length(truth)) {
+    stop("`pred` and `truth` must have the same length.")
+  }
+  matches <- pred == truth
+  tibble(
+    acc = sum(matches) / length(matches),
+    n.positive = sum(matches),
+    n.negative = length(matches) - sum(matches)
+  )
+}
+
+initial.acc <- eval_accuracy(dev$weight.kg.1rm, extracted$weight.kg.1rm)
+initial.acc
+```
+
+`{r} initial.acc` is not too bad. We can explore the failures and figure out how to improve the model.
+
+```{r}
+tibble(
+  d = dev,
+  e = extracted
+) |>
+  unnest(everything(), names_sep = ".") |>
+  filter_out(d.weight.kg.1rm == e.weight.kg.1rm)
+```
+
+Looks like the main failure mode is predicting a unit when none can be fairly assumed. (In practice I'm pretty sure it's primarily North American users who do this, but the safest thing is to omit these.) It also gets confused when users are too helpful and supply both units.
+
+# Improving the model with In-Context-Learning (ICL)
+
+We can supply examples to the model that it can learn from. This costs tokens because the prompt is longer, but reading a prompt is an order of magnitude less computationally expensive than generating output, especially with mechanisms such as KV caching.
+
+Here I've just made up some examples that demonstrate the behaviour in tricky cases. Let's see if our accuracy on the dev set has improved.
+
+```{r}
+example_turn_pair <- function(title, description, weight, unit, reps) {
+  list(
+    UserTurn(list(ContentText(
+      interpolate("Title: {{title}}\nDescription: {{description}}")
+    ))),
+    AssistantTurn(list(ContentText(
+      interpolate(
+        "{\"weight\":{{weight}}, \"unit\":\"{{unit}}\", \"reps\":{{reps}}}"
+      )
+    )))
+  )
+}
+
+turns <- c(
+  example_turn_pair(
+    title = "deadlift PR 220 @ 165 bodyweight",
+    description = "hit this at my meet",
+    weight = 220,
+    unit = "NA",
+    reps = 1
+  ),
+  example_turn_pair(
+    title = "NEW PR 585",
+    description = "new deadlift personal record",
+    weight = 585,
+    unit = "NA",
+    reps = 1
+  ),
+  example_turn_pair(
+    title = "NEW PR 330x3",
+    description = "",
+    weight = 330,
+    unit = "NA",
+    reps = 3
+  ),
+  example_turn_pair(
+    title = "180kg x 3 deadlift PR",
+    description = "81kg 18 years old.",
+    weight = 180,
+    unit = "kg",
+    reps = 3
+  ),
+  example_turn_pair(
+    title = "100kg/220lb deadlift PR",
+    description = "smashed it",
+    weight = 100,
+    unit = "kg",
+    reps = 1
+  ),
+  example_turn_pair(
+    title = "365 lb Deadlift PR @ 165 lbs",
+    description = "Christal hitting a new deadlift PR @ 365 lbs, beltless. And before anyone says anything about her form, her deadlift PRs have ...",
+    weight = 365,
+    unit = "lb",
+    reps = 1
+  )
+)
+
+extracted <- run_extraction(dev, turns)
+icl.acc <- eval_accuracy(dev$weight.kg.1rm, extracted$weight.kg.1rm)
+icl.acc
+```
+
+It has! A nice `{r} 100 * round(icl.acc - initial.acc)`% improvement. Let's check against the held out test set to check that this generalises.
+
+```{r}
+extracted <- run_extraction(test, turns)
+eval_accuracy(test$weight.kg.1rm, extracted$weight.kg.1rm)
+```
+
+Great. We could go deeper, and we could also be [more systematic](https://dspy.ai) about the example selection, but let's take the win.

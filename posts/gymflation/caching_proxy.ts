@@ -1,5 +1,6 @@
-#!/usr/bin/env deno --allow-env=UPSTREAM,LISTEN,CACHE_TTL_SECONDS --allow-read=.cache/proxy --allow-write=.cache/proxy --allow-net
+#!/usr/bin/env deno 
 
+// deno --allow-env=UPSTREAM,LISTEN,CACHE_TTL_SECONDS,DEBUG --allow-read=.cache/proxy --allow-write=.cache/proxy --allow-net caching_proxy.ts
 // lm_cache_proxy.ts
 // Reverse proxy for LM Studio with simple disk cache keyed by request body hash.
 // - Caches only non-streaming JSON POSTs (e.g., /v1/chat/completions).
@@ -54,8 +55,9 @@ function cachePath(key: string) {
 }
 
 async function readCache(key: string): Promise<Response | null> {
+  const path = cachePath(key);
   try {
-    const txt = await Deno.readTextFile(cachePath(key));
+    const txt = await Deno.readTextFile(path);
     const entry = JSON.parse(txt) as CacheEntry;
     if (entry.expiresAt <= nowMs()) return null;
 
@@ -89,19 +91,32 @@ async function writeCache(key: string, upstreamResp: Response, bodyBytes: Uint8A
 Deno.serve({ hostname: LISTEN.split(":")[0], port: Number(LISTEN.split(":")[1] ?? "8080") }, async (req) => {
   const url = new URL(req.url);
   const upstreamUrl = new URL(url.pathname + url.search, UPSTREAM);
+  const requestLine = `${req.method} ${upstreamUrl.pathname}${upstreamUrl.search}`;
 
   // Read body (we need it both for hashing and forwarding)
   const bodyBytes = new Uint8Array(await req.arrayBuffer());
+
+  if (bodyBytes.length && Deno.env.get("DEBUG")) {
+    try {
+      console.log("body", JSON.parse(new TextDecoder().decode(bodyBytes)));
+    } catch {
+      console.log("body", null);
+    }
+  } else if (Deno.env.get("DEBUG")) {
+    console.log("body", null);
+  }
 
   // Build cache key (include path/query + body hash)
   const bodyHash = await sha256(bodyBytes);
   const key = await sha256(new TextEncoder().encode(`${req.method} ${upstreamUrl.pathname}${upstreamUrl.search} ${bodyHash}`));
 
   const cacheable = shouldCache(req, bodyBytes);
-
   if (cacheable) {
     const hit = await readCache(key);
-    if (hit) return hit;
+    if (hit) {
+      console.log(`${requestLine} cache=HIT`);
+      return hit;
+    }
   }
 
   // Forward request
@@ -131,6 +146,8 @@ Deno.serve({ hostname: LISTEN.split(":")[0], port: Number(LISTEN.split(":")[1] ?
       }
     }
   }
+
+  console.log(`${requestLine} cache=MISS`);
 
   return new Response(respBytes, { status: upstreamResp.status, headers: respHeaders });
 });
