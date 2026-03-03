@@ -26,99 +26,104 @@ This serves as something of a walkthrough for how to use APIs and LLMs in an R p
 
 ```{r}
 #| label: imports
+#| code-fold: true
 library(tidyverse)
 library(httr2)
 library(ellmer)
 library(memoise)
 library(cachem)
+library(knitr)
 
 set.seed(42)
 ```
 
 # Scraping YouTube data with httr2 and a disk cache
 
+The YouTube API is relatively straightforward to use with `httr2` and speaks for itself. Because the requests we need to make are GET requests, we can use the handy `req_cache` function to avoid burning quota on repeat requests.
+
 ```{r}
 #| label: youtube
 YOUTUBE_API_KEY <- Sys.getenv("YOUTUBE_API_KEY")
 
-# It's useful to memoise this to save quota
-search_videos_cache <- cache_disk("posts/gymflation/.cache/youtube")
+search_videos <- function(
+  query,
+  published_after = "2026-01-01T00:00:00Z",
+  published_before = "2026-01-02T00:00:00Z"
+) {
+  req <- request("https://youtube.googleapis.com/youtube/v3/search") |>
+    req_cache(".cache/httr2") |> # happily this endpoint is a GET so we can cache
+    req_url_query(
+      part = "snippet",
+      q = query,
+      type = "video",
+      maxResults = 50,
+      duration = "short",
+      region = "UK",
+      published_after = published_after,
+      published_before = published_before,
+      key = YOUTUBE_API_KEY
+    ) |>
+    req_headers(Accept = "application/json") |>
+    req_timeout(30)
 
-search_videos <- memoise(
-  function(
-    query,
-    published_after = "2026-01-01T00:00:00Z",
-    published_before = "2026-01-02T00:00:00Z"
-  ) {
-    query <- trimws(paste(query, collapse = " "))
+  resp <- req_perform(req)
+  if (resp_is_error(resp)) {
+    stop("YouTube API request failed: HTTP ", resp_status(resp))
+  }
 
-    req <- request("https://youtube.googleapis.com/youtube/v3/search") |>
-      req_cache(".cache/httr2") |> # happily this endpoint is a GET so we can cache
-      req_url_query(
-        part = "snippet",
-        q = query,
-        type = "video",
-        maxResults = 50,
-        duration = "short",
-        region = "UK",
-        published_after = published_after,
-        published_before = published_before,
-        key = YOUTUBE_API_KEY
-      ) |>
-      req_headers(Accept = "application/json") |>
-      req_timeout(30)
+  resp_body_json(resp, simplifyVector = TRUE)
+}
 
-    resp <- req_perform(req)
-    if (resp_is_error(resp)) {
-      stop("YouTube API request failed: HTTP ", httr2::resp_status(resp))
-    }
-
-    resp_body_json(resp, simplifyVector = TRUE)
-  },
-  cache = search_videos_cache
-)
-```
-
-This is the kind of raw result we get. The `-anatoly` term is to get rid of the wildly popular but irrelevant Anatoly videos. (He's an elite powerlifter who dresses as a cleaner to prank bodybuilders. Apparently the Internet can't get enough of this.)
-
-```{r}
-#| label: tbl-raw-items
-#| tbl-cap: Example of data from the YouTube API.
 query <- "\"deadlift PR\" -anatoly"
-raw_yt_resp <- search_videos(query)
-head(raw_yt_resp$items)
 ```
+
+The `-anatoly` term is to get rid of the wildly popular but irrelevant Anatoly videos. (He's an elite powerlifter who dresses as a cleaner to prank bodybuilders. Apparently the Internet can't get enough of this.)
 
 The YouTube free API is quite restrictive so we are forced to compromise. We sample only the first day of each month, and only the first page of results (up to 50). If anyone is willing to fund my stupid research I will gladly resolve these issues.
 
 ```{r}
+#| label: map-youtube
+
+rds.file <- "data/youtube_df.rds"
+df <- {
+  if (file.exists(rds.file)) {
+    readRDS(rds.file)
+  } else {
+    dates <- seq(as.Date("2015-01-01"), as.Date("2025-12-01"), by = "month")
+
+    afters <- dates[-length(dates)]
+    befores <- dates[-1]
+
+    query_results <- purrr::map2(
+      afters,
+      befores,
+      .f = function(a, b) {
+        search_videos(
+          query,
+          published_after = sprintf("%sT00:00:00Z", a),
+          published_before = sprintf("%sT00:00:00Z", b)
+        )
+      },
+      .progress = TRUE
+    )
+
+    df <- query_results |>
+      purrr::map(\(r) unnest(r$items, snippet)) |>
+      bind_rows() |>
+      mutate(publish.date = as.Date(publishedAt)) |>
+      unnest(c(id, thumbnails), names_sep = ".") |>
+      unnest(starts_with("thumb"), names_sep = ".")
+    saveRDS(df, file = rds.file, compress = FALSE)
+    df
+  }
+}
+```
+
+Somewhow when writing this up I managed to nuke the cache. Oof. But it's not my first rodeo, I had an RDS file of the results as a fallback. Let's check out the daily result counts to ensure we haven't messed up so far.
+
+```{r}
 #| label: fig-map-youtube
 #| fig-cap: Distribution of videos by date. The uniformity indicates that there are usually other pages that we haven't fetched, though it's not guaranteed that these are relevant results.
-dates <- seq(as.Date("2015-01-01"), as.Date("2025-12-01"), by = "month")
-
-afters <- dates[-length(dates)]
-befores <- dates[-1]
-
-query_results <- purrr::map2(
-  afters,
-  befores,
-  .f = function(a, b) {
-    search_videos(
-      query,
-      published_after = sprintf("%sT00:00:00Z", a),
-      published_before = sprintf("%sT00:00:00Z", b)
-    )
-  },
-  .progress = TRUE
-)
-
-df <- query_results |>
-  purrr::map(\(r) unnest(r$items, snippet)) |>
-  bind_rows() |>
-  mutate(publish.date = as.Date(publishedAt)) |>
-  unnest(c(id, thumbnails), names_sep = ".") |>
-  unnest(starts_with("thumb"), names_sep = ".")
-
 ggplot(df) +
   aes(x = publish.date) +
   geom_histogram() +
@@ -133,19 +138,23 @@ We will need to check accuracy, otherwise we've not delegated a task to AI we've
 If you need a larger sample then it could be delegated to a larger LLM than the one you are using (which may or may not equal human accuracy on this task... you may need to evaluate your evaluator...) Another approach is to (vibe) code your own labelling app so that a human can label as efficiently as possible. You can buy a labelling app like Prodigy, but in 2026 it's cheaper to spend the tokens vibe-coding something bespoke to your data. If you take this approach beware human bias too.
 
 ```{r}
+#| label: dump-unannotated
 df |>
   slice_sample(n = 100) |>
   select(id.videoId, title, description) |>
-  write_csv("posts/gymflation/data/unannotated-weight.csv")
+  write_csv("data/unannotated-weight.csv")
 ```
 
 Labelling this data I discovered that sometimes people post a multi-repetition PR and include their body weight, e.g. 180x2 @ 83kg, meaning they lifted 180kg twice and their bodyweight is 83kg. We will need to account for multiple reps, because the weight will be lower. A decent approach is to use Epley's 1 Rep Max (1RM) formula to estimate the lifter's maximum for a single repetition.
 
 ```{r}
 #| label: labelled
-labelled <- read_csv("posts/gymflation/data/annotated-weight.csv") |>
+labelled <- read_csv("data/annotated-weight.csv") |>
   # putting a flag in your CSV for whether the row has been reviewed or not is helpful because you often won't label it all
-  filter(reviewed)
+  filter(reviewed) |>
+  select(-reviewed)
+
+head(labelled) |> kable()
 ```
 
 We'll therefore apply two conversions: unit conversion and 1RM conversion.
@@ -177,7 +186,7 @@ labelled <- labelled |>
     weight.kg.1rm = epley_1rm(weight.kg, reps)
   )
 
-head(labelled)
+head(labelled) |> kable()
 ```
 
 The NAs are actually useful, because we want to confirm that the LLM has correctly identified these as non-extractable.
@@ -185,6 +194,7 @@ The NAs are actually useful, because we want to confirm that the LLM has correct
 In labelling I also noticed that a small percent of cases are trap or hex bar deadlifts. This is a special type of bar that's heavier but easier to lift. We'll filter those out with a plain old regular expression.
 
 ```{r}
+#| label: special
 labelled <- labelled |> filter(is.na(special))
 df <- df |>
   filter(!str_detect(title, "trap|hex") | str_detect(description, "trap|hex"))
@@ -193,6 +203,7 @@ df <- df |>
 Finally we're split the data into a test and dev set. We hold out the test set for evaluation
 
 ```{r}
+#| label: splits
 test <- labelled |> slice_head(n = 50)
 dev <- labelled |> slice_tail(n = nrow(labelled) - 50)
 tibble(nrow(test), nrow(dev))
@@ -256,11 +267,13 @@ Structured responses are quite simple: at each step, the LLM generates a probabi
 This works nicely, even with the fairly weak model we're using here (Ministral 3B, a open source vision-language model from Mistral).
 
 ```{r}
+#| label: tbl-example-response
+#| tbl-cap: Example response from the structured model.
 example.response <- extract_dl_weight_model()$chat_structured(
   "Title: 665 lbs deadlift at 188 lbs bodyweight #deadlift #pr #powerlifting #powerlifter #usapl #ipf #shortsfeed\nDescription: ",
-  type = extract_dl_type
+  type = extract_dl_weight_type
 )
-as_tibble(example.response)
+as_tibble(example.response) |> kable()
 ```
 
 ## Not wasting your life or worse, tokens
@@ -272,7 +285,8 @@ It's really handy to set up a caching mechanism. You could do this with a memoiz
 How does our model do out of the box?
 
 ```{r}
-#| label: first-eval
+#| label: tbl-first-eval
+#| tbl-cap: Dev-set accuracy of the model with a simple system prompt.
 run_extraction <- function(df, turns = list()) {
   extracted <- parallel_chat_structured(
     chat = extract_dl_weight_model(turns),
@@ -281,7 +295,7 @@ run_extraction <- function(df, turns = list()) {
         prompt = interpolate("Title: {{title}}\nDescription: {{description}}")
       ) |>
       pull(prompt),
-    type = extract_dl_type,
+    type = extract_dl_weight_type,
     max_active = 5
   )
 
@@ -307,18 +321,21 @@ eval_accuracy <- function(pred, truth) {
 }
 
 initial.acc <- eval_accuracy(dev$weight.kg.1rm, extracted$weight.kg.1rm)
-initial.acc
+initial.acc |> kable()
 ```
 
-`{r} initial.acc` is not too bad. We can explore the failures and figure out how to improve the model.
+`{r} round(initial.acc$acc, 2)` is not too bad. We can explore the failures and figure out how to improve the model.
 
 ```{r}
+#| label: tbl-failures
+#| tbl-cap: Extraction failures from initial model.
 tibble(
   d = dev,
   e = extracted
 ) |>
   unnest(everything(), names_sep = ".") |>
-  filter_out(d.weight.kg.1rm == e.weight.kg.1rm)
+  filter_out(d.weight.kg.1rm == e.weight.kg.1rm) |>
+  kable()
 ```
 
 Looks like the main failure mode is predicting a unit when none can be fairly assumed. (In practice I'm pretty sure it's primarily North American users who do this, but the safest thing is to omit these.) It also gets confused when users are too helpful and supply both units.
@@ -330,6 +347,8 @@ We can supply examples to the model that it can learn from. This costs tokens be
 Here I've just made up some examples that demonstrate the behaviour in tricky cases. Let's see if our accuracy on the dev set has improved.
 
 ```{r}
+#| label: tbl-icl-eval
+#| tbl-cap: Accuracy of ICL-tuned model - considerably improved.
 example_turn_pair <- function(title, description, weight, unit, reps) {
   list(
     UserTurn(list(ContentText(
@@ -390,14 +409,16 @@ turns <- c(
 
 extracted <- run_extraction(dev, turns)
 icl.acc <- eval_accuracy(dev$weight.kg.1rm, extracted$weight.kg.1rm)
-icl.acc
+icl.acc |> kable()
 ```
 
-It has! A nice `{r} 100 * round(icl.acc - initial.acc)`% improvement. Let's check against the held out test set to check that this generalises.
+It has! A nice `{r} round(100 * (icl.acc$acc - initial.acc$acc))` percentage point improvement. Let's check against the held out test set to check that this generalises.
 
 ```{r}
+#| label: icl-test-eval
+#| tbl-cap: Test set accuracy of ICL-tuned model.
 extracted <- run_extraction(test, turns)
-eval_accuracy(test$weight.kg.1rm, extracted$weight.kg.1rm)
+eval_accuracy(test$weight.kg.1rm, extracted$weight.kg.1rm) |> kable()
 ```
 
 Great. We could go deeper, and we could also be [more systematic](https://dspy.ai) about the example selection, but let's take the win.
