@@ -1,0 +1,47 @@
+---
+title: Technology in Beijing
+subtitle: A look at how the latest technology is implemented in China.
+date: "2026-04-06"
+tags: [ai, china, 中国, cars, technology, diary]
+engine: knitr
+execute: 
+  cache: false
+  warning: false
+  freeze: false
+---
+
+This is something of a diary entry and doesn't have any code, so regular reads please forgive me. We're in Beijing, seeking as-always to keep the kids educated, entertained, and fed. Today it was Heshenghui Mall in Chaoyang that served the purposes.
+
+The mall is about twenty minutes drive from our apartment. We took the local equivalent of an Uber, but with a grandparent in tow there were too many people for the car so I had to make my own way. That was simple: scan a MeiTuan (没团) bike with my phone to unlock it, cycle off to the subway station - again scanning a QR code my phone rather than buying a ticket - and exit directly into the mall. It's one of several malls that have an exit directly into the subway. We arrived at about the same time.
+
+Everything is so nicely interconnected here. There are two dominant apps, WeChat (微信) and Alipay (支付宝). Both have a wallet and can scan QR codes to purchase things, or display a QR code that the vendor scans. Vendors either have a little scanner on the counter or simply a QR code stuck somewhere for you to scan. Sometimes you need to enter the amount manually. These days every transaction starts with "Do I scan you, or you scan me?"
+
+ It's similar to Apple Pay, but a little less smooth. The flip side is that you're not obliged to also download an app and register for every single service you use. For example I didn't need to download and sign up to MeiTuan for the bike, I just used WeChat. WeChat has an in-app app store with which it skirts around Apple's rules about installing software. I expect the mini apps are built with web tech and WeChat is really just showing a full-screen browser view.
+ 
+ The initial registration for WeChat and Alipay is quite painful as a foreigner - they require a Chinese phone number and even receiving money will require manual passport verification, which takes a few minutes - but that's pretty much the last hurdle (language barrier aside). From that point on the city is unlocked.
+
+Alipay has always been a payment app, but WeChat has an interesting history. It started as a messaging app, closest in spirit to WhatsApp. However it grew feature after feature until it became a platform itself. Its closest American equivalent is Facebook, but whereas Facebook feels like a slowly-sinking ship, one that young people use only out of necessity, WeChat is still universally popular. Its market penetration must be close to 100% of Chinese smartphones. If you look over someone's shoulder on the subway, you are almost guaranteed to see them using WeChat or with a WeChat notification on their screen. This is what Elon Musk originally aspired to turn X (Twitter) into, though having made an utter hash of it and bled away all the non-clout, non-hate users it's not clear whether he's still holding that candle.
+
+WeChat also has short-form videos, the premier brain poison of the 2020s. I think Douyin/Tiktok (抖音) and Rednote (小红书) are more popular though. There are live streams too, and just like in Europe and North America there are enough viewers for people to make a living from it. I hope all this stuff is AI-slopped to death before my kids are old enough to own a smartphone. (The family consensus is that we're not even considering it before age 16 - and bless them, the kids are pleased not to.)
+
+The top floor of Heshenghui Mall (朝阳合生汇) is a showroom for China's EV brands, plus one lonely example each of a VW ID4 and a Tesla Model Y. There are a lot of brands represented here: Avatar, Li, Nio, Xpeng, Aito, about three others I can hardly remember. Half will probably not see out the decade, and another quarter will probably be bought up before they break into the international market, but I would peg Nio as a future giant. Most of the brands are innovating on looks and in-car conveniences (more on those later) whereas Nio have developed a battery swapping technology. They have these garages around the country where the battery on the bottom of the car can be popped off (by a robot under the floor) and replaced with a fresh, fully charged one in 15 minutes. Given how competitive optimisation took racing pit stops down from minutes to under two seconds, I suspect Nio's battery-swapping time will be engineered down to a level that fast charging will never reach.
+
+Nio haven't neglected the in-car flash either. We tried out the ET9, which has this little dome on the dashboard that is the face of an in-car AI. It will turn to face the speaker and display a cute, expressive pair of eyes as it listens to their voice commands. The speech-to-text was really fast and robust - it handled my ropey Chinese and the kids' voices without any lag and I didn't spot any errors in the transcription - so we're probably looking at quite a strong on-device model, probably one of the open source Qwen models released in the last year. How much does using your car's GPU reduce its range I wonder? I'm just amazed at how quickly this has been implemented.
+
+The sales guy did a demo where he asked the AI to play a 5D movie, which turns out to involve the car rocking and bouncing in response to explosions on screen. Completely, utterly pointless, and not even 5D (dimensions 3 and 4 were skipped over) but that was obviously not the point. The point was that Nio have enough spare technical wizardry to waste on frivolous tech demos. 
+
+The first time I visited Beijing, almost nineteen years ago, the cars were mostly German, Japanese and Korean. The taxis were branded Beijing, so presumably home-grown; they were boxy jobs that looked about ten years behind the international cars. These days about half the cars on the road are Chinese brands, with the majority of those being electric. BYD isn't as prevalent here as you might expect (though still the most popular).
+
+By the way, another point on that Uber: last year I ended up flat-out refusing to take taxis, because more than once I had to scold the driver for watching Douyin videos while driving. Not with my kids in the car, you lunatic. This year the situation is totally different; the government has tighted the screws and Uber drivers are now universally professional. There was one who wanted to play high-speed tetris, slotting the car into the minimal possible gap in traffic, but otherwise they've been fairly safe and calm. It could just be coincidence, but the one aggressive driver was the only petrol vehicle. Maybe when (in)efficiency is more linearly proportional to speed a driver is encouraged to drive more smoothly. Or maybe the petrol driver was just one of the last embers of the wild past.
+
+The government has tighted screws on motorists in general. A blanket of CCTV covers the city. If someone is spotted violating the rules (e.g. parking in a restricted zone) then a voice comes booming out of a loudspeaker to warn them of the penalties. In the city centre the number of cameras is obscene. Every lamppost in Tian'anmen square is hung with - I kid you not - no fewer than eight cameras, with about five meters between lampposts. The weird thing is the higgledy-piggledy way different types of camera been slapped on, sticking out on poles in odd directions at different heights. It looks more like nesting birds than anything else.
+
+This level of CCTV coverage isn't what I'd call social progress, but on a technical front this is starting to look like every sci-fi mega city.
+
+For lunch we had sushi at Sushiro (寿司郎). It had the usual conveyor belt, but each booth was dominated by a massive touch-screen menu. It has a power-up bar in the top right and after every so many orders that bar hits 100% and unlocks a touch-screen game. Of course we overspent, even more than one usually does when ordering lots of small and not-very-filling dishes.
+
+After we got home my wife and I set the kids a course of TV, homework, and dinner with the grandparents, whilst we cycled to the gym. It's a pay-per-minute gym; of course you scan a QR code with WeChat to get in and out. Gym culture hasn't taken off in Beijing like it has in the UK, but nonetheless there are some pretty serious people in there, and some would-be influencers. The gym actually provides phone stands that people are regularly using to film their sets. A sign on the wall says "If you do not return the dumbbells to the rack, tomorrow your muscles will be twice as small."
+
+Because it's pay-per-minute I do a more intensive routine here than at home. I lift lighter and take shorter rests. Some people are foolishly piddling about on their phones, essentially paying to sit and watch TikToks. It's not a lot of money (something like £1 per 20 mins) but all the same, why would you?
+
+On the way back we can cycle a quieter route. The roads are pretty risky - few people on bikes and scooters wear helmets - but again this is something that's improved immensely in recent years. The most dangerous vehicles, to themselves and others, were these motorised tricycles and mini-cars (like a Renault Twizzy, but minus any safety features whatsoever) that would bomb along the bike lanes at car speeds. Those were banned for all except the truly disabled so there's now much better separation between bikes and cars.
