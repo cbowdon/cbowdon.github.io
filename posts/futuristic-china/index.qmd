@@ -1,5 +1,5 @@
 ---
-title: Technology in Beijing
+title: "Tech in Beijing: apps, cars, and cameras"
 subtitle: A look at how the latest technology is implemented in China.
 date: "2026-04-06"
 tags: [ai, china, 中国, cars, technology, diary]
@@ -40,8 +40,12 @@ This level of CCTV coverage isn't what I'd call social progress, but on a techni
 
 For lunch we had sushi at Sushiro (寿司郎). It had the usual conveyor belt, but each booth was dominated by a massive touch-screen menu. It has a power-up bar in the top right and after every so many orders that bar hits 100% and unlocks a touch-screen game. Of course we overspent, even more than one usually does when ordering lots of small and not-very-filling dishes.
 
-After we got home my wife and I set the kids a course of TV, homework, and dinner with the grandparents, whilst we cycled to the gym. It's a pay-per-minute gym; of course you scan a QR code with WeChat to get in and out. Gym culture hasn't taken off in Beijing like it has in the UK, but nonetheless there are some pretty serious people in there, and some would-be influencers. The gym actually provides phone stands that people are regularly using to film their sets. A sign on the wall says "If you do not return the dumbbells to the rack, tomorrow your muscles will be twice as small."
+After we got home my wife and I set the kids a course of TV, homework, and dinner with the grandparents, whilst we cycled to the gym. It's a pay-per-minute gym; of course you scan a QR code with WeChat to get in and out. Gym culture hasn't taken off in Beijing like it has in the UK, but nonetheless there are some pretty serious people in there, and some would-be influencers. The gym actually provides phone stands for people to film their sets - every time I go, someone is using one.
+
+A sign on the wall says "If you do not return the dumbbells to the rack, tomorrow your muscles will be twice as small."
 
 Because it's pay-per-minute I do a more intensive routine here than at home. I lift lighter and take shorter rests. Some people are foolishly piddling about on their phones, essentially paying to sit and watch TikToks. It's not a lot of money (something like £1 per 20 mins) but all the same, why would you?
 
-On the way back we can cycle a quieter route. The roads are pretty risky - few people on bikes and scooters wear helmets - but again this is something that's improved immensely in recent years. The most dangerous vehicles, to themselves and others, were these motorised tricycles and mini-cars (like a Renault Twizzy, but minus any safety features whatsoever) that would bomb along the bike lanes at car speeds. Those were banned for all except the truly disabled so there's now much better separation between bikes and cars.
+On the way back we can cycle a quieter route. The roads are pretty risky - few people on bikes and scooters wear helmets - but again this is something that's improved immensely in recent years. The most dangerous vehicles, to themselves and others, were these motorised tricycles and mini-cars (imagine a Renault Twizzy, but built in a barn) that would bomb along the bike lanes at car speeds. Those were banned for all except the truly disabled so there's now much better separation between bikes and cars. But on the other hand, the families that were using those mini-cars were used for school runs have swapped to scooters, where the kids are perched precariously and don't have helmets. It's ironic that a culture that cares about their children above all else has created a city where the childrens' lives are so much harder than the adults'. There's far more I could say on that subject and it's little to do with technology so let's save that for another day.
+
+I survived the trip home of course. This time next year the trip will be quicker and safer still, because a row of derelict buildings have been demolished and a straight and shiny new road will run right past the apartment. This is happening all the time here; the owners are moved on, somewhere, and a modern city is developed in their place. It's not what I'd call social progress, but it's progress of a sort.
