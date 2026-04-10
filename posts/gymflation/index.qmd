@@ -33,6 +33,7 @@ library(ellmer)
 library(memoise)
 library(cachem)
 library(knitr)
+library(openxlsx)
 
 set.seed(42)
 ```
@@ -449,11 +450,11 @@ There's one more little step here: I've used string matching to estimate whether
 We can now plot it and see if the "gymflation" theory holds up. I've added to overlays so that we assess the honesty of our YouTubers:
 
 - The world record of the time, so we can spot likely noise.
-- Round number imperial weights (100-1000lbs) so we can spot the rounding-up effect - similar to the phenomenon where there are suspiciously few men who report their height as 5ft 11 and suspicously many that report their height as 6ft. Though it's more reasonable here: why would you try for a 595lb deadlift when you could just go for that magic 600lbs?
+- Round number imperial weights (100-1000lbs) so we can spot the rounding-up effect - similar to the phenomenon where there are suspiciously few men who report their height as 5ft 11 and suspicously many that report their height as 6ft. Though it's more reasonable in this context: why would you try for a 597.5lb deadlift when you could just go for that magic 600lbs?
 
 ```{r}
 #| label: fig-first-plot
-#| fig-cap: Deadlift 1 Rep Max weights over time, self-reported by YouTube users. World record lifts are points overlaid in orange. The dashed red lines are round-number Imperial weights (100-1000lbs).
+#| fig-cap: Deadlift 1RM weights over time, self-reported by YouTube users. World record lifts are points overlaid in orange. The dashed red lines are round-number Imperial weights (100-1000lbs).
 
 world.records <- read_csv("data/deadlifts.csv") |>
   mutate(weight.kg.1rm = kg, publish.date = parse_date(date, format = "%b %Y"))
@@ -487,11 +488,188 @@ ggplot(df.weights) +
   hline(800 / 2.2) +
   hline(900 / 2.2) +
   hline(1000 / 2.2)
+```
 
+HERE HERE HERE Here is where I'll talk about the previous result, when I've run the full sample.
+
+
+```{r}
+#| label: fig-form-analysis
+#| fig-cap: Distribution of deadlift 1RM weights by form (conventional vs sumo).
 ggplot(df.weights) +
   aes(x = weight.kg) +
   #facet_grid(rows = vars(form), cols = vars(year), scales = "free_y") +
   facet_wrap(~form, ncol = 1, scales = "free_y") +
   geom_histogram()
+```
 
+This is imperfect, because not ever video of a sumo deadlift will include the word "sumo". Those with "sumo" in the title or description are highly likely to be true positives, but not vice versa. Therefore we're comparing one relatively accurate distribution to a mixed distribution.
+
+An Anova test finds ....
+
+```{r}
+#| label: anova-on-form
+anova(lm(weight.kg.1rm ~ form, data = df.weights))
+summary(lm(weight.kg.1rm ~ form + year, data = df.weights))
+fit <- lm(weight.kg.1rm ~ form + factor(year), data = df.weights)
+summary(fit)
+anova(fit)
+drop1(fit, test = "F")
+```
+
+# Gender breakdown
+
+We forgot to account for an obvious strength factor, gender. We could try and predict this from channel titles; some have obviously gendered names, and others like "resistance156" hint at masculinity. However there are many ambiguous names so we'll get better accuracy from visual assessment. We can use a vision-language model to predict the gender from the video thumbnails.
+
+First we download the thumbnails. We can use parallel requests.
+
+```{r}
+#| label: tbl-download-imgs
+#| tbl-cap: We are able to fetch a thumbnail image for almost all the videos.
+image_path <- function(url) {
+  url |>
+    str_replace_all("/", "_") |>
+    str_replace("https:__i.ytimg.com", "data/stills/")
+}
+
+save_image <- function(resp) {
+  img_file <- gsub("/", "_", resp_url_path(resp), fixed = TRUE) |>
+    str_replace("^", "posts/gymflation/data/stills/")
+  con <- file(img_file, open = "wb")
+  writeBin(resp_body_raw(resp), con)
+  close(con)
+}
+
+df.weights.imgs <- df.weights |>
+  mutate(
+    image.path = image_path(thumbnails.high.url),
+    downloaded = file.exists(image.path)
+  )
+
+img.reqs <- df.weights.imgs |>
+  filter(!downloaded) |>
+  pull(thumbnails.high.url) |>
+  map(~ request(.) |> req_cache(".cache/httr2"))
+
+img.resps <- req_perform_parallel(img.reqs)
+
+img.resps |> map(save_image, .progress = TRUE)
+
+df.weights.imgs$downloaded = file.exists(df.weights.imgs$image.path)
+
+df.weights.imgs |>
+  group_by(downloaded) |>
+  count() |>
+  kable()
+
+df.downloaded.only <- df.weights.imgs |> filter(downloaded)
+```
+
+Now we can simply pass these to a vision model and ask it to classify gender. The same Mistral model I used earlier is capable of this task.
+
+```{r}
+#| label: predict-gender-model
+predict_gender_chat <- {
+  system_prompt <- "The user will provide an image.  You must predict the gender of the main person in the image.
+Return your answer in a JSON object with a single key `gender` with value `M`, `F` or `NA`.
+Respond NA if you can't tell or there is no one in the image."
+
+  chat_openai_compatible(
+    LLM_SERVER_URL,
+    model = "mistralai/ministral-3-3b",
+    credentials = function() "",
+    params = params(max_tokens = 50),
+    system_prompt = system_prompt
+  )
+}
+
+predict_gender_type <- type_object(
+  gender = type_enum(values = c("M", "F", "NA"))
+)
+
+# Example use
+predict_gender_chat$chat_structured(
+  content_image_file(df.weights.imgs$image.path[[1]]),
+  type = predict_gender_type
+)
+```
+
+Now we just run through another cycle of evaluation and ICL.
+
+```{r}
+#| label: create-xlsx-img-annotation
+wb <- createWorkbook()
+addWorksheet(wb, "Sheet1")
+
+# Write data frame to sheet
+writeData(
+  wb,
+  sheet = 1,
+  x = select(df.downloaded.only, id.videoId, title, description)
+)
+
+# Add each image from the image.path column
+for (i in seq_len(nrow(df.downloaded.only))) {
+  openxlsx::writeData()
+  addImage(
+    wb,
+    sheet = 1,
+    img = df.downloaded.only$image.path[i],
+    startRow = i + 2,
+    startCol = 1,
+    width = 30,
+    height = 25
+  )
+}
+
+# Save workbook
+saveWorkbook(wb, "data/images_unannotated.xlsx", overwrite = TRUE)
+```
+
+```{r}
+#| label: tbl-gender-counts
+#| tbl-cap: The predicted genders are mainly male, as you might expect in strength training.
+gender.preds <- parallel_chat_structured(
+  chat = predict_gender_chat,
+  prompts = map(
+    pull(df.downloaded.only, image.path),
+    content_image_file
+  ),
+  type = predict_gender_type,
+  max_active = 5
+)
+
+df.weights.genders <- df.weights |>
+  merge(
+    bind_cols(
+      select(df.downloaded.only, id.videoId),
+      mutate(gender.preds, gender = if_else(gender == "NA", NA, gender))
+    ),
+    all.x = TRUE
+  )
+
+df.weights.genders |>
+  group_by(gender) |>
+  count() |>
+  kable()
+```
+
+```{r}
+#| label: fig-gender-dist
+#| fig-cap: The distribution of deadlift 1RM weights by gender - clearly different.
+ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
+  aes(x = weight.kg.1rm) +
+  facet_wrap(~gender) +
+  geom_histogram(alpha = 0.5, size = 0.5)
+```
+
+Are more and more women getting into strength training, by the way?
+
+```{r}
+#| label: fig-gender-time
+#| fig-cap: Are more and more women getting into strength training?
+ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
+  aes(x = publish.date, y = weight.kg.1rm, group = gender, colour = gender) +
+  geom_point() +
+  geom_smooth()
 ```
