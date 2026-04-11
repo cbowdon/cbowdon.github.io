@@ -594,50 +594,77 @@ predict_gender_chat$chat_structured(
 )
 ```
 
-Now we just run through another cycle of evaluation and ICL.
+Now we just run through another cycle of annotation, evaluation and optimisation. Excel spreadsheets can include images, so we'll go there. (A vibe-coded annotation solution would be equally good.)
 
 ```{r}
 #| label: create-xlsx-img-annotation
+df.wb <- df.downloaded.only |>
+  select(id.videoId, title, description) |>
+  mutate(image.path = "", gender = NA, reviewed = F)
+
 wb <- createWorkbook()
 addWorksheet(wb, "Sheet1")
 
 # Write data frame to sheet
-writeData(
-  wb,
-  sheet = 1,
-  x = select(df.downloaded.only, id.videoId, title, description)
-)
+writeData(wb, sheet = 1, x = df.wb)
+
+img.col <- 4
 
 # Add each image from the image.path column
+writeData(wb, sheet = 1, "image.path", startCol = img.col)
 for (i in seq_len(nrow(df.downloaded.only))) {
-  openxlsx::writeData()
-  addImage(
+  insertImage(
     wb,
     sheet = 1,
-    img = df.downloaded.only$image.path[i],
-    startRow = i + 2,
-    startCol = 1,
-    width = 30,
-    height = 25
+    file = df.downloaded.only$image.path[i],
+    startRow = i + 1,
+    startCol = img.col,
+    width = 1024,
+    height = 1024,
+    units = "px"
   )
 }
+
+setColWidths(wb, sheet = 1, cols = c(img.col), widths = c(40))
+setRowHeights(
+  wb,
+  sheet = 1,
+  rows = seq(2, nrow(df.downloaded.only) + 1),
+  heights = 256
+)
 
 # Save workbook
 saveWorkbook(wb, "data/images_unannotated.xlsx", overwrite = TRUE)
 ```
 
+Then we eval our predictions against the annotated data.
+
+```{r}
+img.ann <- read.xlsx("data/images_annotated.xlsx") |>
+  filter(reviewed) |>
+  select(id.videoId, gender) |>
+  mutate(gender = str_to_upper(gender))
+```
+
+The annotations are almost entirely male though.
+
 ```{r}
 #| label: tbl-gender-counts
 #| tbl-cap: The predicted genders are mainly male, as you might expect in strength training.
-gender.preds <- parallel_chat_structured(
-  chat = predict_gender_chat,
-  prompts = map(
-    pull(df.downloaded.only, image.path),
-    content_image_file
-  ),
-  type = predict_gender_type,
-  max_active = 5
-)
+
+run_gender <- function(df) {
+  parallel_chat_structured(
+    chat = predict_gender_chat,
+    prompts = map(
+      pull(df, image.path),
+      content_image_file
+    ),
+    type = predict_gender_type,
+    max_active = 5
+  )
+}
+
+gender.preds <- run_gender(df.downloaded.only)
 
 df.weights.genders <- df.weights |>
   merge(
