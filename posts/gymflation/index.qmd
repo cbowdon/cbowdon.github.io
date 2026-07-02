@@ -11,6 +11,8 @@ execute:
   freeze: false
 ---
 
+In recent years, Gym culture has exploded.
+
 Gonna:
 
 - Scrape the YouTube API for deadlift PR data with httr2
@@ -34,8 +36,7 @@ library(memoise)
 library(cachem)
 library(knitr)
 library(openxlsx)
-
-set.seed(42)
+library(caret)
 ```
 
 # Scraping YouTube data with httr2 and a disk cache
@@ -84,7 +85,6 @@ The YouTube free API is quite restrictive so we are forced to compromise. We sam
 
 ```{r}
 #| label: map-youtube
-
 rds.file <- "data/youtube_df.rds"
 df <- {
   if (file.exists(rds.file)) {
@@ -140,6 +140,7 @@ If you need a larger sample then it could be delegated to a larger LLM than the 
 
 ```{r}
 #| label: dump-unannotated
+set.seed(42)
 df |>
   slice_sample(n = 100) |>
   select(id.videoId, title, description) |>
@@ -214,7 +215,9 @@ At this point we're ready to build an extraction "model".
 
 # Building LLM "models"
 
-Why the quotes? Well it's very unlike modelling in the traditional sense. What we're going to do is advanced prompting. Some of it speaks for itself: the system prompt sets the model up to expect a consistent input and to respond in a certain way.
+Why the quotes? Well it's very unlike modelling in the sense most people are used to. What we're going to do is advanced prompting to condition a very powerful base model into performing well on our task. Some of it speaks for itself: the system prompt sets the model up to expect a consistent input and to respond in a certain way.
+
+The model in this case is an instance of the open source vision-language model Ministral 3B from Mistral AI, running locally via LM Studio. Running open source models locally is very easy provided your laptop has the grunt (I think you'd need at least 8GB of VRAM for this one).
 
 Note that we specify that we're expecting a JSON response with certain keys, because we want consistent and easy-to-parse output.
 
@@ -265,7 +268,7 @@ extract_dl_weight_type <- type_object(
 
 Structured responses are quite simple: at each step, the LLM generates a probability distribution over all possible next tokens (hundreds of thousands of them). Usually we sample one from the top _k_ most likely tokens, tack it onto the end of our input and repeat. However with structured responses we only include tokens that adhere to a specified _grammar_ in the distribution, not those that would be invalid. Any grammar is possible, but JSON schema is the most popular implementation.
 
-This works nicely, even with the fairly weak model we're using here (Ministral 3B, a open source vision-language model from Mistral).
+This works nicely, even with the fairly weak model we're using here.
 
 ```{r}
 #| label: tbl-example-response
@@ -279,7 +282,7 @@ as_tibble(example.response) |> kable()
 
 ## Not wasting your life or worse, tokens
 
-It's really handy to set up a caching mechanism. You could do this with a memoized function in code, or with a proxy. The proxy is a little easier because we can still use Ellmer's parallelisation functions easily. I have a little vibe-coded proxy that runs with Deno [here](./caching_proxy.ts).
+It's really handy to set up a caching mechanism. You could do this with a memoized function in code, or with a proxy. The proxy is a little easier because we can still use Ellmer's parallelisation functions easily. I have a little vibe-coded proxy that runs with Deno [here](./caching_proxy.ts). Note that most proxies won't work out-of-the-box, because chat completions are HTTP POST requests and these are not supposed to be cached.
 
 # Evaluating the model
 
@@ -345,7 +348,7 @@ Looks like the main failure mode is predicting a unit when none can be fairly as
 
 We can supply examples to the model that it can learn from. This costs tokens because the prompt is longer, but reading a prompt is an order of magnitude less computationally expensive than generating output, especially with mechanisms such as KV caching.
 
-Here I've just made up some examples that demonstrate the behaviour in tricky cases. Let's see if our accuracy on the dev set has improved.
+Here I've just made up some examples that demonstrate the behaviour in tricky cases like some of the above. Let's see if it improves our accuracy on the dev set.
 
 ```{r}
 #| label: tbl-icl-eval
@@ -428,8 +431,9 @@ We can now run the extraction over the whole dataset. A little tip: do that last
 
 ```{r}
 #| label: full-weight-extraction
-sample.df <- df |> slice_sample(n = 100)
-full.extraction <- run_extraction(sample.df, turns)
+set.seed(42) # RNG is stateful
+sample.df <- df |> slice_sample(n = 2000)
+full.extraction <- run_extraction(sample.df, turns) # ☕ ☕ ☕ ☕ ☕️️️
 
 df.weights <- bind_cols(sample.df, full.extraction) |>
   # The extraction assigns -1 for any invalid weights, drop them now.
@@ -439,7 +443,8 @@ df.weights <- bind_cols(sample.df, full.extraction) |>
       str_detect(title, "sumo") | str_detect(description, "sumo"),
       "sumo",
       "conventional"
-    )
+    ),
+    year = year(publish.date)
   )
 ```
 
@@ -454,8 +459,7 @@ We can now plot it and see if the "gymflation" theory holds up. I've added to ov
 
 ```{r}
 #| label: fig-first-plot
-#| fig-cap: Deadlift 1RM weights over time, self-reported by YouTube users. World record lifts are points overlaid in orange. The dashed red lines are round-number Imperial weights (100-1000lbs).
-
+#| fig-cap: Deadlift 1RM weights over time, self-reported by YouTube users. World record lifts are points overlaid in orange. The dashed horizontal lines are round-number Imperial weights (100-1000lbs).
 world.records <- read_csv("data/deadlifts.csv") |>
   mutate(weight.kg.1rm = kg, publish.date = parse_date(date, format = "%b %Y"))
 
@@ -464,7 +468,7 @@ hline <- function(yint.kg) {
     aes(yintercept = yint.kg),
     alpha = 0.5,
     linetype = "dashed",
-    colour = "red"
+    colour = "grey"
   )
 }
 
@@ -479,6 +483,7 @@ ggplot(df.weights) +
     nudge_y = 10,
     check_overlap = TRUE
   ) +
+  hline(100 / 2.2) +
   hline(200 / 2.2) +
   hline(300 / 2.2) +
   hline(400 / 2.2) +
@@ -492,6 +497,48 @@ ggplot(df.weights) +
 
 HERE HERE HERE Here is where I'll talk about the previous result, when I've run the full sample.
 
+It's readily apparent that the average weight lifted hasn't meaningfully changed. We can also inspect whether the absolute number of heavy lifts has changed with a tile plot.
+
+```{r}
+#| label: fig-tiles
+#| fig-cap: In recent years there have been more videos posted with heavy weights, in absolute terms.
+bins <- seq(0, 500, 25)
+
+index <- expand.grid(
+  year = min(df.weights$year):max(df.weights$year),
+  weight.kg.1rm.bin = bins
+)
+
+df.weights.binned <- df.weights |>
+  group_by(
+    year,
+    weight.kg.1rm.bin = cut(
+      weight.kg.1rm,
+      breaks = bins,
+      labels = bins[-length(bins)]
+    )
+  ) |>
+  summarise(n.posts = n())
+
+index |>
+  merge(df.weights.binned, all.x = TRUE) |>
+  mutate(n.posts = coalesce(n.posts, 0)) |>
+  ggplot() +
+  aes(x = year, y = weight.kg.1rm.bin, fill = n.posts) +
+  geom_tile() +
+  scale_x_continuous(breaks = seq(2015, 2025)) +
+  scale_y_continuous(breaks = seq(0, 500, 50)) +
+  scale_fill_gradient2() +
+  labs(
+    x = "Year",
+    y = "1RM weight (bins of 25kg)",
+    fill = "Videos posted"
+  ) +
+  theme(
+    axis.ticks = element_blank(),
+    panel.background = element_blank()
+  )
+```
 
 ```{r}
 #| label: fig-form-analysis
@@ -503,23 +550,13 @@ ggplot(df.weights) +
   geom_histogram()
 ```
 
-This is imperfect, because not ever video of a sumo deadlift will include the word "sumo". Those with "sumo" in the title or description are highly likely to be true positives, but not vice versa. Therefore we're comparing one relatively accurate distribution to a mixed distribution.
+This is imperfect, because not ever video of a sumo deadlift will include the word "sumo". Those with "sumo" in the title or description are highly likely to be true positives, but not vice versa. Therefore we're comparing one precise distribution to a mixed distribution.
 
-An Anova test finds ....
-
-```{r}
-#| label: anova-on-form
-anova(lm(weight.kg.1rm ~ form, data = df.weights))
-summary(lm(weight.kg.1rm ~ form + year, data = df.weights))
-fit <- lm(weight.kg.1rm ~ form + factor(year), data = df.weights)
-summary(fit)
-anova(fit)
-drop1(fit, test = "F")
-```
+Besides, there's a much more obvious factor we haven't yet accounted for...
 
 # Gender breakdown
 
-We forgot to account for an obvious strength factor, gender. We could try and predict this from channel titles; some have obviously gendered names, and others like "resistance156" hint at masculinity. However there are many ambiguous names so we'll get better accuracy from visual assessment. We can use a vision-language model to predict the gender from the video thumbnails.
+We forgot to account for gender! We certainly expect a different distribution for each gender. But how do we identify which videos are from men and which are from women? We could try and predict gender from channel titles; some have obviously gendered names, and others like "resistance156" hint at masculinity. However there are many ambiguous names so we'll get better accuracy from visual assessment. We can use a vision-language model to predict the gender from the video thumbnails.
 
 First we download the thumbnails. We can use parallel requests.
 
@@ -570,15 +607,16 @@ Now we can simply pass these to a vision model and ask it to classify gender. Th
 ```{r}
 #| label: predict-gender-model
 predict_gender_chat <- {
-  system_prompt <- "The user will provide an image.  You must predict the gender of the main person in the image.
-Return your answer in a JSON object with a single key `gender` with value `M`, `F` or `NA`.
-Respond NA if you can't tell or there is no one in the image."
+  system_prompt <- "The user will provide an image. You must predict the gender of the main person in the image.
+  Respond with `M` if the person appears male, `F` if the person appears female, or `NA` if it's impossible to tell.
+Return your answer in a JSON object with a single key `gender` with value `M`, `F` or `NA`."
 
   chat_openai_compatible(
     LLM_SERVER_URL,
-    model = "mistralai/ministral-3-3b",
+    #model = "mistralai/ministral-3-3b",
+    model = "qwen/qwen3.5-35b-a3b", # ths larger model does worse because typing isn't allowing it to think
     credentials = function() "",
-    params = params(max_tokens = 50),
+    params = params(max_tokens = 1000),
     system_prompt = system_prompt
   )
 }
@@ -587,11 +625,31 @@ predict_gender_type <- type_object(
   gender = type_enum(values = c("M", "F", "NA"))
 )
 
+predict_gender_chat$chat(
+  content_image_file(df.weights.imgs$image.path[[1]]),
+)
+
 # Example use
 predict_gender_chat$chat_structured(
   content_image_file(df.weights.imgs$image.path[[1]]),
   type = predict_gender_type
 )
+
+run_gender <- function(image.paths) {
+  preds <- parallel_chat_structured(
+    chat = predict_gender_chat,
+    prompts = map(
+      image.paths,
+      content_image_file
+    ),
+    type = predict_gender_type,
+    max_active = 5
+  )
+  preds |>
+    mutate(
+      gender = if_else(gender == "NA", NA, gender)
+    )
+}
 ```
 
 Now we just run through another cycle of annotation, evaluation and optimisation. Excel spreadsheets can include images, so we'll go there. (A vibe-coded annotation solution would be equally good.)
@@ -599,8 +657,8 @@ Now we just run through another cycle of annotation, evaluation and optimisation
 ```{r}
 #| label: create-xlsx-img-annotation
 df.wb <- df.downloaded.only |>
-  select(id.videoId, title, description) |>
-  mutate(image.path = "", gender = NA, reviewed = F)
+  select(id.videoId, image.path, title, description) |>
+  mutate(gender = NA, reviewed = F)
 
 wb <- createWorkbook()
 addWorksheet(wb, "Sheet1")
@@ -611,12 +669,12 @@ writeData(wb, sheet = 1, x = df.wb)
 img.col <- 4
 
 # Add each image from the image.path column
-writeData(wb, sheet = 1, "image.path", startCol = img.col)
-for (i in seq_len(nrow(df.downloaded.only))) {
+writeData(wb, sheet = 1, "image", startCol = img.col)
+for (i in seq_len(nrow(df.wb))) {
   insertImage(
     wb,
     sheet = 1,
-    file = df.downloaded.only$image.path[i],
+    file = df.wb$image.path[i],
     startRow = i + 1,
     startCol = img.col,
     width = 1024,
@@ -629,7 +687,7 @@ setColWidths(wb, sheet = 1, cols = c(img.col), widths = c(40))
 setRowHeights(
   wb,
   sheet = 1,
-  rows = seq(2, nrow(df.downloaded.only) + 1),
+  rows = seq(2, nrow(df.wb) + 1),
   heights = 256
 )
 
@@ -637,48 +695,58 @@ setRowHeights(
 saveWorkbook(wb, "data/images_unannotated.xlsx", overwrite = TRUE)
 ```
 
-Then we eval our predictions against the annotated data.
+Then we eval our predictions against the annotated data. The annotations are almost entirely male though.
 
 ```{r}
 img.ann <- read.xlsx("data/images_annotated.xlsx") |>
   filter(reviewed) |>
   select(id.videoId, gender) |>
   mutate(gender = str_to_upper(gender))
+
+gender.preds <- run_gender(df.downloaded.only$image.path)
+
+img.eval <- bind_cols(
+  rename(img.ann, gender.true = gender),
+  rename(gender.preds, gender.pred = gender)
+) |>
+  replace_na(list(gender.true = "NA", gender.pred = "NA")) |>
+  mutate(
+    gender.true = factor(gender.true, levels = c("F", "M", "NA")),
+    gender.pred = factor(gender.pred, levels = c("F", "M", "NA")),
+    same = gender.true == gender.pred
+  )
+
+
+cm2 <- confusionMatrix(
+  img.eval$gender.pred,
+  reference = img.eval$gender.true,
+  mode = "prec_recall"
+)
+cm2$table
+
+cm2
+cm2$byClass
+cm2$mode
+
+cm$table |> kable()
 ```
-
-The annotations are almost entirely male though.
-
-```{r}
-#| label: tbl-gender-counts
-#| tbl-cap: The predicted genders are mainly male, as you might expect in strength training.
-
-run_gender <- function(df) {
-  parallel_chat_structured(
-    chat = predict_gender_chat,
-    prompts = map(
-      pull(df, image.path),
-      content_image_file
-    ),
-    type = predict_gender_type,
-    max_active = 5
-  )
-}
-
-gender.preds <- run_gender(df.downloaded.only)
-
-df.weights.genders <- df.weights |>
-  merge(
-    bind_cols(
-      select(df.downloaded.only, id.videoId),
-      mutate(gender.preds, gender = if_else(gender == "NA", NA, gender))
-    ),
-    all.x = TRUE
-  )
+  
+  ```{r}
+  #| label: tbl-gender-counts
+  #| tbl-cap: The predicted genders are mainly male, as you might expect in strength training.
+  df.weights.genders <- df.weights |>
+    merge(
+      bind_cols(
+        select(df.downloaded.only, id.videoId),
+        mutate(gender.preds, gender = if_else(gender == "NA", NA, gender))
+      ),
+      all.x = TRUE
+    )
 
 df.weights.genders |>
-  group_by(gender) |>
-  count() |>
-  kable()
+    group_by(gender) |>
+    count() |>
+    kable()
 ```
 
 ```{r}
