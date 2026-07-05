@@ -1,41 +1,43 @@
 ---
-title: Tackling Gymflation with AI
-subtitle: Is it real? Using YouTube data, and Ellmer (R) to find out.
-date: "2026-03-01"
+title: Exploring Gymflation with AI
+subtitle: Is it real? Using YouTube data, and LLMs (Ellmer, R) to find out.
+date: "2026-07-05"
 tags: [r, ai, llm, gym, youtube]
 engine: knitr
 code-fold: show
 execute: 
-  cache: false
   warning: false
-  freeze: false
 ---
 
-In recent years, Gym culture has exploded.
+You might be familiar with super hero inflation? Over time, super hero physiques on screen have become increasingly exaggerated. Batman's progression from Adam West to Ben Affleck is a great example of this.
 
-Gonna:
+![Selected Batman portrayals, from oldest to more recent. LEGO Batman is not included, but is reported to have a 9-pack.](./batman_physique.jpg)
 
-- Scrape the YouTube API for deadlift PR data with httr2
-- Use disk caching so errors don't set us back
-- Use ICL and structured responses to extract the lifted weight with AI
-- Use a caching proxy to avoid tears
-- Evaluate the quality of our extraction and improve it
-- Be surprised!
-- Use a multimodal model (spoiler, same model) to judge the lifter's gender
+Gymflation is much the same idea. As gym culture has skyrocketed, it seems like so too have people's feats of strength - as recorded on social media. Going on YouTube or Instagram one gets the feeling that a 200kg deadlift is really rather average nowadays. 
+
+But is it really true? Or are we just feeling the effects of the Algorithm, pushing extreme examples in our blue-lit faces?
+
+What follows is a little project to find out. We will:
+
+- Scrape the YouTube API for 10 years of deadlift personal record (PR) videos with httr2
+- Use structured responses to extract the lifted weight with AI
+- Evaluate the quality of our extraction and improve it with ICL
+- Use a multimodal model to judge the lifter's gender
+- Make extensive use of caching so errors don't set us back
+- Plot our results with good old ggplot2
 - Come away with a sense of tremendous satisfaction
 
-This serves as something of a walkthrough for how to use APIs and LLMs in an R project. As usual the full code is below the folds.
+My secret ulterior motive is that this can serve as a guide to using APIs and LLMs in an R project, demonstrating some techniques and practices that have been helpful to me. As usual the full code is below the folds.
 
 ```{r}
 #| label: imports
 #| code-fold: true
 library(tidyverse)
+library(knitr)
 library(httr2)
 library(ellmer)
-library(memoise)
-library(cachem)
-library(knitr)
-library(openxlsx)
+#library(memoise)
+#library(cachem)
 library(caret)
 ```
 
@@ -113,7 +115,8 @@ df <- {
       bind_rows() |>
       mutate(publish.date = as.Date(publishedAt)) |>
       unnest(c(id, thumbnails), names_sep = ".") |>
-      unnest(starts_with("thumb"), names_sep = ".")
+      unnest(starts_with("thumb"), names_sep = ".") |>
+      unique()
     saveRDS(df, file = rds.file, compress = FALSE)
     df
   }
@@ -208,7 +211,7 @@ Finally we're split the data into a test and dev set. We hold out the test set f
 #| label: splits
 test <- labelled |> slice_head(n = 50)
 dev <- labelled |> slice_tail(n = nrow(labelled) - 50)
-tibble(nrow(test), nrow(dev))
+tibble(nrow(test), nrow(dev)) |> kable()
 ```
 
 At this point we're ready to build an extraction "model".
@@ -282,7 +285,7 @@ as_tibble(example.response) |> kable()
 
 ## Not wasting your life or worse, tokens
 
-It's really handy to set up a caching mechanism. You could do this with a memoized function in code, or with a proxy. The proxy is a little easier because we can still use Ellmer's parallelisation functions easily. I have a little vibe-coded proxy that runs with Deno [here](./caching_proxy.ts). Note that most proxies won't work out-of-the-box, because chat completions are HTTP POST requests and these are not supposed to be cached.
+It's really handy to set up a caching mechanism. You could do this with a memoized function in code, or with a proxy. The proxy is a little easier because we can still use Ellmer's parallelisation functions easily. I have a little vibe-coded proxy that runs with Deno [here](./caching_proxy.ts). Note that most proxies won't work out-of-the-box, because chat completions are HTTP POST requests and these are not supposed to be cached because in idiomatic HTTP usage they have side-effects.
 
 # Evaluating the model
 
@@ -307,6 +310,9 @@ run_extraction <- function(df, turns = list()) {
     mutate(
       weight.kg = convert_kg(weight, unit),
       weight.kg.1rm = epley_1rm(weight.kg, reps)
+    ) |>
+    bind_cols(
+      select(df, id.videoId)
     )
 }
 
@@ -432,20 +438,34 @@ We can now run the extraction over the whole dataset. A little tip: do that last
 ```{r}
 #| label: full-weight-extraction
 set.seed(42) # RNG is stateful
-sample.df <- df |> slice_sample(n = 2000)
-full.extraction <- run_extraction(sample.df, turns) # ☕ ☕ ☕ ☕ ☕️️️
+sample.df <- df |> slice_sample(n = nrow(df)) # I used n=1000 until the final runs
 
-df.weights <- bind_cols(sample.df, full.extraction) |>
+full.weights.file <- "data/full-weights.rds"
+df.weights <- {
+  if (file.exists(full.weights.file)) {
+    readRDS(full.weights.file)
+  } else {
+    full.extraction <- run_extraction(sample.df, turns) # ☕ ☕ ☕ ☕ ☕️️️
+    res <- merge(sample.df, full.extraction) |>
+      mutate(
+        form = if_else(
+          str_detect(title, "sumo") | str_detect(description, "sumo"),
+          "sumo",
+          "conventional"
+        ),
+        year = year(publish.date)
+      )
+    if (nrow(res) == nrow(df)) {
+      saveRDS(res, full.weights.file)
+    }
+    res
+  }
+}
+df.weights <- df.weights |>
   # The extraction assigns -1 for any invalid weights, drop them now.
   filter(weight.kg.1rm > 0) |>
-  mutate(
-    form = if_else(
-      str_detect(title, "sumo") | str_detect(description, "sumo"),
-      "sumo",
-      "conventional"
-    ),
-    year = year(publish.date)
-  )
+  # Any weight above 600 is well above the current world record, and either an extraction error or a silly post.
+  filter(weight.kg.1rm < 600)
 ```
 
 There's one more little step here: I've used string matching to estimate whether the deadlift was performed with conventional form or sumo form (a pose where the legs are wider and the back more upright). Later it will be interesting to compare these forms.
@@ -492,53 +512,50 @@ ggplot(df.weights) +
   hline(700 / 2.2) +
   hline(800 / 2.2) +
   hline(900 / 2.2) +
-  hline(1000 / 2.2)
+  hline(1000 / 2.2) +
+  labs(x = "Date", y = "1RM weight (kg)")
 ```
 
-HERE HERE HERE Here is where I'll talk about the previous result, when I've run the full sample.
-
-It's readily apparent that the average weight lifted hasn't meaningfully changed. We can also inspect whether the absolute number of heavy lifts has changed with a tile plot.
+It's readily apparent that the average weight lifted hasn't meaningfully changed. We can get a sense of whether the absolute number of heavy lifts has changed by binning.
 
 ```{r}
-#| label: fig-tiles
-#| fig-cap: In recent years there have been more videos posted with heavy weights, in absolute terms.
-bins <- seq(0, 500, 25)
-
-index <- expand.grid(
-  year = min(df.weights$year):max(df.weights$year),
-  weight.kg.1rm.bin = bins
+#| label: fig-binned-lifts
+#| fig-cap: Count of videos posted over time by weight range. In recent years there are fewer deadlift PR videos in the 100-200 and 200-300 ranges - and so fewer overall.
+bins <- seq(0, 600, 100)
+years.range <- seq.int(
+  min(df.weights$year),
+  max(df.weights$year)
 )
 
 df.weights.binned <- df.weights |>
   group_by(
-    year,
-    weight.kg.1rm.bin = cut(
-      weight.kg.1rm,
-      breaks = bins,
-      labels = bins[-length(bins)]
-    )
+    year = as.integer(year),
+    weight.kg.1rm.bin = cut(weight.kg.1rm, breaks = bins)
   ) |>
   summarise(n.posts = n())
+
+index <- expand.grid(
+  publish.date = years.range,
+  weight.kg.1rm.bin = unique(df.weights.binned$weight.kg.1rm.bin)
+)
 
 index |>
   merge(df.weights.binned, all.x = TRUE) |>
   mutate(n.posts = coalesce(n.posts, 0)) |>
   ggplot() +
-  aes(x = year, y = weight.kg.1rm.bin, fill = n.posts) +
-  geom_tile() +
-  scale_x_continuous(breaks = seq(2015, 2025)) +
-  scale_y_continuous(breaks = seq(0, 500, 50)) +
-  scale_fill_gradient2() +
-  labs(
-    x = "Year",
-    y = "1RM weight (bins of 25kg)",
-    fill = "Videos posted"
-  ) +
+  aes(x = year, y = n.posts) +
+  facet_wrap(~weight.kg.1rm.bin) +
+  geom_line() +
+  labs(x = "Year", y = "Videos posted") +
+  scale_x_continuous(breaks = years.range) +
   theme(
-    axis.ticks = element_blank(),
-    panel.background = element_blank()
+    axis.text.x = element_text(angle = 90)
   )
 ```
+
+If anything there are fewer videos of heavy lifts now.
+
+Let's take a look at whether there's any apparent difference due to conventional and sumo lifting styles. This is imperfect, because not every video of a sumo deadlift will include the word "sumo". Those with "sumo" in the title or description are highly likely to be true positives, but not vice versa. Therefore we're comparing one precise distribution to a mixed distribution.
 
 ```{r}
 #| label: fig-form-analysis
@@ -547,10 +564,11 @@ ggplot(df.weights) +
   aes(x = weight.kg) +
   #facet_grid(rows = vars(form), cols = vars(year), scales = "free_y") +
   facet_wrap(~form, ncol = 1, scales = "free_y") +
-  geom_histogram()
+  geom_histogram() +
+  labs(x = "1RM weight (kg)", y = "Videos posted")
 ```
 
-This is imperfect, because not ever video of a sumo deadlift will include the word "sumo". Those with "sumo" in the title or description are highly likely to be true positives, but not vice versa. Therefore we're comparing one precise distribution to a mixed distribution.
+Nonetheless, there's nothing here to suggest that conventional or sumo style makes any difference.
 
 Besides, there's a much more obvious factor we haven't yet accounted for...
 
@@ -594,30 +612,29 @@ img.resps |> map(save_image, .progress = TRUE)
 
 df.weights.imgs$downloaded = file.exists(df.weights.imgs$image.path)
 
+df.downloaded.only <- df.weights.imgs |> filter(downloaded)
+
 df.weights.imgs |>
   group_by(downloaded) |>
   count() |>
   kable()
-
-df.downloaded.only <- df.weights.imgs |> filter(downloaded)
 ```
 
-Now we can simply pass these to a vision model and ask it to classify gender. The same Mistral model I used earlier is capable of this task.
+Now we can simply pass these to a vision model and ask it to classify gender. The same Mistral model I used earlier is capable of this task. Note that we're passing both the channel title and the image, to give the model as much information as possible.
 
 ```{r}
 #| label: predict-gender-model
-predict_gender_chat <- {
-  system_prompt <- "The user will provide an image. You must predict the gender of the main person in the image.
-  Respond with `M` if the person appears male, `F` if the person appears female, or `NA` if it's impossible to tell.
-Return your answer in a JSON object with a single key `gender` with value `M`, `F` or `NA`."
+gender.classifier.prompt <- "The user will provide a YouTube video thumbnail of a deadlift PR. You must predict the gender of the person lifting the weight using the image and the video metadata (channel and title).
+  Respond with `M` if the person appears male or `F` if the person appears female. If no real human is visible enough or if there are multiple people lifting the weight, respond with `NA`.
+  Return your answer in a JSON object with a single key `gender` with value `M`, `F` or `NA`."
 
+predict_gender_chat <- function(model = "mistralai/ministral-3-3b") {
   chat_openai_compatible(
     LLM_SERVER_URL,
-    #model = "mistralai/ministral-3-3b",
-    model = "qwen/qwen3.5-35b-a3b", # ths larger model does worse because typing isn't allowing it to think
+    model = model,
     credentials = function() "",
     params = params(max_tokens = 1000),
-    system_prompt = system_prompt
+    system_prompt = gender.classifier.prompt
   )
 }
 
@@ -625,146 +642,349 @@ predict_gender_type <- type_object(
   gender = type_enum(values = c("M", "F", "NA"))
 )
 
-predict_gender_chat$chat(
-  content_image_file(df.weights.imgs$image.path[[1]]),
-)
+img_prompt <- function(row) {
+  list(
+    sprintf(
+      "YouTube Channel: %s\nVideo title: %s",
+      row$channelTitle,
+      row$title
+    ),
+    content_image_file(row$image.path)
+  )
+}
 
 # Example use
-predict_gender_chat$chat_structured(
-  content_image_file(df.weights.imgs$image.path[[1]]),
-  type = predict_gender_type
-)
+{
+  prompt <- img_prompt(df.weights.imgs[1, ])
+  chat <- predict_gender_chat()
+  chat$chat_structured(
+    prompt[[1]],
+    prompt[[2]],
+    type = predict_gender_type
+  )
+  #chat$get_tokens()
+}
 
-run_gender <- function(image.paths) {
+run_gender <- function(df.weights.imgs, chat = predict_gender_chat()) {
+  prompts <- 1:nrow(df.weights.imgs) |> map(~ img_prompt(df.weights.imgs[., ]))
+
   preds <- parallel_chat_structured(
-    chat = predict_gender_chat,
-    prompts = map(
-      image.paths,
-      content_image_file
-    ),
+    chat = chat,
+    prompts = prompts,
     type = predict_gender_type,
     max_active = 5
   )
   preds |>
     mutate(
       gender = if_else(gender == "NA", NA, gender)
+    ) |>
+    bind_cols(
+      select(df.weights.imgs, id.videoId)
     )
 }
 ```
 
-Now we just run through another cycle of annotation, evaluation and optimisation. Excel spreadsheets can include images, so we'll go there. (A vibe-coded annotation solution would be equally good.)
+Now we just run through another cycle of annotation, evaluation and optimisation. This time I've vibe-coded an annotation UI. Though the code for this UI is absolutely disposable, it's absolutely worth your time designing a UI that minimises cognitive load, is efficient to manipulate, and doesn't lead to mistakes.
+
+![Example of the annotator UI.](./annotator_ui.png)
+
+Because the dataset is extremely unbalanced (90% of the sample were male) I've chosen to present multiple examples at once and ask the annotator to pick the ones that are _not_ male, similar to the "click all the squares with traffic lights" captchas you'll have seen. There is the risk of inattentively flipping past a non-male example, but that has to be balanced against the efficiency cost of annotating every single example. There is a back button, which in my experience is enough for those situations when your fingers move slightly faster than your brain.
+
+An aside: I **thoroughly** recommend annotating a meaningful chunk of data yourself. The data will surprise you! In this dataset I found that male-sounding channels can feature female lifters, and that sometimes people use anime characters for the cover photo. In the past I've even found material errors in widely-used benchmark datasets (e.g. CoNLL 2003).
 
 ```{r}
-#| label: create-xlsx-img-annotation
-df.wb <- df.downloaded.only |>
-  select(id.videoId, image.path, title, description) |>
-  mutate(gender = NA, reviewed = F)
+#| label: tbl-annotated-stills
+#| tbl-cap: The vast majority of videos feature male lifters. The video stills labelled as NA mostly did not feature any people.
+df.weights.imgs |>
+  select(id.videoId, channelTitle, title, image.path) |>
+  jsonlite::write_json("data/stills_unannotated.json")
 
-wb <- createWorkbook()
-addWorksheet(wb, "Sheet1")
+# Some manual annotation later...
 
-# Write data frame to sheet
-writeData(wb, sheet = 1, x = df.wb)
-
-img.col <- 4
-
-# Add each image from the image.path column
-writeData(wb, sheet = 1, "image", startCol = img.col)
-for (i in seq_len(nrow(df.wb))) {
-  insertImage(
-    wb,
-    sheet = 1,
-    file = df.wb$image.path[i],
-    startRow = i + 1,
-    startCol = img.col,
-    width = 1024,
-    height = 1024,
-    units = "px"
-  )
-}
-
-setColWidths(wb, sheet = 1, cols = c(img.col), widths = c(40))
-setRowHeights(
-  wb,
-  sheet = 1,
-  rows = seq(2, nrow(df.wb) + 1),
-  heights = 256
-)
-
-# Save workbook
-saveWorkbook(wb, "data/images_unannotated.xlsx", overwrite = TRUE)
-```
-
-Then we eval our predictions against the annotated data. The annotations are almost entirely male though.
-
-```{r}
-img.ann <- read.xlsx("data/images_annotated.xlsx") |>
-  filter(reviewed) |>
-  select(id.videoId, gender) |>
-  mutate(gender = str_to_upper(gender))
-
-gender.preds <- run_gender(df.downloaded.only$image.path)
-
-img.eval <- bind_cols(
-  rename(img.ann, gender.true = gender),
-  rename(gender.preds, gender.pred = gender)
+stills.annotated <- jsonlite::read_json(
+  "data/stills_annotated.json",
+  simplifyVector = TRUE
 ) |>
-  replace_na(list(gender.true = "NA", gender.pred = "NA")) |>
-  mutate(
-    gender.true = factor(gender.true, levels = c("F", "M", "NA")),
-    gender.pred = factor(gender.pred, levels = c("F", "M", "NA")),
-    same = gender.true == gender.pred
+  rename(
+    image.path = image_path
   )
 
+stills.annotated |> count(annotation) |> kable()
+```
 
-cm2 <- confusionMatrix(
-  img.eval$gender.pred,
-  reference = img.eval$gender.true,
-  mode = "prec_recall"
+It took me about 30 minutes to annotate over 1000 images, which was a worthwhile investment.
+
+In this case we'll balance the classes for evaluation. Again we will see how the model performs on the dev set before trying to optimise, and hold back the test set for the end.
+
+```{r}
+#| label: tbl-img-eval-dev
+img.eval <- df.weights.imgs |>
+  select(id.videoId, channelTitle, title, image.path) |>
+  merge(stills.annotated)
+
+img.eval.m <- img.eval |> filter(annotation == "M")
+img.eval.f <- img.eval |> filter(annotation == "F")
+img.eval.na <- img.eval |> filter(is.na(annotation))
+
+img.eval.dev <- bind_rows(
+  img.eval.m[1:10, ],
+  img.eval.f[1:10, ],
+  img.eval.na[1:10, ]
 )
-cm2$table
+img.eval.test <- bind_rows(
+  img.eval.m[11:20, ],
+  img.eval.f[11:20, ],
+  img.eval.na[11:20, ]
+)
 
-cm2
-cm2$byClass
-cm2$mode
-
-cm$table |> kable()
-```
-  
-  ```{r}
-  #| label: tbl-gender-counts
-  #| tbl-cap: The predicted genders are mainly male, as you might expect in strength training.
-  df.weights.genders <- df.weights |>
+eval_gender_preds <- function(gender.preds, dev.set = img.eval.dev) {
+  dev.set |>
+    rename(gender.true = annotation) |>
     merge(
-      bind_cols(
-        select(df.downloaded.only, id.videoId),
-        mutate(gender.preds, gender = if_else(gender == "NA", NA, gender))
-      ),
-      all.x = TRUE
+      rename(gender.preds, gender.pred = gender)
+    ) |>
+    replace_na(list(gender.true = "NA", gender.pred = "NA")) |>
+    mutate(
+      gender.true = factor(gender.true, levels = c("F", "M", "NA")),
+      gender.pred = factor(gender.pred, levels = c("F", "M", "NA")),
+      same = gender.true == gender.pred
     )
+}
 
-df.weights.genders |>
-    group_by(gender) |>
-    count() |>
-    kable()
+gender.preds <- run_gender(img.eval.dev)
+img.eval.results.dev <- eval_gender_preds(gender.preds)
+
+confusion <- function(results) {
+  # Tiny convenience wrapper
+  confusionMatrix(
+    results$gender.pred,
+    reference = results$gender.true,
+    mode = "prec_recall"
+  )
+}
+cm2 <- confusion(img.eval.results.dev)
+cm2$table
 ```
+
+The overall accuracy is `{r} round(cm2$overall[[1]], 2)`, so a good start. From the confusion matrix we can see the most common error is predicting NA for a male lifter.
+
+We could try and boost that accuracy with ICL again, but let's check out one of the other levers available to us: model choice. We can try the exact same code with some increasingly larger VLMs.
+
+```{r}
+#| label: tbl-model-exploration
+#| tbl-cap: Increasing the model size increases accuracy.
+vl.models <- c(
+  predict_gender_chat("mistralai/ministral-3-3b"),
+  predict_gender_chat("qwen/qwen3-vl-4b"),
+  predict_gender_chat("qwen/qwen3-vl-8b"),
+  predict_gender_chat("qwen/qwen3-vl-30b")
+)
+
+eval_img_models <- function(models, dataset = img.eval.dev) {
+  model.gender.preds <- models |>
+    map(
+      ~ run_gender(dataset, chat = .) |>
+        mutate(model = .$get_model())
+    ) |>
+    bind_rows()
+
+  results <- eval_gender_preds(model.gender.preds, dataset)
+}
+
+model.results <- eval_img_models(vl.models)
+model.results |>
+  group_by(model) |>
+  summarise(n.same = sum(same), n.total = n(), accuracy = n.same / n.total) |>
+  arrange(desc(accuracy)) |>
+  kable()
+```
+
+Surprisingly the larger models do slightly worse. Looking at their confusion matrices gives us a clue.
+
+```{r}
+#| label: confusion-matrices
+cms <- vl.models |>
+  map(~ model.results |> filter(model == .$get_model()) |> confusion())
+
+for (i in 1:length(vl.models)) {
+  print(vl.models[[i]]$get_model())
+  print(cms[[i]]$table)
+}
+```
+
+The Qwen models are not abstaining (predicting NA) when they should, and the larger the model the more they under-abstain. We could at this point look at prompt-tuning or ICL, but I'm curious if there's a better option.
+
+Let's explore the (much) wider universe of models available on [OpenRouter](https://openrouter.ai). 
+
+
+## Costing
+
+It's wise to be price-conscious: we have thousands of examples to classify, so we really want something that's less than a penny per example. I've put $10 onto my OpenRouter account.
+
+A couple of quick tests indicate that we should expect around 500 input tokens and up to a similar amount of output tokens (when reasoning is enabled). Some napkin maths suggests that a model with an input cost of less than $0.5/M and output cost of less than $1.5/M.
+
+In case you're wondering: consuming the input tokens is much less compute-intensive than generating the output tokens, hence the price difference.
+
+```{r}
+#| label: costing
+n.examples <- nrow(df)
+n.examples * (500 / 1e6 * 0.5 + 500 / 1e6 * 2) # = 7.815 USD
+```
+
+## Picking the best model for the job
+
+If we apply this filter and sort the vision-capable models by intelligence, the top model is MiniMax M3, priced at $0.3/M input tokens and $1.2/M output tokens. We'll do a quick test to sanity check our cost estimate.
+
+```{r}
+#| label: test-minimax-cost
+chat_or <- function(model) {
+  chat_openrouter(
+    model = model,
+    system_prompt = gender.classifier.prompt,
+    # chat_openrouter doesn't accept `base_url` for the proxy, but we can enable experimental response caching
+    api_headers = c(
+      `X-OpenRouter-Cache` = "true",
+      `X-OpenRouter-Cache-TTL` = 86400 # can cache up to 24 hours
+    ),
+    # Explicitly enable reasoning
+    api_args = list(
+      reasoning = list(enabled = TRUE)
+    )
+  )
+}
+
+chat.minimax <- chat_or("minimax/minimax-m3")
+
+prompt <- img_prompt(df.weights.imgs[2, ])
+chat.minimax$chat_structured(
+  prompt[[1]],
+  prompt[[2]],
+  type = predict_gender_type
+)
+
+chat_cost <- function(chat) {
+  # chat$get_cost() doesn't work, but you can get at it via the raw JSON
+  last.turn <- chat$last_turn()
+  last.turn@json$usage$cost
+}
+
+example.cost <- chat_cost(chat.minimax)
+
+# This may print $0 due to caching
+sprintf("Est. cost %f USD", example.cost * n.examples)
+```
+
+MiniMax would cost around $2 to run the entire dataset. That's great, because my budget is $10 and I am certainly going to cock it up 5 or 6 times.
+
+Let's see if MiniMax is actually any good though. We'll also include two proprietary models that are available on OpenRouter in Google's Gemini series. Gemini 3.5 Flash is outside our budget, but a useful reference point.
+
+```{r}
+#| label: tbl-eval-or-models
+#| tbl-cap: Larger models perform slightly better.
+or.model.results <- eval_img_models(
+  c(
+    chat_or("google/gemini-3.1-flash-lite-preview"),
+    chat_or("google/gemini-3.5-flash"),
+    chat_or("minimax/minimax-m3")
+  )
+)
+or.model.results |>
+  group_by(model) |>
+  summarise(n.same = sum(same), n.total = n(), accuracy = n.same / n.total) |>
+  kable()
+```
+
+That's better - at least as far as we can tell given how small the dataset is. MiniMax M3 is a _big_ model, at 400B params compared to just 3B for Ministral. The size of the proprietary models is unknown but presumably similar.
+
+We haven't really done any optimisation beyond choosing models, but let's check on our held out test set all the same, lest the gods visit a plague upon our houses.
+
+```{r}
+#| label: tbl-img-test-results
+#| tbl-cap: On the test set the advantage isn't so clear, suggesting that it's not the model size that's at issue.
+all.models <- c(
+  chat_or("google/gemini-3.1-flash-lite-preview"),
+  chat_or("google/gemini-3.5-flash"),
+  chat_or("minimax/minimax-m3"),
+  predict_gender_chat("mistralai/ministral-3-3b"),
+  predict_gender_chat("qwen/qwen3-vl-4b"),
+  predict_gender_chat("qwen/qwen3-vl-8b"),
+  predict_gender_chat("qwen/qwen3-vl-30b")
+)
+or.model.results <- eval_img_models(
+  all.models,
+  dataset = img.eval.test
+)
+or.model.results |>
+  group_by(model) |>
+  summarise(n.same = sum(same), n.total = n(), accuracy = n.same / n.total) |>
+  kable()
+```
+
+It looks like real improvement isn't going to come from the models, it could be that the dataset is too small and messy. We could drill further, but let's move on. We'll take gemini-3.1-flash-lite-preview as apparently a good balance of performance and cost. It costs a similar amount to MiniMax M3, $0.25/M input tokens and $1.50/M output tokens.
+
+```{r}
+#| label: run-img-model
+df.weights.genders <- {
+  full.results.file <- "data/gender-labelled-full.rds"
+  if (file.exists(full.results.file)) {
+    readRDS(full.results.file)
+  } else {
+    gender.preds <- run_gender(
+      df.weights.imgs,
+      chat_or("google/gemini-3.1-flash-lite-preview")
+    )
+    res <- df.weights |> merge(gender.preds)
+    if (nrow(res) == nrow(df.weights.imgs)) {
+      saveRDS(res, full.results.file)
+    }
+    res
+  }
+}
+```
+
+Again, I'm saving this to a file. My top tip for OpenRouter would be to make project-specific API keys, each with their own limit.
+
+![Example of how key management looks in OpenRouter.](./openrouter_usage.png)
+
+## Gender results
+
+Here's how those results look. First some sanity checks.
+
+```{r}
+#| label: tbl-gender-counts
+#| tbl-cap: The predicted genders are mainly male, as you might expect in strength training.
+df.weights.genders |>
+  group_by(gender) |>
+  count() |>
+  kable()
+```
+
+The distribution of weights lifted by each gender is as you might expect.
 
 ```{r}
 #| label: fig-gender-dist
 #| fig-cap: The distribution of deadlift 1RM weights by gender - clearly different.
+gender.colours <- c("orange", "purple")
 ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
-  aes(x = weight.kg.1rm) +
-  facet_wrap(~gender) +
-  geom_histogram(alpha = 0.5, size = 0.5)
+  aes(x = weight.kg.1rm, fill = gender) +
+  scale_fill_manual(values = gender.colours) +
+  geom_histogram(alpha = 0.5) +
+  labs(x = "1RM weight (kg)", y = "Videos posted", fill = "Gender")
 ```
 
-Are more and more women getting into strength training, by the way?
+We can now split the earlier scatterplot by gender.
 
 ```{r}
 #| label: fig-gender-time
-#| fig-cap: Are more and more women getting into strength training?
+#| fig-cap: Female lifters are still the minority, but have arguably improved relative to male lifters.
 ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
   aes(x = publish.date, y = weight.kg.1rm, group = gender, colour = gender) +
-  geom_point() +
-  geom_smooth()
+  geom_point(alpha = 0.5, size = 0.5) +
+  geom_smooth() +
+  scale_colour_manual(values = gender.colours) +
+  labs(x = "Date", y = "1RM weight (kg)", colour = "Gender")
 ```
+
+# Reflections
+
+Did we learn a lot about gymflation? No. But did we learn a bit about working with APIs and LLMs? Hopefully yes. We collected deadlift PR data from YouTube, optimised a model to extract the weight lifted, and evaluated various models to classify the lifter's gender (within our budget).

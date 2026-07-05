@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Annotate Stills</title>
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+      }
+
+      .card img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+
+      .choices label {
+        margin-right: 0.75rem;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="status">Select `unannotated-stills.json` to begin.</p>
+
+    <div id="loader-controls">
+      <button id="pick-json-button" type="button">Load JSON file</button>
+      <input
+        id="json-input"
+        type="file"
+        accept=".json,application/json"
+        class="hidden"
+      >
+    </div>
+
+    <div id="grid"></div>
+
+    <p>
+      <button id="prev-button" type="button" disabled>Prev batch</button>
+      <button id="next-button" type="button" disabled>Next batch</button>
+      <button id="download-button" type="button" disabled>Download</button>
+    </p>
+
+    <p id="summary">Seen 0 of 0 stills. Male: 0, Female: 0, NA: 0.</p>
+
+    <script>
+      const BATCH_SIZE = 6;
+      const DEFAULT_ANNOTATION = "male";
+      const IMAGE_NAME_PATTERN = /\.(avif|gif|jpe?g|png|webp)$/i;
+
+      const statusEl = document.getElementById("status");
+      const loaderControlsEl = document.getElementById("loader-controls");
+      const jsonInputEl = document.getElementById("json-input");
+      const pickJsonButtonEl = document.getElementById("pick-json-button");
+      const gridEl = document.getElementById("grid");
+      const prevButtonEl = document.getElementById("prev-button");
+      const nextButtonEl = document.getElementById("next-button");
+      const downloadButtonEl = document.getElementById("download-button");
+      const summaryEl = document.getElementById("summary");
+
+      let images = [];
+      let batchStart = 0;
+      let currentBatch = [];
+      let completed = false;
+      const committedAnnotations = new Map();
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function showLoaderControls(show) {
+        loaderControlsEl.classList.toggle("hidden", !show);
+      }
+
+      function clearCommittedAnnotations() {
+        committedAnnotations.clear();
+      }
+
+      function releaseObjectUrls() {
+        for (const image of images) {
+          if (image.objectUrl) {
+            URL.revokeObjectURL(image.src);
+          }
+        }
+      }
+
+      function setImages(nextImages, statusMessage) {
+        releaseObjectUrls();
+        images = nextImages;
+        batchStart = 0;
+        currentBatch = [];
+        completed = false;
+        clearCommittedAnnotations();
+        showLoaderControls(false);
+
+        if (!images.length) {
+          gridEl.innerHTML = "";
+          setStatus(statusMessage || "No stills found.");
+          updateControls();
+          updateSummary();
+          return;
+        }
+
+        renderBatch();
+        setStatus(statusMessage || "");
+      }
+
+      function loadImagesFromRecords(records) {
+        if (!Array.isArray(records)) {
+          return [];
+        }
+
+        return records
+          .map((record) => {
+            const imagePath = record["image.path"];
+            if (!imagePath || !IMAGE_NAME_PATTERN.test(imagePath)) {
+              return null;
+            }
+
+            return {
+              imagePath,
+              src: imagePath,
+              channelTitle: record.channelTitle || "",
+              title: record.title || "",
+              objectUrl: false
+            };
+          })
+          .filter(Boolean);
+      }
+
+      async function loadImagesFromJsonFile(file) {
+        try {
+          const text = await file.text();
+          const records = JSON.parse(text);
+          return loadImagesFromRecords(records);
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function getCurrentBatchSelections() {
+        const selections = new Map();
+
+        currentBatch.forEach((image, index) => {
+          const name = `annotation-${batchStart + index}`;
+          const selected = document.querySelector(`input[name="${name}"]:checked`);
+          selections.set(image.imagePath, selected ? selected.value : DEFAULT_ANNOTATION);
+        });
+
+        return selections;
+      }
+
+      function getSeenAnnotations() {
+        if (!images.length) {
+          return [];
+        }
+
+        const seenCount = completed
+          ? images.length
+          : Math.min(batchStart + currentBatch.length, images.length);
+        const seenImages = images.slice(0, seenCount);
+        const currentSelections = getCurrentBatchSelections();
+
+        return seenImages.map((image) => ({
+          image_path: image.imagePath,
+          annotation:
+            serializeAnnotation(
+              currentSelections.get(image.imagePath) ||
+              committedAnnotations.get(image.imagePath) ||
+              DEFAULT_ANNOTATION
+            )
+        }));
+      }
+
+      function getSeenRawAnnotations() {
+        if (!images.length) {
+          return [];
+        }
+
+        const seenCount = completed
+          ? images.length
+          : Math.min(batchStart + currentBatch.length, images.length);
+        const seenImages = images.slice(0, seenCount);
+        const currentSelections = getCurrentBatchSelections();
+
+        return seenImages.map((image) =>
+          currentSelections.get(image.imagePath) ||
+          committedAnnotations.get(image.imagePath) ||
+          DEFAULT_ANNOTATION
+        );
+      }
+
+      function serializeAnnotation(annotation) {
+        if (annotation === "male") {
+          return "M";
+        }
+
+        if (annotation === "female") {
+          return "F";
+        }
+
+        return null;
+      }
+
+      function updateSummary() {
+        const seenAnnotations = getSeenRawAnnotations();
+        const counts = { male: 0, female: 0, na: 0 };
+
+        for (const annotation of seenAnnotations) {
+          counts[annotation] += 1;
+        }
+
+        summaryEl.textContent =
+          `Seen ${seenAnnotations.length} of ${images.length} stills. ` +
+          `Male: ${counts.male}, Female: ${counts.female}, NA: ${counts.na}.`;
+      }
+
+      function updateControls() {
+        const hasImages = images.length > 0;
+        const hasCurrentBatch = currentBatch.length > 0;
+        const hasPreviousBatch = batchStart > 0;
+
+        prevButtonEl.disabled = !hasImages || !hasCurrentBatch || !hasPreviousBatch;
+        nextButtonEl.disabled = !hasImages || !hasCurrentBatch || completed;
+        downloadButtonEl.disabled = !hasImages;
+      }
+
+      function commitCurrentBatch() {
+        for (const [imagePath, annotation] of getCurrentBatchSelections()) {
+          committedAnnotations.set(imagePath, annotation);
+        }
+      }
+
+      function renderBatch() {
+        currentBatch = images.slice(batchStart, batchStart + BATCH_SIZE);
+        gridEl.innerHTML = "";
+
+        currentBatch.forEach((image, index) => {
+          const cardEl = document.createElement("div");
+          cardEl.className = "card";
+
+          const imageEl = document.createElement("img");
+          imageEl.src = image.src;
+          imageEl.alt = image.imagePath;
+          cardEl.appendChild(imageEl);
+
+          const channelEl = document.createElement("p");
+          channelEl.textContent = `Channel: ${image.channelTitle}`;
+          cardEl.appendChild(channelEl);
+
+          const titleEl = document.createElement("p");
+          titleEl.textContent = `Title: ${image.title}`;
+          cardEl.appendChild(titleEl);
+
+          const choicesEl = document.createElement("p");
+          choicesEl.className = "choices";
+
+          const initialValue = committedAnnotations.get(image.imagePath) || DEFAULT_ANNOTATION;
+          const groupName = `annotation-${batchStart + index}`;
+
+          [
+            { value: "male", label: "Male" },
+            { value: "female", label: "Female" },
+            { value: "na", label: "NA" }
+          ].forEach((option) => {
+            const labelEl = document.createElement("label");
+            const inputEl = document.createElement("input");
+
+            inputEl.type = "radio";
+            inputEl.name = groupName;
+            inputEl.value = option.value;
+            inputEl.checked = option.value === initialValue;
+            inputEl.addEventListener("change", updateSummary);
+
+            labelEl.appendChild(inputEl);
+            labelEl.append(` ${option.label}`);
+            choicesEl.appendChild(labelEl);
+          });
+
+          cardEl.appendChild(choicesEl);
+          gridEl.appendChild(cardEl);
+        });
+
+        updateControls();
+        updateSummary();
+      }
+
+      function downloadSeenAnnotations() {
+        const payload = JSON.stringify(getSeenAnnotations(), null, 2);
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download = "stills_annotated.json";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      function showJsonLoader(message) {
+        showLoaderControls(true);
+        gridEl.innerHTML = "";
+        currentBatch = [];
+        updateControls();
+        updateSummary();
+        setStatus(message);
+      }
+
+      function initialize() {
+        showJsonLoader("Select `unannotated-stills.json` to begin.");
+      }
+
+      pickJsonButtonEl.addEventListener("click", () => {
+        jsonInputEl.click();
+      });
+
+      jsonInputEl.addEventListener("change", async (event) => {
+        const [file] = Array.from(event.target.files || []);
+        const loadedImages = file ? await loadImagesFromJsonFile(file) : [];
+
+        if (!loadedImages.length) {
+          showJsonLoader("That file could not be loaded as a still list. Select `unannotated-stills.json` to begin.");
+          return;
+        }
+
+        setImages(loadedImages, "");
+      });
+
+      nextButtonEl.addEventListener("click", () => {
+        if (!currentBatch.length || completed) {
+          return;
+        }
+
+        commitCurrentBatch();
+
+        if (batchStart + BATCH_SIZE >= images.length) {
+          completed = true;
+          updateControls();
+          updateSummary();
+          setStatus(`All ${images.length} stills reviewed.`);
+          return;
+        }
+
+        batchStart += BATCH_SIZE;
+        renderBatch();
+        setStatus("");
+      });
+
+      prevButtonEl.addEventListener("click", () => {
+        if (!currentBatch.length || batchStart === 0) {
+          return;
+        }
+
+        if (completed) {
+          currentBatch.forEach((image) => {
+            committedAnnotations.delete(image.imagePath);
+          });
+          completed = false;
+        }
+
+        batchStart -= BATCH_SIZE;
+        renderBatch();
+        setStatus("");
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" || nextButtonEl.disabled) {
+          return;
+        }
+
+        event.preventDefault();
+        nextButtonEl.click();
+      });
+
+      downloadButtonEl.addEventListener("click", downloadSeenAnnotations);
+
+      initialize();
+    </script>
+  </body>
+</html>

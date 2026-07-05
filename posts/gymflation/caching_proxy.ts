@@ -10,7 +10,7 @@
 const UPSTREAM = Deno.env.get("UPSTREAM") ?? "http://127.0.0.1:1234";
 const LISTEN = Deno.env.get("LISTEN") ?? "127.0.0.1:8080";
 const CACHE_DIR = ".cache/proxy";
-const TTL_SECONDS = Number(Deno.env.get("CACHE_TTL_SECONDS") ?? "3600");
+const TTL_SECONDS = Number(Deno.env.get("CACHE_TTL_SECONDS") ?? "31536000");
 
 await Deno.mkdir(CACHE_DIR, { recursive: true });
 
