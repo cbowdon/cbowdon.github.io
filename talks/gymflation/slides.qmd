@@ -15,14 +15,21 @@ execute:
   eval: false
 ---
 
-# Premise
+## About
 
-## What is _gymflation_?
+**Me:** CTO at Polecat Intelligence, where we use AI to extract structured reputation risk insights from online media.
 
-Gymflation is the idea that social media is increasing the perceived average strength level.
+_Gymflation_ is nothing to do with Polecat, but we use these techniques regularly.
 
-::: aside
+::: {.aside}
 Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflation](https://cbowdon.github.io/posts/gymflation)
+:::
+
+# Premise
+Social media is distorting the perceived average strength level.
+
+::: {.notes}
+Much like it is distorting beauty standards, success standards, etc.
 :::
 
 ## What is _gymflation_?
@@ -35,10 +42,10 @@ Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflatio
 
 :::: {.columns}
 ::: {.column width=50%}
-![Batman demonstrates the related idea "superhero inflation".](./img/batman_physique.jpg)
+"When I grow up, I want to be as strong as Batman" is less achievable now than it was in the 60s.
 :::
 ::: {.column width=50%}
-"When I grow up, I want to be as strong as Batman" is less achievable now than it was in the 60s.
+![Batman demonstrates the closely related idea "superhero inflation".](./img/batman_physique.jpg)
 :::
 ::::
 
@@ -46,9 +53,9 @@ Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflatio
 
 ## How can we investigate this?
 
-Measure: are feats of strength reported in online videos truly increasing?
+Measure if feats of strength reported in online videos are increasing.
 
-Taking a narrow measure of strength: deadlift personal record (PR) videos on YouTube.
+Taking a narrow definition of strength: deadlift personal record (PR) videos on YouTube.
 
 :::: {.columns}
 
@@ -66,9 +73,15 @@ Taking a narrow measure of strength: deadlift personal record (PR) videos on You
 
 ::::
 
+Questions:
+
+1. Is the average reported deadlift PR weight increasing over time?
+2. Are the number of reported heavy deadlift PRs increasing over time?
+
 ::: {.notes}
 - Deadlifting is the method that lets one lift the most weight, so it's a point of pride for many lifters.
 - Typically people will report the maximum weight that they can lift for one repetition.
+- I say "questions" rather than "hypotheses" because we're not doing science here, we're playing.
 :::
 
 ## Steps
@@ -139,7 +152,10 @@ df |>
   kable()
 ```
 
-# Extraction model
+Regular expressions wouldn't be sufficient here...
+
+# Model 1: fact extraction
+Using an LLM to extract the weights from the messy text.
 
 ## Structured responses {.smaller}
 
@@ -165,7 +181,7 @@ Return NA as the unit if the description doesn't mention a weight deadlifted or 
 extract_dl_weight_model <- function() {
   chat_openai_compatible(
     LLM_SERVER_URL,
-    model = "mistralai/ministral-3-3b",
+    model = "mistralai/ministral-3-3b", # <2>
     credentials = function() "", # not used - local model
     params = params(max_tokens = 50), # don't generate more than we need
     system_prompt = system.prompt
@@ -176,11 +192,12 @@ extract.dl.weight.type <- type_object(
   weight = type_number("The weight deadlifted, as a number."),
   unit = type_enum(values = c("kg", "lb", "NA")),
   reps = type_integer("Number of repetitions (1 if unspecified)")
-) # <2>
+) # <3>
 ```
 
 1. Local caching proxy
-2. The response structure definition
+2. A small open source model, running on my laptop via LM Studio
+3. The response structure definition
 
 ::: {.notes}
 Structured generation is dead simple conceptually: at each generation step, instead of sampling from all possible tokens, sample only from legal tokens.
@@ -210,9 +227,15 @@ extract_dl_weight_model()$chat_structured(
 
 - AI is _jagged intelligence_: screws up in unexpected ways
 - Need to measure its performance
-- Build high-quality test set and score accuracy (dev + test)
+- Build high-quality test set and score accuracy (dev + test) ^[Manually annotated] 
 - This model so far: **73%** accurate in its extractions
 - Let's open the model optimisation toolbox!
+
+::: {.notes}
+One of the techniques I considered showing you was getting a very large model to annotate your test set. But it's TURTLES ALL THE WAY DOWN, because you need to be confident in the large model's accuracy first.
+
+Are you familiar with the concept of a dev set and a held out test set?
+:::
 
 ## In-Context Learning (ICL) {.smaller}
 
@@ -249,9 +272,9 @@ example_turn_pair <- function(title, description, weight, unit, reps) {
 ```
 A.k.a. "few-shot learning", the idea is you condition the LLM on example inputs and outputs.
 
-Here I've hand-crafted some examples.
+Here I've hand-crafted some examples based on dev failures.
 
-New result: **98%** extraction accuracy.
+New result: **92%** extraction accuracy on test.
 
 :::
 ::: {.column width="50%"}
@@ -306,15 +329,178 @@ turns <- c(
 ::::
 
 ::: {.notes}
-With reasoning models this is less useful than it was, and sometimes detrimental because the LLM over-conditions. It's always necessary to evaluate.
+With reasoning models this technique is less useful than it was, and sometimes even detrimental because the LLM over-conditions. It's always necessary to evaluate.
 :::
 
 # First look at the data
 
-## Image classification
+```{r}
+#| label: fig-data
+#| fig-cap: Deadlift PRs reported by YouTube users over time. World record lifts are points overlaid in orange. The dashed horizontal lines are round-number Imperial weights (100-1000lbs).
+#| echo: false
+#| eval: true
+full.weights.file <- "data/full-weights.rds"
+df.weights <- readRDS(full.weights.file) |>
+  # The extraction assigns -1 for any invalid weights, drop them now.
+  filter(weight.kg.1rm > 0) |>
+  # Any weight above 600 is well above the current world record, and either an extraction error or a silly post.
+  filter(weight.kg.1rm < 600)
 
-## Model search
+world.records <- read_csv("data/deadlifts.csv") |>
+  mutate(weight.kg.1rm = kg, publish.date = parse_date(date, format = "%b %Y"))
 
-## Second look at the data
+hline <- function(yint.kg) {
+  geom_hline(
+    aes(yintercept = yint.kg),
+    alpha = 0.5,
+    linetype = "dashed",
+    colour = "grey"
+  )
+}
 
-## Summing up
+ggplot(df.weights) +
+  aes(x = publish.date, y = weight.kg.1rm) +
+  geom_point(alpha = 0.9, size = 1) +
+  geom_smooth() +
+  geom_point(data = world.records, size = 2, colour = "orange") +
+  geom_text(
+    data = world.records,
+    mapping = aes(label = athlete),
+    nudge_y = 10,
+    check_overlap = TRUE
+  ) +
+  hline(100 / 2.2) +
+  hline(200 / 2.2) +
+  hline(300 / 2.2) +
+  hline(400 / 2.2) +
+  hline(500 / 2.2) +
+  hline(600 / 2.2) +
+  hline(700 / 2.2) +
+  hline(800 / 2.2) +
+  hline(900 / 2.2) +
+  hline(1000 / 2.2) +
+  labs(x = "Date", y = "1RM weight (kg)")
+```
+
+::: {.notes}
+- Pleasingly normal distribution
+- Some suspicious reports
+- Expect some clumping on round numbers, similar to the 6ft height effect
+:::
+
+# Model 2: image classification
+
+Male and female lifters have different strength distributions. Changes in one could mask changes in the other.
+
+## Image classification model {.smaller}
+
+```{r}
+#| label: gender-classifier-model
+#| eval: true
+gender.classifier.prompt <- "The user will provide a YouTube video thumbnail of a deadlift PR. You must predict the gender of the person lifting the weight using the image and the video metadata (channel and title).
+  Respond with `M` if the person appears male or `F` if the person appears female. If no real human is visible enough or if there are multiple people lifting the weight, respond with `NA`.
+  Return your answer in a JSON object with a single key `gender` with value `M`, `F` or `NA`."
+
+predict_gender_chat <- function(model = "mistralai/ministral-3-3b") {
+  # <1>
+  chat_openai_compatible(
+    LLM_SERVER_URL,
+    model = model,
+    credentials = function() "",
+    params = params(max_tokens = 1000),
+    system_prompt = gender.classifier.prompt
+  )
+}
+
+predict.gender.type <- type_object(
+  gender = type_enum(values = c("M", "F", "NA"))
+)
+
+img_prompt <- function(row) {
+  list(
+    sprintf(
+      "YouTube Channel: %s\nVideo title: %s",
+      row$channelTitle,
+      row$title
+    ),
+    content_image_file(row$image.path) # <2>
+  )
+}
+```
+
+1. Ministral 3 3B is capable of understanding images too.
+2. We can provide both text and an image file in a single turn.
+
+## Example usage
+
+```{r}
+#| label: example-image-model-usage
+prompt <- img_prompt(df.weights.imgs[1, ])
+chat <- predict_gender_chat()
+chat$chat_structured(
+  prompt[[1]],
+  prompt[[2]],
+  type = predict.gender.type
+)
+#chat$get_tokens()
+```
+
+## Evaluating our image model
+
+- Another cycle of dataset annotation, evaluation and optimisation.
+- This time I've vibe-coded an annotation UI.
+- ![](./img/annotator_ui.png){height=500}
+
+::: {.notes}
+- Though the code for this UI is absolutely disposable, it's absolutely worth your time designing a UI that minimises cognitive load, is efficient to manipulate, and doesn't lead to mistakes.
+:::
+
+## Model search {.smaller}
+
+The model scores 77% accuracy on the balanced evaluation set. Let's see if money can buy better results.
+
+```{r}
+#| label: chat-or
+chat_or <- function(model) {
+  chat_openrouter(
+    model = model,
+    system_prompt = gender.classifier.prompt,
+    api_headers = c(
+      `X-OpenRouter-Cache` = "true", # <1>
+      `X-OpenRouter-Cache-TTL` = 86400 # can cache up to 24 hours
+    ),
+    api_args = list(
+      reasoning = list(enabled = TRUE) # <2>
+    )
+  )
+}
+
+chat.gem <- chat_or("google/gemini-3.1-flash-lite-preview") # <3>
+
+prompt <- img_prompt(df.weights.imgs[2, ])
+chat.gem$chat_structured(prompt[[1]], prompt[[2]], type = predict_gender_type)
+```
+
+1. `chat_openrouter` doesn't accept `base_url` for the proxy, but we can enable experimental response caching from OpenRouter itself.
+2.  We must explicitly enable reasoning.
+3. The best model in our budget.
+
+Gemini 3.1 Flash Lite Preview scores 87% on the evaluation set, huzzah. But will it cost the earth?
+
+```{r}
+#| label: chat-cost
+chat_cost <- function(chat) {
+  last.turn <- chat$last_turn()
+  last.turn@json$usage$cost # <1>
+}
+```
+
+::: {.notes}
+The predicted cost was approx. 2 USD, which is good because my budget was $10 and I expected to screw up at least 4 times.
+:::
+
+1. Ellmer's `chat$get_cost()` doesn't always work, but you can get at it via the raw JSON.
+
+# Second look at the data
+
+# Summing up
