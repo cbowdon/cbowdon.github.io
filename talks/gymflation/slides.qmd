@@ -48,7 +48,7 @@ Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflatio
 
 Measure: are feats of strength reported in online videos truly increasing?
 
-Taking a very narrow (achievable) measure: deadlift videos on YouTube.
+Taking a narrow measure of strength: deadlift personal record (PR) videos on YouTube.
 
 :::: {.columns}
 
@@ -66,6 +66,10 @@ Taking a very narrow (achievable) measure: deadlift videos on YouTube.
 
 ::::
 
+::: {.notes}
+- Deadlifting is the method that lets one lift the most weight, so it's a point of pride for many lifters.
+- Typically people will report the maximum weight that they can lift for one repetition.
+:::
 
 ## Steps
 
@@ -78,7 +82,7 @@ Taking a very narrow (achievable) measure: deadlift videos on YouTube.
 
 # Data gathering
 
-## YouTube API
+## YouTube API {.smaller}
 
 We can use httr2 for this.
 
@@ -102,12 +106,13 @@ req <- request("https://youtube.googleapis.com/youtube/v3/search") |>
   req_headers(Accept = "application/json") |>
   req_timeout(30)
 
-req_perform(req) |>
-  resp_body_json(simplifyVector = TRUE) # <2>
+req_perform(req) |> # <2>
+  resp_body_json(simplifyVector = TRUE) # <3>
 ```
 
 1. Client-side caching saves you from wasting time or request quota.
-2. Getting data back as a dataframe is very convenient.
+2. Other useful methods include `req_dry_run` and `req_perform_parallel`.
+3. Getting data back as a dataframe is very convenient, so I recommend `simplifyVector = TRUE`.
 
 ## Data
 
@@ -119,6 +124,7 @@ req_perform(req) |>
 #| echo: false
 library(knitr)
 library(tidyverse)
+set.seed(42)
 df <- readRDS("data/youtube_df.rds")
 df |>
   slice_sample(n = 5) |>
@@ -135,9 +141,173 @@ df |>
 
 # Extraction model
 
-## First model
+## Structured responses {.smaller}
 
-## Improving our model with In-Context Learning (ICL)
+```{r}
+#| label: structured-response-model
+#| eval: true
+library(ellmer)
+
+LLM_SERVER_URL <- "http://localhost:8080/v1" # <1>
+
+system.prompt <- "The user will provide the title and description of a YouTube video. If they describe a weight being deadlifted, you must extract the weight that was deadlifted, with the unit, and the number of repetitions.
+
+Note that the deadlift world record is currently 510kg/1122lb.
+Return only a JSON object with keys:
+
+- `weight` (numeric)
+- `unit` (kg, lb or NA)
+- `reps` (numeric, assume 1 if not provided). 
+
+Do not perform unit conversion.
+Return NA as the unit if the description doesn't mention a weight deadlifted or the unit isn't clear."
+
+extract_dl_weight_model <- function() {
+  chat_openai_compatible(
+    LLM_SERVER_URL,
+    model = "mistralai/ministral-3-3b",
+    credentials = function() "", # not used - local model
+    params = params(max_tokens = 50), # don't generate more than we need
+    system_prompt = system.prompt
+  )
+}
+
+extract.dl.weight.type <- type_object(
+  weight = type_number("The weight deadlifted, as a number."),
+  unit = type_enum(values = c("kg", "lb", "NA")),
+  reps = type_integer("Number of repetitions (1 if unspecified)")
+) # <2>
+```
+
+1. Local caching proxy
+2. The response structure definition
+
+::: {.notes}
+Structured generation is dead simple conceptually: at each generation step, instead of sampling from all possible tokens, sample only from legal tokens.
+
+If we only prompted the LLM to return JSON in our desired format, but didn't restrict its outputs, it would _mostly_ return the right format. Structured generation makes this reliable. It's usually best to keep the format instructions in the prompt though, so we get sensible probabilities on the legal tokens.
+:::
+
+## Example structured response
+
+```{r}
+#| label: example-structured-response
+#| eval: true
+extract_dl_weight_model()$chat_structured(
+  "Title: 665 lbs deadlift at 188 lbs bodyweight #deadlift #pr #powerlifting #powerlifter #usapl #ipf #shortsfeed\nDescription: ",
+  type = extract.dl.weight.type
+) |>
+  as_tibble() |>
+  kable()
+```
+
+::: {.notes}
+- Need to perform 2 conversions: Imperial -> Metric, and Epley 1 rep max calculation
+- But most importantly, how can we trust this?
+:::
+
+## Evaluating our model
+
+- AI is _jagged intelligence_: screws up in unexpected ways
+- Need to measure its performance
+- Build high-quality test set and score accuracy (dev + test)
+- This model so far: **73%** accurate in its extractions
+- Let's open the model optimisation toolbox!
+
+## In-Context Learning (ICL) {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+```{r}
+#| label: icl-model
+extract_dl_weight_model <- function(turns = list()) {
+  chat <- chat_openai_compatible(
+    LLM_SERVER_URL,
+    model = "mistralai/ministral-3-3b",
+    credentials = function() "", # not used - local model
+    params = params(max_tokens = 50), # don't generate more than we need
+    system_prompt = system.prompt
+  )
+  chat$set_turns(turns)
+  chat
+}
+
+example_turn_pair <- function(title, description, weight, unit, reps) {
+  list(
+    UserTurn(list(ContentText(
+      interpolate("Title: {{title}}\nDescription: {{description}}")
+    ))),
+    AssistantTurn(list(ContentText(
+      interpolate(
+        "{\"weight\":{{weight}}, \"unit\":\"{{unit}}\", \"reps\":{{reps}}}"
+      )
+    )))
+  )
+}
+```
+A.k.a. "few-shot learning", the idea is you condition the LLM on example inputs and outputs.
+
+Here I've hand-crafted some examples.
+
+New result: **98%** extraction accuracy.
+
+:::
+::: {.column width="50%"}
+```{r}
+#| label: icl-examples
+turns <- c(
+  example_turn_pair(
+    title = "deadlift PR 220 @ 165 bodyweight",
+    description = "hit this at my meet",
+    weight = 220,
+    unit = "NA",
+    reps = 1
+  ),
+  example_turn_pair(
+    title = "NEW PR 585",
+    description = "new deadlift personal record",
+    weight = 585,
+    unit = "NA",
+    reps = 1
+  ),
+  example_turn_pair(
+    title = "NEW PR 330x3",
+    description = "",
+    weight = 330,
+    unit = "NA",
+    reps = 3
+  ),
+  example_turn_pair(
+    title = "180kg x 3 deadlift PR",
+    description = "81kg 18 years old.",
+    weight = 180,
+    unit = "kg",
+    reps = 3
+  ),
+  example_turn_pair(
+    title = "100kg/220lb deadlift PR",
+    description = "smashed it",
+    weight = 100,
+    unit = "kg",
+    reps = 1
+  ),
+  example_turn_pair(
+    title = "365 lb Deadlift PR @ 165 lbs",
+    description = "Christal hitting a new deadlift PR @ 365 lbs, beltless. And before anyone says anything about her form, her deadlift PRs have ...",
+    weight = 365,
+    unit = "lb",
+    reps = 1
+  )
+)
+```
+:::
+::::
+
+::: {.notes}
+With reasoning models this is less useful than it was, and sometimes detrimental because the LLM over-conditions. It's always necessary to evaluate.
+:::
 
 # First look at the data
 
