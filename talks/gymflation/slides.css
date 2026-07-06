@@ -1,0 +1,17 @@
+:root {
+  --r-main-font-size: 32px;
+}
+
+.reveal table {
+  width: 100%;
+  font-size: 0.5em;
+}
+
+.reveal th,
+.reveal td {
+  padding: 0.2em 0.35em;
+}
+
+.reveal pre code {
+  font-size: 0.5em;
+}

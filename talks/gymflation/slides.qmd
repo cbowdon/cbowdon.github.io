@@ -1,0 +1,150 @@
+---
+title: "Is gymflation real?"
+subtitle: "Investigating with R and LLMs"
+author: "Chris Bowdon"
+institution: "CTO at Polecat Intelligence Ltd"
+format: 
+    revealjs:
+        incremental: true
+        theme: serif
+        css: slides.css
+        slide-number: true
+        progress: true
+execute: 
+  echo: true
+  eval: false
+---
+
+# Premise
+
+## What is _gymflation_?
+
+Gymflation is the idea that social media is increasing the perceived average strength level.
+
+::: aside
+Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflation](https://cbowdon.github.io/posts/gymflation)
+:::
+
+## What is _gymflation_?
+
+- An excuse to show you some LLM techniques.
+- A phenomenon connected to social media's negative effects on self-image, which is increasingly leading to mental health issues such as body dysmorphia.
+- Mostly the former though.
+
+## Comparison to superhero inflation {.smaller}
+
+:::: {.columns}
+::: {.column width=50%}
+![Batman demonstrates the related idea "superhero inflation".](./img/batman_physique.jpg)
+:::
+::: {.column width=50%}
+"When I grow up, I want to be as strong as Batman" is less achievable now than it was in the 60s.
+:::
+::::
+
+# Plan
+
+## How can we investigate this?
+
+Measure: are feats of strength reported in online videos truly increasing?
+
+Taking a very narrow (achievable) measure: deadlift videos on YouTube.
+
+:::: {.columns}
+
+::: {.column width="30%"}
+![](./img/example_bottom.jpg)
+:::
+
+::: {.column width="30%"}
+![](./img/example_mid.jpg)
+:::
+
+::: {.column width="30%"}
+![](./img/example_top.jpg)
+:::
+
+::::
+
+
+## Steps
+
+- Scrape the YouTube API for 10 years of deadlift personal record (PR) videos with httr2
+- Use structured responses to extract the lifted weight with an LLM
+- Evaluate the quality of our extraction and improve it with In-Context Learning (ICL)
+- Use a multimodal model to judge the lifter's gender
+- Make extensive use of caching so errors don't set us back
+- Plot our results with good old ggplot2
+
+# Data gathering
+
+## YouTube API
+
+We can use httr2 for this.
+
+```{r}
+#| label: youtube
+library(httr2)
+
+req <- request("https://youtube.googleapis.com/youtube/v3/search") |>
+  req_cache(".cache/httr2") |> # <1>
+  req_url_query(
+    part = "snippet",
+    q = query,
+    type = "video",
+    maxResults = 50,
+    duration = "short",
+    region = "UK",
+    published_after = published_after,
+    published_before = published_before,
+    key = YOUTUBE_API_KEY
+  ) |>
+  req_headers(Accept = "application/json") |>
+  req_timeout(30)
+
+req_perform(req) |>
+  resp_body_json(simplifyVector = TRUE) # <2>
+```
+
+1. Client-side caching saves you from wasting time or request quota.
+2. Getting data back as a dataframe is very convenient.
+
+## Data
+
+```{r}
+#| label: tbl-raw-data
+#| tbl-cap: Sample of the raw data from the YouTube API.
+#| cap-location: bottom
+#| eval: true
+#| echo: false
+library(knitr)
+library(tidyverse)
+df <- readRDS("data/youtube_df.rds")
+df |>
+  slice_sample(n = 5) |>
+  select(
+    id.videoId,
+    publishedAt,
+    channelTitle,
+    title,
+    description,
+    thumbnails.high.url
+  ) |>
+  kable()
+```
+
+# Extraction model
+
+## First model
+
+## Improving our model with In-Context Learning (ICL)
+
+# First look at the data
+
+## Image classification
+
+## Model search
+
+## Second look at the data
+
+## Summing up
