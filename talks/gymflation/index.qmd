@@ -7,7 +7,7 @@ format:
     revealjs:
         incremental: true
         theme: serif
-        css: slides.css
+        css: index.css
         slide-number: true
         progress: true
 execute: 
