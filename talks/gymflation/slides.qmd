@@ -497,10 +497,59 @@ chat_cost <- function(chat) {
 
 ::: {.notes}
 The predicted cost was approx. 2 USD, which is good because my budget was $10 and I expected to screw up at least 4 times.
+
+I've skipped over the bit where I evaluated a range of models. It's fairly mechanical though.
 :::
 
 1. Ellmer's `chat$get_cost()` doesn't always work, but you can get at it via the raw JSON.
 
 # Second look at the data
 
-# Summing up
+:::: {.columns}
+::: {.column width="50%"}
+```{r}
+#| label: fig-gender-dist
+#| fig-cap: The distribution of deadlift 1RM weights by gender - clearly different.
+#| eval: true
+#| echo: false
+df.weights.genders <- readRDS("data/gender-labelled-full.rds")
+
+gender.colours <- c("orange", "purple")
+ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
+  aes(x = weight.kg.1rm, fill = gender) +
+  scale_fill_manual(values = gender.colours) +
+  geom_histogram(alpha = 0.5) +
+  labs(x = "1RM weight (kg)", y = "Videos posted", fill = "Gender")
+```
+:::
+::: {.column width="50%"}
+
+```{r}
+#| label: fig-gender-time
+#| fig-cap: Female lifters are still the minority, but have arguably improved relative to male lifters.
+#| eval: true
+#| echo: false
+ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
+  aes(x = publish.date, y = weight.kg.1rm, group = gender, colour = gender) +
+  geom_point(alpha = 0.5, size = 0.5) +
+  geom_smooth() +
+  scale_colour_manual(values = gender.colours) +
+  labs(x = "Date", y = "1RM weight (kg)", colour = "Gender")
+```
+:::
+::::
+
+
+# Summing up {.smaller}
+
+We looked at:
+
+- Some tricks for scraping data from the YouTube API with `httr2`
+- Using structured responses with `Ellmer` to extract data with LLMs
+- How to use ICL to improve our LLM extraction model
+- How to do image classification with VLMs
+- Building an evaluation set with a vibe-coded annotator UI
+- Finding a better model on OpenRouter
+- I hope you weren't too invested in the gymflation idea itself
+
+Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflation](https://cbowdon.github.io/posts/gymflation)
