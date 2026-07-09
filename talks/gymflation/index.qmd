@@ -3,6 +3,7 @@ title: "Is gymflation real?"
 subtitle: "Investigating with R and LLMs"
 author: "Chris Bowdon"
 institution: "CTO at Polecat Intelligence Ltd"
+date: 2026-07-22
 format: 
     revealjs:
         incremental: true
@@ -15,21 +16,29 @@ execute:
   eval: false
 ---
 
-## About
+::: {.notes}
+I'm going to show you tips and tricks on using LLMs with R. Hopefully you are here because you like R and data stuff. If you have an interest in exercise culture that's even better, but not a requirement.
+:::
 
-**Me:** CTO at Polecat Intelligence, where we use AI to extract structured reputation risk insights from online media.
+## About me {.smaller}
 
-_Gymflation_ is nothing to do with Polecat, but we use these techniques regularly.
+By day I am CTO at Polecat Intelligence, where we use AI to extract structured reputation risk insights from online media. By night I fool around with more or less the same stuff, for free.
+
+_Gymflation_ is nothing to do with Polecat, but we use the techniques here regularly.
 
 ::: {.aside}
 Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflation](https://cbowdon.github.io/posts/gymflation)
+:::
+
+::: {.notes}
+I would add that at Polecat we primarily do our data science work in Python, but personally I have become a big fan of R so that's what we're going to use today. I'm also a fan of resistance training, and that's what opened my eyes to a new-but-familiar phenomenon, gymflation.
 :::
 
 # Premise
 Social media is distorting the perceived average strength level.
 
 ::: {.notes}
-Much like it is distorting beauty standards, success standards, etc.
+Much like it is distorting beauty standards, success standards, relationship standards, politics, etc. Quicker to list fields that haven't been distorted by social media.
 :::
 
 ## What is _gymflation_?
@@ -37,6 +46,10 @@ Much like it is distorting beauty standards, success standards, etc.
 - An excuse to show you some LLM techniques.
 - A phenomenon connected to social media's negative effects on self-image, which is increasingly leading to mental health issues such as body dysmorphia.
 - Mostly the former though.
+
+::: {.notes}
+One of the fascinating things over the last three years has been how traditional machine learning techniques have evolved and become accessible to people who wouldn't normally consider natural language processing and computer vision to be tools they can call on. Although I'm personally rather interested in online gym culture - which I hasten to add isn't entirely bad, there is some positive information and motivation sharing - in this talk it's more of a platform to let us explore how you can make good use of LLMs in a research project.
+:::
 
 ## Comparison to superhero inflation {.smaller}
 
@@ -48,6 +61,12 @@ Much like it is distorting beauty standards, success standards, etc.
 ![Batman demonstrates the closely related idea "superhero inflation".](./img/batman_physique.jpg)
 :::
 ::::
+
+::: {.notes}
+Body dysmorphia and the ill-effects of social media are real and growing problems, but I don't want to overstate my credibility in that area - I'm not a social scientist, just an interested amateur.
+
+However it doesn't strike me as controversial to say that some cultural standards have changed rapidly in recent times.
+:::
 
 # Plan
 
@@ -80,7 +99,8 @@ Questions:
 
 ::: {.notes}
 - Deadlifting is the method that lets one lift the most weight, so it's a point of pride for many lifters.
-- Typically people will report the maximum weight that they can lift for one repetition.
+- It goes like this - the bar starts on the floor, you bend over, and you straighten up to lift the bar to hip height. A lot of muscles get involved in this, primarily your erector spinae (the long back muscles on either side of your spine) and the glutes (buttocks), and also your quads (thighs). It's important to keep your back straight to avoid injury.
+- Typically people will report the maximum weight that they can lift for one repetition. That's known as your One Rep Max, or 1RM. Your best ever is your personal record, or PR. A rule of thumb is that after a few years of serious training, someone would be able to deadlift over twice their bodyweight.
 - I say "questions" rather than "hypotheses" because we're not doing science here, we're playing.
 :::
 
@@ -92,6 +112,10 @@ Questions:
 - Use a multimodal model to judge the lifter's gender
 - Make extensive use of caching so errors don't set us back
 - Plot our results with good old ggplot2
+
+::: {.notes}
+Instagram, TikTok and YouTube are all popular among the lifting community (and probably many more) but YouTube is relatively open with its data, making it our best choice.
+:::
 
 # Data gathering
 
@@ -127,6 +151,10 @@ req_perform(req) |> # <2>
 2. Other useful methods include `req_dry_run` and `req_perform_parallel`.
 3. Getting data back as a dataframe is very convenient, so I recommend `simplifyVector = TRUE`.
 
+::: {.notes}
+Caching is always smart. If data is hard to get, it's also wise to save data obsessively, because at some point you'll accidentally nuke your cache. In this case I hit YouTube's 24 hour quota quite quickly and had to spread collection over several days.
+:::
+
 ## Data
 
 ```{r}
@@ -154,8 +182,21 @@ df |>
 
 Regular expressions wouldn't be sufficient here...
 
+::: {.notes}
+A reasonable question is whether we could use regular expressions, regexes, to extract the weights. There is often a pattern after all.
+However, in practice it's clear that people are mixing in their bodyweight and age, so it would be pretty error prone. Luckily in 2026 we have a new option.
+:::
+
 # Model 1: fact extraction
 Using an LLM to extract the weights from the messy text.
+
+::: {.notes}
+Once upon a time, one would train either a sequence-2-sequence model or a small generative transformer, but now the great big NLP box in the sky provides. We no longer need to fire up Python, or even have a GPU.
+
+At this point it's good to check familiarity. Is everyone aware that LLMs are not only chatbots, but can be used programmatically via HTTP APIs? In dead simple terms, you can send a message to OpenAI's servers, and they will run ChatGPT on it and send the answer back. OpenAI isn't the only AI lab in town of course, and in the examples that follow I'm mostly going to use an open source (free) model that's small enough to run on my laptop.
+
+We're going to use the R library Ellmer. We will make use of structured responses to ensure that we don't have to parse the response text ourselves, it's guaranteed to be formatted in the JSON object of our choice.
+:::
 
 ## Structured responses {.smaller}
 
@@ -200,9 +241,13 @@ extract.dl.weight.type <- type_object(
 3. The response structure definition
 
 ::: {.notes}
-Structured generation is dead simple conceptually: at each generation step, instead of sampling from all possible tokens, sample only from legal tokens.
+That local caching proxy isn't a technological marvel: it checks if I've made a request with the same model and inputs before. If not, it sends it off to the remote server and saves the response to disk, wheras if I have it will just copy back the saved response from last time. This saves time/money/energy.
 
-If we only prompted the LLM to return JSON in our desired format, but didn't restrict its outputs, it would _mostly_ return the right format. Structured generation makes this reliable. It's usually best to keep the format instructions in the prompt though, so we get sensible probabilities on the legal tokens.
+The model is from the French lab Mistral, the only major AI lab with an HQ in Europe unless you count Google DeepMind. They make their smaller models available for free and if you have enough of a GPU on your computer you can run it yourself. That's nice because you're not paying anything except your electricity bill, and you get complete privacy. It also lets tinkerers play with the innards of a model and do cool stuff: we can thank open source models for a lot of innovations.
+
+Structured generation is dead simple conceptually: at each generation step, instead of sampling from all possible tokens, sample only from tokens that are legal according to your schema. Theoretically any grammar is fine, but in practice everyone is using JSON schema.
+
+If we only prompted the LLM to return JSON in our desired format, but didn't restriIct its outputs, it would _mostly_ return the right format. Structured generation makes this reliable. It's usually best to keep the format instructions in the prompt though, so we get sensible probabilities on the legal tokens.
 :::
 
 ## Example structured response
@@ -219,8 +264,9 @@ extract_dl_weight_model()$chat_structured(
 ```
 
 ::: {.notes}
-- Need to perform 2 conversions: Imperial -> Metric, and Epley 1 rep max calculation
-- But most importantly, how can we trust this?
+- In this case we need to perform 2 conversions: Imperial -> Metric, and Epley 1 rep max calculation.
+- An LLM _is_ smart enough to do an imperial to metric conversion for you, but rather than placing additional cognitive load on the model (which will cause it to make errors and/or waste tokens) we might as well give the LLM a smaller task and do this trivial calculation ourselves.
+- That looks right, but to what extent can we trust this?
 :::
 
 ## Evaluating our model
@@ -232,9 +278,11 @@ extract_dl_weight_model()$chat_structured(
 - Let's open the model optimisation toolbox!
 
 ::: {.notes}
+The most important thing is to evaluate the model on your task. Since in 2026 your "model" is a few lines of prompt text, the evaluation is the most valuable asset you have. And indeed, exciting systems exist that will generate optimal prompt text for you, so please don't treasure a few lines of hand-crafted prompt. The evaluation dataset is the gold.
+
 One of the techniques I considered showing you was getting a very large model to annotate your test set. But it's TURTLES ALL THE WAY DOWN, because you need to be confident in the large model's accuracy first.
 
-Are you familiar with the concept of a dev set and a held out test set?
+A quick audience check, are you familiar with the concept of a dev set and a held out test set? This is worth knowing if you intend to try and optimise a model. The short version is that you split your dataset into two parts: a dev(elopment) set and a test set. Do initial assessments and iteration on the dev set, but keep the test set out of sight until you want to stop and score your final model. That way you avoid overfitting, in other words you avoid making optimisations that don't generalise.
 :::
 
 ## In-Context Learning (ICL) {.smaller}
@@ -329,7 +377,9 @@ turns <- c(
 ::::
 
 ::: {.notes}
-With reasoning models this technique is less useful than it was, and sometimes even detrimental because the LLM over-conditions. It's always necessary to evaluate.
+The score on the dev set was 98%, which is awesome, but highlights why we split.
+
+By the way, with current reasoning models ICL is sometimes detrimental because the LLM can over-condition on the examples at the expense of doing additional reasoning of its own. For this reason it's always necessary to evaluate.
 :::
 
 # First look at the data
@@ -384,13 +434,20 @@ ggplot(df.weights) +
 
 ::: {.notes}
 - Pleasingly normal distribution
-- Some suspicious reports
+- Some suspicious reports at the high end
 - Expect some clumping on round numbers, similar to the 6ft height effect
+- But hold on...
 :::
 
 # Model 2: image classification
 
 Male and female lifters have different strength distributions. Changes in one could mask changes in the other.
+
+::: {.notes}
+This is a big and obvious potential confounder, so we should investigate further. 
+
+For what it's worth I also took at a look at different lifting styles. The choices are conventional and sumo, the latter being where you spread your legs wider than your arms so your back is more upright and your legs do more of the work. Debate rages on in the lifting community, but I didn't find any difference.
+:::
 
 ## Image classification model {.smaller}
 
@@ -431,6 +488,13 @@ img_prompt <- function(row) {
 1. Ministral 3 3B is capable of understanding images too.
 2. We can provide both text and an image file in a single turn.
 
+::: {.notes}
+Since Mistral's output is still text, we can use structured responses again.
+
+Some models can also take audio and video input, and of course some models can output images, audio, and video. There are a lot of possibilities.
+The cost in tokens of these inputs can be a bit arcane though, so it's good to measure.
+:::
+
 ## Example usage
 
 ```{r}
@@ -453,6 +517,8 @@ chat$chat_structured(
 
 ::: {.notes}
 - Though the code for this UI is absolutely disposable, it's absolutely worth your time designing a UI that minimises cognitive load, is efficient to manipulate, and doesn't lead to mistakes.
+- There's really no substitute for getting to know your own data by the way. It's absolutely worth your time. Unless you were intimately involved in collecting the data, it will surprise you. And more than that, I feel it's only when you get into the data that insights arrive. For example my naive version of this image model was providing only the image - isn't that enough? Well it turned out that often the image was unclear but the channel name or the title was enough to disambiguate. I also found that some of the images weren't actually real people, they were anime people, so I had to steer the model around that.
+- I should mention that an improvement on my approach here would be to have multiple judges, check their agreement, and perhaps have multiple iterations of refining the coding guidelines and labelling the data.
 :::
 
 ## Model search {.smaller}
@@ -495,13 +561,15 @@ chat_cost <- function(chat) {
 }
 ```
 
+1. Ellmer's `chat$get_cost()` doesn't always work, but you can get at it via the raw JSON.
+
 ::: {.notes}
 The predicted cost was approx. 2 USD, which is good because my budget was $10 and I expected to screw up at least 4 times.
 
-I've skipped over the bit where I evaluated a range of models. It's fairly mechanical though.
-:::
+I've skipped over the bit where I evaluated a range of models. It's fairly mechanical though: you go on OpenRouter, you find the top-scoring models in your price range, and try them all. I also evaluated a model from MiniMax (Chinese open source) and a slightly-too-expensive model from Google as a reference point.
 
-1. Ellmer's `chat$get_cost()` doesn't always work, but you can get at it via the raw JSON.
+One big tip: be hygienic about your OpenRouter API keys. Use a distinct key for each task so that you can track (and cap) your spending.
+:::
 
 # Second look at the data
 
@@ -539,6 +607,12 @@ ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
 :::
 ::::
 
+::: {.notes}
+Honestly there's not a huge amount to say here - the distributions look largely as you'd expect, and there is this arguable trend but I wouldn't too put much weight on that.
+
+This was really about the journey rather than the destination. These charts just reassure us that we did a decent job.
+:::
+
 
 # Summing up {.smaller}
 
@@ -553,3 +627,8 @@ We looked at:
 - I hope you weren't too invested in the gymflation idea itself
 
 Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflation](https://cbowdon.github.io/posts/gymflation)
+
+
+::: {.notes}
+Thank you to the remaining audience members, and thank you to Jeremy and Datacove for tirelessly organising these events!
+:::

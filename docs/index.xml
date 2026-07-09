@@ -23130,7 +23130,7 @@ font-style: inherit;">*</span> weights)</span></code></pre></div></div>
 <section id="python-2" class="level2">
 <h2 class="anchored" data-anchor-id="python-2">Python 2</h2>
 <p>This works in Python 2.6 and 2.7. In Python 3 the principles are the same but <code>urllib</code> has been reorganized.</p>
-<div id="56e0bca7" class="cell">
+<div id="7f31c858" class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">  <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> logging</span>
