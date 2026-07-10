@@ -16,16 +16,20 @@ website:
     left:
       - text: Posts
         href: index.qmd
-      - text: Rather Old Posts
-        menu:
-          - text: Medium posts
-            href: https://medium.com/@cbowdon
       - text: "Open Source Software"
         menu:
           - text: "TsMonad"
             href: https://github.com/cbowdon/TsMonad
           - text: daemons.el
             href: https://github.com/cbowdon/daemons.el
+      - text: Misc
+        menu:
+          - text: AI MVP workshop for 42 London (YouTube)
+            href: https://www.youtube.com/watch?v=in4hetCT-jE
+          - text: Gymflation for Bristol Data Intelligence Network
+            href: talks/gymflation/index.qmd
+          - text: Ancient Medium posts
+            href: https://medium.com/@cbowdon
       - text: Blogroll
         menu:
           - text: R-bloggers
