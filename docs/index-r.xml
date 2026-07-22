@@ -1664,7 +1664,7 @@ Table&nbsp;1: Random effects for each corps.
 </figcaption>
 <div aria-describedby="tbl-ranef-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;"></th>
@@ -2251,7 +2251,7 @@ Table&nbsp;1: The Artifical Analysis.AI leaderboard as of late August 2025.
 </figcaption>
 <div aria-describedby="tbl-scoreboard-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 1%">
 <col style="width: 4%">
@@ -2885,7 +2885,7 @@ Table&nbsp;2: Predicted sizes (billions of parameters) of GPT family models.
 </figcaption>
 <div aria-describedby="tbl-gpt-params-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">Model</th>
@@ -3078,7 +3078,7 @@ Table&nbsp;1: Sample of the horse kick data (tidied).
 </figcaption>
 <div aria-describedby="tbl-hkdeaths-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: right;">year</th>
@@ -4179,7 +4179,7 @@ Table&nbsp;1: Example of the survey data.
 </figcaption>
 <div aria-describedby="tbl-monthly-spreadsheets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">Question</th>
@@ -5229,7 +5229,7 @@ Table&nbsp;2
 </figcaption>
 <div aria-describedby="tbl-article-reads-monthly-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment caption-top table table-sm table-striped small">
+<table class="caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">n_upf_articles_read_in_month</th>
@@ -5508,7 +5508,7 @@ Table&nbsp;3: Mean monthly model parameters for each domain.
 </figcaption>
 <div aria-describedby="tbl-domain-params-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 15%">
 <col style="width: 5%">
@@ -6370,7 +6370,7 @@ Table&nbsp;4: The response distribution for the UPF survey question with a defau
 </figcaption>
 <div aria-describedby="tbl-default-response-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">Response</th>
@@ -6484,7 +6484,7 @@ Table&nbsp;5: Example of simulated AI polling response to a fictional alarming h
 </figcaption>
 <div aria-describedby="tbl-llm-simulation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">Response</th>
@@ -6556,7 +6556,7 @@ Table&nbsp;6: Response distribution of LLM again, this time with the identity of
 </figcaption>
 <div aria-describedby="tbl-concerned-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">Response</th>
@@ -6677,7 +6677,7 @@ Table&nbsp;7: Response distribution of LLM for different genders.
 </figcaption>
 <div aria-describedby="tbl-gender-test-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">Response</th>
@@ -8552,7 +8552,7 @@ Table&nbsp;1: T. rex bone measurements in millimetres (Table 1 from Persons et a
 </figcaption>
 <div aria-describedby="tbl-dataset-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 7%">
 <col style="width: 2%">
@@ -8942,7 +8942,7 @@ Table&nbsp;2: Reported measurements for the Goliath specimen.
 </figcaption>
 <div aria-describedby="tbl-goliath-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">Specimen</th>
@@ -9408,7 +9408,7 @@ Table&nbsp;3: Imputed femur length for RTMP 81.12.1.
 </figcaption>
 <div aria-describedby="tbl-with-pred-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 25%">
 <col style="width: 8%">
@@ -12290,7 +12290,7 @@ Table&nbsp;1: Completely unnecessary <img src="https://latex.codecogs.com/png.la
 </figcaption>
 <div aria-describedby="tbl-unnecessary-chisq-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 79%">
 <col style="width: 11%">
@@ -14455,7 +14455,7 @@ Table&nbsp;1: Red Bull’s results in F1 2024
 </figcaption>
 <div aria-describedby="tbl-red-bull-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: right;">round</th>
@@ -14691,7 +14691,7 @@ Table&nbsp;2: Round 3 results.
 </figcaption>
 <div aria-describedby="tbl-round-3-results-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: right;">round</th>
@@ -15042,7 +15042,7 @@ Table&nbsp;3: Constructor budget estimates (USD millions)
 </figcaption>
 <div aria-describedby="tbl-ctr-budgets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">constructorRef</th>
@@ -15223,7 +15223,7 @@ Table&nbsp;4: Mean and SD from posterior sample.
 </figcaption>
 <div aria-describedby="tbl-mu-sig-fit-b-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">constructorRef</th>
@@ -15790,7 +15790,7 @@ Table&nbsp;5: Circuits with highest probability of having teammates finishing to
 </figcaption>
 <div aria-describedby="tbl-position-gaps-medians-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">circuitRef</th>
@@ -15949,7 +15949,7 @@ Table&nbsp;6: Results for Suzuka 2024 (two-car finishes only)
 </figcaption>
 <div aria-describedby="tbl-suzuka-2024-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 6%">
 <col style="width: 7%">
@@ -16186,7 +16186,7 @@ Table&nbsp;7: Suzuka’s placement in each season
 </figcaption>
 <div aria-describedby="tbl-suzuka-round-numbers-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: right;">year</th>
@@ -16323,7 +16323,7 @@ Table&nbsp;8: Results for Suzuka 2024 (two-car finishes only)
 </figcaption>
 <div aria-describedby="tbl-suzuka-2023-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <colgroup>
 <col style="width: 6%">
 <col style="width: 7%">
@@ -16557,7 +16557,7 @@ Table&nbsp;9: Drivers’ results for Suzuka in 2023 and 2024
 </figcaption>
 <div aria-describedby="tbl-drivers-suzuka-2023-2024-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">constructorRef</th>
@@ -16880,7 +16880,7 @@ Table&nbsp;10: Mean and SD from posterior sample, with Suzuka priors.
 </figcaption>
 <div aria-describedby="tbl-mu-sig-fit-suzuka-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">constructorRef</th>
@@ -17434,7 +17434,7 @@ Table&nbsp;11: Constructor performance means and SDs from the posterior.
 </figcaption>
 <div aria-describedby="tbl-ctr-perf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">constructorRef</th>
@@ -17689,7 +17689,7 @@ Table&nbsp;12: Driver performance means and SDs from the posterior.
 </figcaption>
 <div aria-describedby="tbl-drv-perf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top table table-sm table-striped small">
+<table class="cell caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
 <th style="text-align: left;">driverRef</th>
