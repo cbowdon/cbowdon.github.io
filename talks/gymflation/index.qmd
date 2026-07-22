@@ -16,56 +16,47 @@ execute:
   eval: false
 ---
 
+**Blog post:** [https://cbowdon.github.io/posts/gymflation](https://cbowdon.github.io/posts/gymflation)
+
+**Code and data:** [https://github.com/cbowdon/cbowdon.github.io](https://github.com/cbowdon/cbowdon.github.io/blob/youtube/posts/gymflation/index.qmd)
+
 ::: {.notes}
-I'm going to show you tips and tricks on using LLMs with R. Hopefully you are here because you like R and data stuff. If you have an interest in exercise culture that's even better, but not a requirement.
+In this talk I'm going to walk you through a project that uses R and LLMs to explore an issue in online exercise culture. We will focus on some potentially interesting techniques for working with LLMs.
+
+Hopefully, you are here because you like R and data analysis. If you have an interest in exercise culture that's even better, but not a requirement.
+
+Before I begin, let's do a quick familiarity check. 
+- Who's using R?
+- Who's aware of LLMs? Who uses LLMs programmatically?
+- Is anyone using structured generation and in-context learning already?
+- Who is familiar with gymflation? (Who lifts?)
 :::
 
 ## About me {.smaller}
 
-By day I am CTO at Polecat Intelligence, where we use AI to extract structured reputation risk insights from online media. By night I fool around with more or less the same stuff, for free.
-
-_Gymflation_ is nothing to do with Polecat, but we use the techniques here regularly.
-
-::: {.aside}
-Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflation](https://cbowdon.github.io/posts/gymflation)
-:::
+- CTO at Polecat Intelligence (www.polecat.com)
+- We use AI to extract structured reputation risk insights at scale from online media
+- _Gymflation_ is nothing to do with Polecat - it's a personal interest - but we use the techniques here regularly
 
 ::: {.notes}
-I would add that at Polecat we primarily do our data science work in Python, but personally I have become a big fan of R so that's what we're going to use today. I'm also a fan of resistance training, and that's what opened my eyes to a new-but-familiar phenomenon, gymflation.
+By day I am CTO at Polecat Intelligence, where we use AI to extract structured reputation risk insights from online media for big organisations that are interested in improving their reputation and/or avoiding risks. By night I fool around with more or less the same stuff for free, but in different domains.
+
+I would add that at Polecat we primarily do our data science work in Python, however personally I have become a big fan of R so that's what we're going to use today. I'm also a fan of resistance training, and that's what opened my eyes to a new-but-familiar phenomenon, gymflation.
+
+OK so I've put off explaining what gymflation actually is long enough, let's proceed...
 :::
 
 # Premise
-Social media is distorting the perceived average strength level.
+Social media is increasingly distorting perceived strength standards.
 
 ::: {.notes}
-Much like it is distorting beauty standards, success standards, relationship standards, politics, etc. Quicker to list fields that haven't been distorted by social media.
-:::
+We start from this premise.
 
-## What is _gymflation_?
+So in other words the idea is that continued exposure to social media makes feats of strength that previously seemed impressive seem less so.
 
-- An excuse to show you some LLM techniques.
-- A phenomenon connected to social media's negative effects on self-image, which is increasingly leading to mental health issues such as body dysmorphia.
-- Mostly the former though.
+There might be a lot of support for this in the room already, because it's widely accepted that social media is distorting standards of beauty, wealth, human decency, etc. It might be quicker to list fields that haven't been distorted by social media.
 
-::: {.notes}
-One of the fascinating things over the last three years has been how traditional machine learning techniques have evolved and become accessible to people who wouldn't normally consider natural language processing and computer vision to be tools they can call on. Although I'm personally rather interested in online gym culture - which I hasten to add isn't entirely bad, there is some positive information and motivation sharing - in this talk it's more of a platform to let us explore how you can make good use of LLMs in a research project.
-:::
-
-## Comparison to superhero inflation {.smaller}
-
-:::: {.columns}
-::: {.column width=50%}
-"When I grow up, I want to be as strong as Batman" is less achievable now than it was in the 60s.
-:::
-::: {.column width=50%}
-![Batman demonstrates the closely related idea "superhero inflation".](./img/batman_physique.jpg)
-:::
-::::
-
-::: {.notes}
-Body dysmorphia and the ill-effects of social media are real and growing problems, but I don't want to overstate my credibility in that area - I'm not a social scientist, just an interested amateur.
-
-However it doesn't strike me as controversial to say that some cultural standards have changed rapidly in recent times.
+I call this a "premise" rather than a "hypothesis" because this isn't properly scientific and I don't want to overstate anything.
 :::
 
 # Plan
@@ -92,8 +83,6 @@ Taking a narrow definition of strength: deadlift personal record (PR) videos on 
 
 ::::
 
-Questions:
-
 1. Is the average reported deadlift PR weight increasing over time?
 2. Are the number of reported heavy deadlift PRs increasing over time?
 
@@ -106,12 +95,11 @@ Questions:
 
 ## Steps
 
-- Scrape the YouTube API for 10 years of deadlift personal record (PR) videos with httr2
-- Use structured responses to extract the lifted weight with an LLM
-- Evaluate the quality of our extraction and improve it with In-Context Learning (ICL)
-- Use a multimodal model to judge the lifter's gender
-- Make extensive use of caching so errors don't set us back
-- Plot our results with good old ggplot2
+- Scrape the YouTube API for 10 years of deadlift PR videos
+- Use _structured responses_ to extract the lifted weight with an LLM
+- Evaluate the quality of our extraction and improve it with _In-Context Learning (ICL)_
+- Use a _multimodal_ model to judge the lifter's gender
+- Plot and analyse our results
 
 ::: {.notes}
 Instagram, TikTok and YouTube are all popular among the lifting community (and probably many more) but YouTube is relatively open with its data, making it our best choice.
@@ -121,7 +109,7 @@ Instagram, TikTok and YouTube are all popular among the lifting community (and p
 
 ## YouTube API {.smaller}
 
-We can use httr2 for this.
+We can use `httr2` for this.
 
 ```{r}
 #| label: youtube
@@ -257,7 +245,7 @@ If we only prompted the LLM to return JSON in our desired format, but didn't res
 #| eval: true
 extract_dl_weight_model()$chat_structured(
   "Title: 665 lbs deadlift at 188 lbs bodyweight #deadlift #pr #powerlifting #powerlifter #usapl #ipf #shortsfeed\nDescription: ",
-  type = extract.dl.weight.type
+  type = extract.dl.weight.type # provide schema
 ) |>
   as_tibble() |>
   kable()
@@ -273,7 +261,7 @@ extract_dl_weight_model()$chat_structured(
 
 - AI is _jagged intelligence_: screws up in unexpected ways
 - Need to measure its performance
-- Build high-quality test set and score accuracy (dev + test) ^[Manually annotated] 
+- Build high-quality test set and score accuracy (dev + test, manually annotated)
 - This model so far: **73%** accurate in its extractions
 - Let's open the model optimisation toolbox!
 
@@ -288,8 +276,9 @@ A quick audience check, are you familiar with the concept of a dev set and a hel
 ## In-Context Learning (ICL) {.smaller}
 
 :::: {.columns}
-
 ::: {.column width="50%"}
+
+A.k.a. _few-shot learning_, you condition the LLM on example inputs and outputs.
 
 ```{r}
 #| label: icl-model
@@ -297,14 +286,15 @@ extract_dl_weight_model <- function(turns = list()) {
   chat <- chat_openai_compatible(
     LLM_SERVER_URL,
     model = "mistralai/ministral-3-3b",
-    credentials = function() "", # not used - local model
-    params = params(max_tokens = 50), # don't generate more than we need
+    credentials = function() "",
+    params = params(max_tokens = 50),
     system_prompt = system.prompt
   )
-  chat$set_turns(turns)
+  chat$set_turns(turns) # <1>
   chat
 }
 
+# <2>
 example_turn_pair <- function(title, description, weight, unit, reps) {
   list(
     UserTurn(list(ContentText(
@@ -318,11 +308,9 @@ example_turn_pair <- function(title, description, weight, unit, reps) {
   )
 }
 ```
-A.k.a. "few-shot learning", the idea is you condition the LLM on example inputs and outputs.
 
-Here I've hand-crafted some examples based on dev failures.
-
-New result: **92%** extraction accuracy on test.
+1. Seed chat with example turns
+2. Helper function to format the turns
 
 :::
 ::: {.column width="50%"}
@@ -330,7 +318,7 @@ New result: **92%** extraction accuracy on test.
 #| label: icl-examples
 turns <- c(
   example_turn_pair(
-    title = "deadlift PR 220 @ 165 bodyweight",
+    title = "deadlift PR 220 @ 165 bodyweight", # <3>
     description = "hit this at my meet",
     weight = 220,
     unit = "NA",
@@ -373,8 +361,13 @@ turns <- c(
   )
 )
 ```
+
+3. Hand-crafted examples
+
 :::
 ::::
+
+- New result: **92%** extraction accuracy on test.
 
 ::: {.notes}
 The score on the dev set was 98%, which is awesome, but highlights why we split.
@@ -382,11 +375,11 @@ The score on the dev set was 98%, which is awesome, but highlights why we split.
 By the way, with current reasoning models ICL is sometimes detrimental because the LLM can over-condition on the examples at the expense of doing additional reasoning of its own. For this reason it's always necessary to evaluate.
 :::
 
-# First look at the data
+## Plot of deadlift PR weights over time {.smaller}
 
 ```{r}
 #| label: fig-data
-#| fig-cap: Deadlift PRs reported by YouTube users over time. World record lifts are points overlaid in orange. The dashed horizontal lines are round-number Imperial weights (100-1000lbs).
+#| fig-cap: Deadlift PRs reported by YouTube users over time don't show any change. The red line is world record lifts; values above this should be viewed with suspicion. The dashed horizontal lines are round-number Imperial weights (100-1000lbs), where we expect to see some clumping.
 #| echo: false
 #| eval: true
 full.weights.file <- "data/full-weights.rds"
@@ -397,7 +390,14 @@ df.weights <- readRDS(full.weights.file) |>
   filter(weight.kg.1rm < 600)
 
 world.records <- read_csv("data/deadlifts.csv") |>
-  mutate(weight.kg.1rm = kg, publish.date = parse_date(date, format = "%b %Y"))
+  mutate(
+    weight.kg.1rm = kg,
+    publish.date = parse_date(date, format = "%b %Y")
+  ) |>
+  filter(publish.date > "2015-01-01") |>
+  group_by(publish.date) |>
+  filter(weight.kg.1rm == max(weight.kg.1rm)) |>
+  ungroup()
 
 hline <- function(yint.kg) {
   geom_hline(
@@ -410,14 +410,16 @@ hline <- function(yint.kg) {
 
 ggplot(df.weights) +
   aes(x = publish.date, y = weight.kg.1rm) +
-  geom_point(alpha = 0.9, size = 1) +
-  geom_smooth() +
-  geom_point(data = world.records, size = 2, colour = "orange") +
+  geom_point(alpha = 0.5, size = 1) +
+  geom_smooth(method = "lm") +
+  geom_line(data = world.records, size = 1, colour = "red", alpha = 0.5) +
+  geom_point(data = world.records, size = 2, colour = "red", alpha = 0.5) +
   geom_text(
     data = world.records,
     mapping = aes(label = athlete),
     nudge_y = 10,
-    check_overlap = TRUE
+    check_overlap = TRUE,
+    size = 3
   ) +
   hline(100 / 2.2) +
   hline(200 / 2.2) +
@@ -429,7 +431,11 @@ ggplot(df.weights) +
   hline(800 / 2.2) +
   hline(900 / 2.2) +
   hline(1000 / 2.2) +
-  labs(x = "Date", y = "1RM weight (kg)")
+  labs(
+    x = "",
+    y = "Deadlift 1RM weight (kg)"
+  ) +
+  theme_minimal()
 ```
 
 ::: {.notes}
@@ -500,13 +506,16 @@ The cost in tokens of these inputs can be a bit arcane though, so it's good to m
 ```{r}
 #| label: example-image-model-usage
 prompt <- img_prompt(df.weights.imgs[1, ])
+
 chat <- predict_gender_chat()
+
 chat$chat_structured(
   prompt[[1]],
   prompt[[2]],
   type = predict.gender.type
 )
-#chat$get_tokens()
+
+# { "gender": "M" }
 ```
 
 ## Evaluating our image model
@@ -587,7 +596,8 @@ ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
   aes(x = weight.kg.1rm, fill = gender) +
   scale_fill_manual(values = gender.colours) +
   geom_histogram(alpha = 0.5) +
-  labs(x = "1RM weight (kg)", y = "Videos posted", fill = "Gender")
+  labs(x = "1RM weight (kg)", y = "Videos posted", fill = "Gender") +
+  theme_minimal()
 ```
 :::
 ::: {.column width="50%"}
@@ -600,9 +610,10 @@ ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
 ggplot(df.weights.genders |> drop_na(gender, weight.kg.1rm)) +
   aes(x = publish.date, y = weight.kg.1rm, group = gender, colour = gender) +
   geom_point(alpha = 0.5, size = 0.5) +
-  geom_smooth() +
+  geom_smooth(method = "lm") +
   scale_colour_manual(values = gender.colours) +
-  labs(x = "Date", y = "1RM weight (kg)", colour = "Gender")
+  labs(x = "Date", y = "Deadlift 1RM weight (kg)", colour = "Gender") +
+  theme_minimal()
 ```
 :::
 ::::
@@ -630,5 +641,7 @@ Blog post with all the code and data: [https://cbowdon.github.io/posts/gymflatio
 
 
 ::: {.notes}
+One of the fascinating things over the last three years has been how traditional machine learning techniques have evolved and become accessible to people who wouldn't normally consider natural language processing and computer vision to be tools they can call on. Although I'm personally rather interested in online gym culture - which I hasten to add isn't entirely bad, there is some positive information and motivation sharing - in this talk it's more of a platform to let us explore how you can make good use of LLMs in a research project where previously you would have had to manually annotate large amounts of data, either to train a smaller neural network or to simply do the thing your self.
+
 Thank you to the remaining audience members, and thank you to Jeremy and Datacove for tirelessly organising these events!
 :::

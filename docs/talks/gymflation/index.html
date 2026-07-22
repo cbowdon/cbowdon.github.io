@@ -6,8 +6,8 @@
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
 <link href="../../site_libs/quarto-html/light-border.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
-  <meta name="generator" content="quarto-1.8.26">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.9.38">
 
   <meta name="author" content="Chris Bowdon">
   <meta name="dcterms.date" content="2026-07-22">
@@ -18,6 +18,9 @@
   <link rel="stylesheet" href="../../site_libs/revealjs/dist/reset.css">
   <link rel="stylesheet" href="../../site_libs/revealjs/dist/reveal.css">
   <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
     code{white-space: pre-wrap;}
     span.smallcaps{font-variant: small-caps;}
     div.columns{display: flex; gap: min(4vw, 1.5em);}
@@ -96,7 +99,7 @@
     code span.vs { color: #20794d; } /* VerbatimString */
     code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </style>
-  <link rel="stylesheet" href="../../site_libs/revealjs/dist/theme/quarto-99eeafcedac04850354b682963cedae3.css">
+  <link rel="stylesheet" href="../../site_libs/revealjs/dist/theme/quarto-2abc1c5b7b5c7eecd6137558e106e4c3.css">
   <link rel="stylesheet" href="index.css">
   <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-QC160P51EN"></script>
 
@@ -222,8 +225,12 @@ Chris Bowdon
 </section>
 <section class="slide level2">
 
+<p><strong>Blog post:</strong> <a href="https://cbowdon.github.io/posts/gymflation">https://cbowdon.github.io/posts/gymflation</a></p>
+<p><strong>Code and data:</strong> <a href="https://github.com/cbowdon/cbowdon.github.io/blob/youtube/posts/gymflation/index.qmd">https://github.com/cbowdon/cbowdon.github.io</a></p>
 <aside class="notes">
-<p>I’m going to show you tips and tricks on using LLMs with R. Hopefully you are here because you like R and data stuff. If you have an interest in exercise culture that’s even better, but not a requirement.</p>
+<p>In this talk I’m going to walk you through a project that uses R and LLMs to explore an issue in online exercise culture. We will focus on some potentially interesting techniques for working with LLMs.</p>
+<p>Hopefully, you are here because you like R and data analysis. If you have an interest in exercise culture that’s even better, but not a requirement.</p>
+<p>Before I begin, let’s do a quick familiarity check. - Who’s using R? - Who’s aware of LLMs? Who uses LLMs programmatically? - Is anyone using structured generation and in-context learning already? - Who is familiar with gymflation? (Who lifts?)</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -238,52 +245,15 @@ Chris Bowdon
 </section>
 <section id="about-me" class="slide level2 smaller">
 <h2>About me</h2>
-<p>By day I am CTO at Polecat Intelligence, where we use AI to extract structured reputation risk insights from online media. By night I fool around with more or less the same stuff, for free.</p>
-<p><em>Gymflation</em> is nothing to do with Polecat, but we use the techniques here regularly.</p>
-
-<aside class="notes">
-<p>I would add that at Polecat we primarily do our data science work in Python, but personally I have become a big fan of R so that’s what we’re going to use today. I’m also a fan of resistance training, and that’s what opened my eyes to a new-but-familiar phenomenon, gymflation.</p>
-<style type="text/css">
-        span.MJX_Assistive_MathML {
-          position:absolute!important;
-          clip: rect(1px, 1px, 1px, 1px);
-          padding: 1px 0 0 0!important;
-          border: 0!important;
-          height: 1px!important;
-          width: 1px!important;
-          overflow: hidden!important;
-          display:block!important;
-      }</style></aside>
-<aside><div>
-<p>Blog post with all the code and data: <a href="https://cbowdon.github.io/posts/gymflation">https://cbowdon.github.io/posts/gymflation</a></p>
-</div></aside></section>
-<section>
-<section id="premise" class="title-slide slide level1 center">
-<h1>Premise</h1>
-<p>Social media is distorting the perceived average strength level.</p>
-<aside class="notes">
-<p>Much like it is distorting beauty standards, success standards, relationship standards, politics, etc. Quicker to list fields that haven’t been distorted by social media.</p>
-<style type="text/css">
-        span.MJX_Assistive_MathML {
-          position:absolute!important;
-          clip: rect(1px, 1px, 1px, 1px);
-          padding: 1px 0 0 0!important;
-          border: 0!important;
-          height: 1px!important;
-          width: 1px!important;
-          overflow: hidden!important;
-          display:block!important;
-      }</style></aside>
-</section>
-<section id="what-is-gymflation" class="slide level2">
-<h2>What is <em>gymflation</em>?</h2>
 <ul>
-<li class="fragment">An excuse to show you some LLM techniques.</li>
-<li class="fragment">A phenomenon connected to social media’s negative effects on self-image, which is increasingly leading to mental health issues such as body dysmorphia.</li>
-<li class="fragment">Mostly the former though.</li>
+<li class="fragment">CTO at Polecat Intelligence (www.polecat.com)</li>
+<li class="fragment">We use AI to extract structured reputation risk insights at scale from online media</li>
+<li class="fragment"><em>Gymflation</em> is nothing to do with Polecat - it’s a personal interest - but we use the techniques here regularly</li>
 </ul>
 <aside class="notes">
-<p>One of the fascinating things over the last three years has been how traditional machine learning techniques have evolved and become accessible to people who wouldn’t normally consider natural language processing and computer vision to be tools they can call on. Although I’m personally rather interested in online gym culture - which I hasten to add isn’t entirely bad, there is some positive information and motivation sharing - in this talk it’s more of a platform to let us explore how you can make good use of LLMs in a research project.</p>
+<p>By day I am CTO at Polecat Intelligence, where we use AI to extract structured reputation risk insights from online media for big organisations that are interested in improving their reputation and/or avoiding risks. By night I fool around with more or less the same stuff for free, but in different domains.</p>
+<p>I would add that at Polecat we primarily do our data science work in Python, however personally I have become a big fan of R so that’s what we’re going to use today. I’m also a fan of resistance training, and that’s what opened my eyes to a new-but-familiar phenomenon, gymflation.</p>
+<p>OK so I’ve put off explaining what gymflation actually is long enough, let’s proceed…</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -296,22 +266,14 @@ Chris Bowdon
           display:block!important;
       }</style></aside>
 </section>
-<section id="comparison-to-superhero-inflation" class="slide level2 smaller">
-<h2>Comparison to superhero inflation</h2>
-<div class="columns">
-<div class="column" style="width:50%;">
-<p>“When I grow up, I want to be as strong as Batman” is less achievable now than it was in the 60s.</p>
-</div><div class="column" style="width:50%;">
-<div class="quarto-figure quarto-figure-center">
-<figure>
-<p><img data-src="./img/batman_physique.jpg"></p>
-<figcaption>Batman demonstrates the closely related idea “superhero inflation”.</figcaption>
-</figure>
-</div>
-</div></div>
+<section id="premise" class="title-slide slide level1 center">
+<h1>Premise</h1>
+<p>Social media is increasingly distorting perceived strength standards.</p>
 <aside class="notes">
-<p>Body dysmorphia and the ill-effects of social media are real and growing problems, but I don’t want to overstate my credibility in that area - I’m not a social scientist, just an interested amateur.</p>
-<p>However it doesn’t strike me as controversial to say that some cultural standards have changed rapidly in recent times.</p>
+<p>We start from this premise.</p>
+<p>So in other words the idea is that continued exposure to social media makes feats of strength that previously seemed impressive seem less so.</p>
+<p>There might be a lot of support for this in the room already, because it’s widely accepted that social media is distorting standards of beauty, wealth, human decency, etc. It might be quicker to list fields that haven’t been distorted by social media.</p>
+<p>I call this a “premise” rather than a “hypothesis” because this isn’t properly scientific and I don’t want to overstate anything.</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
           position:absolute!important;
@@ -323,7 +285,8 @@ Chris Bowdon
           overflow: hidden!important;
           display:block!important;
       }</style></aside>
-</section></section>
+</section>
+
 <section>
 <section id="plan" class="title-slide slide level1 center">
 <h1>Plan</h1>
@@ -341,7 +304,6 @@ Chris Bowdon
 </div><div class="column" style="width:30%;">
 <p><img data-src="./img/example_top.jpg"></p>
 </div></div>
-<p>Questions:</p>
 <ol type="1">
 <li class="fragment">Is the average reported deadlift PR weight increasing over time?</li>
 <li class="fragment">Are the number of reported heavy deadlift PRs increasing over time?</li>
@@ -368,12 +330,11 @@ Chris Bowdon
 <section id="steps" class="slide level2">
 <h2>Steps</h2>
 <ul>
-<li class="fragment">Scrape the YouTube API for 10 years of deadlift personal record (PR) videos with httr2</li>
-<li class="fragment">Use structured responses to extract the lifted weight with an LLM</li>
-<li class="fragment">Evaluate the quality of our extraction and improve it with In-Context Learning (ICL)</li>
-<li class="fragment">Use a multimodal model to judge the lifter’s gender</li>
-<li class="fragment">Make extensive use of caching so errors don’t set us back</li>
-<li class="fragment">Plot our results with good old ggplot2</li>
+<li class="fragment">Scrape the YouTube API for 10 years of deadlift PR videos</li>
+<li class="fragment">Use <em>structured responses</em> to extract the lifted weight with an LLM</li>
+<li class="fragment">Evaluate the quality of our extraction and improve it with <em>In-Context Learning (ICL)</em></li>
+<li class="fragment">Use a <em>multimodal</em> model to judge the lifter’s gender</li>
+<li class="fragment">Plot and analyse our results</li>
 </ul>
 <aside class="notes">
 <p>Instagram, TikTok and YouTube are all popular among the lifting community (and probably many more) but YouTube is relatively open with its data, making it our best choice.</p>
@@ -396,7 +357,7 @@ Chris Bowdon
 </section>
 <section id="youtube-api" class="slide level2 smaller">
 <h2>YouTube API</h2>
-<p>We can use httr2 for this.</p>
+<p>We can use <code>httr2</code> for this.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-1"><pre class="sourceCode numberSource r code-annotation-code number-lines code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-1-1"><a href="#annotated-cell-1-1"></a><span class="fu">library</span>(httr2)</span>
 <span id="annotated-cell-1-2"><a href="#annotated-cell-1-2"></a></span>
@@ -456,7 +417,7 @@ Chris Bowdon
 <figure class="quarto-float quarto-float-tbl">
 <div aria-describedby="tbl-raw-data-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<table class="do-not-create-environment cell caption-top">
+<table class="cell caption-top">
 <colgroup>
 <col style="width: 4%">
 <col style="width: 7%">
@@ -634,7 +595,7 @@ Table&nbsp;1: Sample of the raw data from the YouTube API.
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a></a><span class="fu">extract_dl_weight_model</span>()<span class="sc">$</span><span class="fu">chat_structured</span>(</span>
 <span id="cb1-2"><a></a>  <span class="st">"Title: 665 lbs deadlift at 188 lbs bodyweight #deadlift #pr #powerlifting #powerlifter #usapl #ipf #shortsfeed</span><span class="sc">\n</span><span class="st">Description: "</span>,</span>
-<span id="cb1-3"><a></a>  <span class="at">type =</span> extract.dl.weight.type</span>
+<span id="cb1-3"><a></a>  <span class="at">type =</span> extract.dl.weight.type <span class="co"># provide schema</span></span>
 <span id="cb1-4"><a></a>) <span class="sc">|&gt;</span></span>
 <span id="cb1-5"><a></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
 <span id="cb1-6"><a></a>  <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -680,7 +641,7 @@ Table&nbsp;1: Sample of the raw data from the YouTube API.
 <ul>
 <li class="fragment">AI is <em>jagged intelligence</em>: screws up in unexpected ways</li>
 <li class="fragment">Need to measure its performance</li>
-<li class="fragment">Build high-quality test set and score accuracy (dev + test) <sup>1</sup></li>
+<li class="fragment">Build high-quality test set and score accuracy (dev + test, manually annotated)</li>
 <li class="fragment">This model so far: <strong>73%</strong> accurate in its extractions</li>
 <li class="fragment">Let’s open the model optimisation toolbox!</li>
 </ul>
@@ -699,88 +660,110 @@ Table&nbsp;1: Sample of the raw data from the YouTube API.
           overflow: hidden!important;
           display:block!important;
       }</style></aside>
-<aside><ol class="aside-footnotes"><li id="fn1"><p>Manually annotated</p></li></ol></aside></section>
+</section>
 <section id="in-context-learning-icl" class="slide level2 smaller">
 <h2>In-Context Learning (ICL)</h2>
 <div class="columns">
 <div class="column" style="width:50%;">
+<p>A.k.a. <em>few-shot learning</em>, you condition the LLM on example inputs and outputs.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a></a>extract_dl_weight_model <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">turns =</span> <span class="fu">list</span>()) {</span>
-<span id="cb2-2"><a></a>  chat <span class="ot">&lt;-</span> <span class="fu">chat_openai_compatible</span>(</span>
-<span id="cb2-3"><a></a>    LLM_SERVER_URL,</span>
-<span id="cb2-4"><a></a>    <span class="at">model =</span> <span class="st">"mistralai/ministral-3-3b"</span>,</span>
-<span id="cb2-5"><a></a>    <span class="at">credentials =</span> <span class="cf">function</span>() <span class="st">""</span>, <span class="co"># not used - local model</span></span>
-<span id="cb2-6"><a></a>    <span class="at">params =</span> <span class="fu">params</span>(<span class="at">max_tokens =</span> <span class="dv">50</span>), <span class="co"># don't generate more than we need</span></span>
-<span id="cb2-7"><a></a>    <span class="at">system_prompt =</span> system.prompt</span>
-<span id="cb2-8"><a></a>  )</span>
-<span id="cb2-9"><a></a>  chat<span class="sc">$</span><span class="fu">set_turns</span>(turns)</span>
-<span id="cb2-10"><a></a>  chat</span>
-<span id="cb2-11"><a></a>}</span>
-<span id="cb2-12"><a></a></span>
-<span id="cb2-13"><a></a>example_turn_pair <span class="ot">&lt;-</span> <span class="cf">function</span>(title, description, weight, unit, reps) {</span>
-<span id="cb2-14"><a></a>  <span class="fu">list</span>(</span>
-<span id="cb2-15"><a></a>    <span class="fu">UserTurn</span>(<span class="fu">list</span>(<span class="fu">ContentText</span>(</span>
-<span id="cb2-16"><a></a>      <span class="fu">interpolate</span>(<span class="st">"Title: {{title}}</span><span class="sc">\n</span><span class="st">Description: {{description}}"</span>)</span>
-<span id="cb2-17"><a></a>    ))),</span>
-<span id="cb2-18"><a></a>    <span class="fu">AssistantTurn</span>(<span class="fu">list</span>(<span class="fu">ContentText</span>(</span>
-<span id="cb2-19"><a></a>      <span class="fu">interpolate</span>(</span>
-<span id="cb2-20"><a></a>        <span class="st">"{</span><span class="sc">\"</span><span class="st">weight</span><span class="sc">\"</span><span class="st">:{{weight}}, </span><span class="sc">\"</span><span class="st">unit</span><span class="sc">\"</span><span class="st">:</span><span class="sc">\"</span><span class="st">{{unit}}</span><span class="sc">\"</span><span class="st">, </span><span class="sc">\"</span><span class="st">reps</span><span class="sc">\"</span><span class="st">:{{reps}}}"</span></span>
-<span id="cb2-21"><a></a>      )</span>
-<span id="cb2-22"><a></a>    )))</span>
-<span id="cb2-23"><a></a>  )</span>
-<span id="cb2-24"><a></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-8"><pre class="sourceCode numberSource r code-annotation-code number-lines code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-8-1"><a href="#annotated-cell-8-1"></a>extract_dl_weight_model <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">turns =</span> <span class="fu">list</span>()) {</span>
+<span id="annotated-cell-8-2"><a href="#annotated-cell-8-2"></a>  chat <span class="ot">&lt;-</span> <span class="fu">chat_openai_compatible</span>(</span>
+<span id="annotated-cell-8-3"><a href="#annotated-cell-8-3"></a>    LLM_SERVER_URL,</span>
+<span id="annotated-cell-8-4"><a href="#annotated-cell-8-4"></a>    <span class="at">model =</span> <span class="st">"mistralai/ministral-3-3b"</span>,</span>
+<span id="annotated-cell-8-5"><a href="#annotated-cell-8-5"></a>    <span class="at">credentials =</span> <span class="cf">function</span>() <span class="st">""</span>,</span>
+<span id="annotated-cell-8-6"><a href="#annotated-cell-8-6"></a>    <span class="at">params =</span> <span class="fu">params</span>(<span class="at">max_tokens =</span> <span class="dv">50</span>),</span>
+<span id="annotated-cell-8-7"><a href="#annotated-cell-8-7"></a>    <span class="at">system_prompt =</span> system.prompt</span>
+<span id="annotated-cell-8-8"><a href="#annotated-cell-8-8"></a>  )</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-8-9" class="code-annotation-target"><a href="#annotated-cell-8-9"></a>  chat<span class="sc">$</span><span class="fu">set_turns</span>(turns)</span>
+<span id="annotated-cell-8-10"><a href="#annotated-cell-8-10"></a>  chat</span>
+<span id="annotated-cell-8-11"><a href="#annotated-cell-8-11"></a>}</span>
+<span id="annotated-cell-8-12"><a href="#annotated-cell-8-12"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-8-13" class="code-annotation-target"><a href="#annotated-cell-8-13"></a></span>
+<span id="annotated-cell-8-14"><a href="#annotated-cell-8-14"></a>example_turn_pair <span class="ot">&lt;-</span> <span class="cf">function</span>(title, description, weight, unit, reps) {</span>
+<span id="annotated-cell-8-15"><a href="#annotated-cell-8-15"></a>  <span class="fu">list</span>(</span>
+<span id="annotated-cell-8-16"><a href="#annotated-cell-8-16"></a>    <span class="fu">UserTurn</span>(<span class="fu">list</span>(<span class="fu">ContentText</span>(</span>
+<span id="annotated-cell-8-17"><a href="#annotated-cell-8-17"></a>      <span class="fu">interpolate</span>(<span class="st">"Title: {{title}}</span><span class="sc">\n</span><span class="st">Description: {{description}}"</span>)</span>
+<span id="annotated-cell-8-18"><a href="#annotated-cell-8-18"></a>    ))),</span>
+<span id="annotated-cell-8-19"><a href="#annotated-cell-8-19"></a>    <span class="fu">AssistantTurn</span>(<span class="fu">list</span>(<span class="fu">ContentText</span>(</span>
+<span id="annotated-cell-8-20"><a href="#annotated-cell-8-20"></a>      <span class="fu">interpolate</span>(</span>
+<span id="annotated-cell-8-21"><a href="#annotated-cell-8-21"></a>        <span class="st">"{</span><span class="sc">\"</span><span class="st">weight</span><span class="sc">\"</span><span class="st">:{{weight}}, </span><span class="sc">\"</span><span class="st">unit</span><span class="sc">\"</span><span class="st">:</span><span class="sc">\"</span><span class="st">{{unit}}</span><span class="sc">\"</span><span class="st">, </span><span class="sc">\"</span><span class="st">reps</span><span class="sc">\"</span><span class="st">:{{reps}}}"</span></span>
+<span id="annotated-cell-8-22"><a href="#annotated-cell-8-22"></a>      )</span>
+<span id="annotated-cell-8-23"><a href="#annotated-cell-8-23"></a>    )))</span>
+<span id="annotated-cell-8-24"><a href="#annotated-cell-8-24"></a>  )</span>
+<span id="annotated-cell-8-25"><a href="#annotated-cell-8-25"></a>}</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt class="fragment" data-target-cell="annotated-cell-8" data-target-annotation="1">1</dt>
+<dd class="fragment">
+<span data-code-cell="annotated-cell-8" data-code-lines="9" data-code-annotation="1">Seed chat with example turns</span>
+</dd>
+<dt class="fragment" data-target-cell="annotated-cell-8" data-target-annotation="2">2</dt>
+<dd class="fragment">
+<span data-code-cell="annotated-cell-8" data-code-lines="13" data-code-annotation="2">Helper function to format the turns</span>
+</dd>
+</dl>
 </div>
-<p>A.k.a. “few-shot learning”, the idea is you condition the LLM on example inputs and outputs.</p>
-<p>Here I’ve hand-crafted some examples based on dev failures.</p>
-<p>New result: <strong>92%</strong> extraction accuracy on test.</p>
+</div>
 </div><div class="column" style="width:50%;">
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a></a>turns <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb3-2"><a></a>  <span class="fu">example_turn_pair</span>(</span>
-<span id="cb3-3"><a></a>    <span class="at">title =</span> <span class="st">"deadlift PR 220 @ 165 bodyweight"</span>,</span>
-<span id="cb3-4"><a></a>    <span class="at">description =</span> <span class="st">"hit this at my meet"</span>,</span>
-<span id="cb3-5"><a></a>    <span class="at">weight =</span> <span class="dv">220</span>,</span>
-<span id="cb3-6"><a></a>    <span class="at">unit =</span> <span class="st">"NA"</span>,</span>
-<span id="cb3-7"><a></a>    <span class="at">reps =</span> <span class="dv">1</span></span>
-<span id="cb3-8"><a></a>  ),</span>
-<span id="cb3-9"><a></a>  <span class="fu">example_turn_pair</span>(</span>
-<span id="cb3-10"><a></a>    <span class="at">title =</span> <span class="st">"NEW PR 585"</span>,</span>
-<span id="cb3-11"><a></a>    <span class="at">description =</span> <span class="st">"new deadlift personal record"</span>,</span>
-<span id="cb3-12"><a></a>    <span class="at">weight =</span> <span class="dv">585</span>,</span>
-<span id="cb3-13"><a></a>    <span class="at">unit =</span> <span class="st">"NA"</span>,</span>
-<span id="cb3-14"><a></a>    <span class="at">reps =</span> <span class="dv">1</span></span>
-<span id="cb3-15"><a></a>  ),</span>
-<span id="cb3-16"><a></a>  <span class="fu">example_turn_pair</span>(</span>
-<span id="cb3-17"><a></a>    <span class="at">title =</span> <span class="st">"NEW PR 330x3"</span>,</span>
-<span id="cb3-18"><a></a>    <span class="at">description =</span> <span class="st">""</span>,</span>
-<span id="cb3-19"><a></a>    <span class="at">weight =</span> <span class="dv">330</span>,</span>
-<span id="cb3-20"><a></a>    <span class="at">unit =</span> <span class="st">"NA"</span>,</span>
-<span id="cb3-21"><a></a>    <span class="at">reps =</span> <span class="dv">3</span></span>
-<span id="cb3-22"><a></a>  ),</span>
-<span id="cb3-23"><a></a>  <span class="fu">example_turn_pair</span>(</span>
-<span id="cb3-24"><a></a>    <span class="at">title =</span> <span class="st">"180kg x 3 deadlift PR"</span>,</span>
-<span id="cb3-25"><a></a>    <span class="at">description =</span> <span class="st">"81kg 18 years old."</span>,</span>
-<span id="cb3-26"><a></a>    <span class="at">weight =</span> <span class="dv">180</span>,</span>
-<span id="cb3-27"><a></a>    <span class="at">unit =</span> <span class="st">"kg"</span>,</span>
-<span id="cb3-28"><a></a>    <span class="at">reps =</span> <span class="dv">3</span></span>
-<span id="cb3-29"><a></a>  ),</span>
-<span id="cb3-30"><a></a>  <span class="fu">example_turn_pair</span>(</span>
-<span id="cb3-31"><a></a>    <span class="at">title =</span> <span class="st">"100kg/220lb deadlift PR"</span>,</span>
-<span id="cb3-32"><a></a>    <span class="at">description =</span> <span class="st">"smashed it"</span>,</span>
-<span id="cb3-33"><a></a>    <span class="at">weight =</span> <span class="dv">100</span>,</span>
-<span id="cb3-34"><a></a>    <span class="at">unit =</span> <span class="st">"kg"</span>,</span>
-<span id="cb3-35"><a></a>    <span class="at">reps =</span> <span class="dv">1</span></span>
-<span id="cb3-36"><a></a>  ),</span>
-<span id="cb3-37"><a></a>  <span class="fu">example_turn_pair</span>(</span>
-<span id="cb3-38"><a></a>    <span class="at">title =</span> <span class="st">"365 lb Deadlift PR @ 165 lbs"</span>,</span>
-<span id="cb3-39"><a></a>    <span class="at">description =</span> <span class="st">"Christal hitting a new deadlift PR @ 365 lbs, beltless. And before anyone says anything about her form, her deadlift PRs have ..."</span>,</span>
-<span id="cb3-40"><a></a>    <span class="at">weight =</span> <span class="dv">365</span>,</span>
-<span id="cb3-41"><a></a>    <span class="at">unit =</span> <span class="st">"lb"</span>,</span>
-<span id="cb3-42"><a></a>    <span class="at">reps =</span> <span class="dv">1</span></span>
-<span id="cb3-43"><a></a>  )</span>
-<span id="cb3-44"><a></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-9"><pre class="sourceCode numberSource r code-annotation-code number-lines code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-9-1"><a href="#annotated-cell-9-1"></a>turns <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="annotated-cell-9-2"><a href="#annotated-cell-9-2"></a>  <span class="fu">example_turn_pair</span>(</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-9-3" class="code-annotation-target"><a href="#annotated-cell-9-3"></a>    <span class="at">title =</span> <span class="st">"deadlift PR 220 @ 165 bodyweight"</span>,</span>
+<span id="annotated-cell-9-4"><a href="#annotated-cell-9-4"></a>    <span class="at">description =</span> <span class="st">"hit this at my meet"</span>,</span>
+<span id="annotated-cell-9-5"><a href="#annotated-cell-9-5"></a>    <span class="at">weight =</span> <span class="dv">220</span>,</span>
+<span id="annotated-cell-9-6"><a href="#annotated-cell-9-6"></a>    <span class="at">unit =</span> <span class="st">"NA"</span>,</span>
+<span id="annotated-cell-9-7"><a href="#annotated-cell-9-7"></a>    <span class="at">reps =</span> <span class="dv">1</span></span>
+<span id="annotated-cell-9-8"><a href="#annotated-cell-9-8"></a>  ),</span>
+<span id="annotated-cell-9-9"><a href="#annotated-cell-9-9"></a>  <span class="fu">example_turn_pair</span>(</span>
+<span id="annotated-cell-9-10"><a href="#annotated-cell-9-10"></a>    <span class="at">title =</span> <span class="st">"NEW PR 585"</span>,</span>
+<span id="annotated-cell-9-11"><a href="#annotated-cell-9-11"></a>    <span class="at">description =</span> <span class="st">"new deadlift personal record"</span>,</span>
+<span id="annotated-cell-9-12"><a href="#annotated-cell-9-12"></a>    <span class="at">weight =</span> <span class="dv">585</span>,</span>
+<span id="annotated-cell-9-13"><a href="#annotated-cell-9-13"></a>    <span class="at">unit =</span> <span class="st">"NA"</span>,</span>
+<span id="annotated-cell-9-14"><a href="#annotated-cell-9-14"></a>    <span class="at">reps =</span> <span class="dv">1</span></span>
+<span id="annotated-cell-9-15"><a href="#annotated-cell-9-15"></a>  ),</span>
+<span id="annotated-cell-9-16"><a href="#annotated-cell-9-16"></a>  <span class="fu">example_turn_pair</span>(</span>
+<span id="annotated-cell-9-17"><a href="#annotated-cell-9-17"></a>    <span class="at">title =</span> <span class="st">"NEW PR 330x3"</span>,</span>
+<span id="annotated-cell-9-18"><a href="#annotated-cell-9-18"></a>    <span class="at">description =</span> <span class="st">""</span>,</span>
+<span id="annotated-cell-9-19"><a href="#annotated-cell-9-19"></a>    <span class="at">weight =</span> <span class="dv">330</span>,</span>
+<span id="annotated-cell-9-20"><a href="#annotated-cell-9-20"></a>    <span class="at">unit =</span> <span class="st">"NA"</span>,</span>
+<span id="annotated-cell-9-21"><a href="#annotated-cell-9-21"></a>    <span class="at">reps =</span> <span class="dv">3</span></span>
+<span id="annotated-cell-9-22"><a href="#annotated-cell-9-22"></a>  ),</span>
+<span id="annotated-cell-9-23"><a href="#annotated-cell-9-23"></a>  <span class="fu">example_turn_pair</span>(</span>
+<span id="annotated-cell-9-24"><a href="#annotated-cell-9-24"></a>    <span class="at">title =</span> <span class="st">"180kg x 3 deadlift PR"</span>,</span>
+<span id="annotated-cell-9-25"><a href="#annotated-cell-9-25"></a>    <span class="at">description =</span> <span class="st">"81kg 18 years old."</span>,</span>
+<span id="annotated-cell-9-26"><a href="#annotated-cell-9-26"></a>    <span class="at">weight =</span> <span class="dv">180</span>,</span>
+<span id="annotated-cell-9-27"><a href="#annotated-cell-9-27"></a>    <span class="at">unit =</span> <span class="st">"kg"</span>,</span>
+<span id="annotated-cell-9-28"><a href="#annotated-cell-9-28"></a>    <span class="at">reps =</span> <span class="dv">3</span></span>
+<span id="annotated-cell-9-29"><a href="#annotated-cell-9-29"></a>  ),</span>
+<span id="annotated-cell-9-30"><a href="#annotated-cell-9-30"></a>  <span class="fu">example_turn_pair</span>(</span>
+<span id="annotated-cell-9-31"><a href="#annotated-cell-9-31"></a>    <span class="at">title =</span> <span class="st">"100kg/220lb deadlift PR"</span>,</span>
+<span id="annotated-cell-9-32"><a href="#annotated-cell-9-32"></a>    <span class="at">description =</span> <span class="st">"smashed it"</span>,</span>
+<span id="annotated-cell-9-33"><a href="#annotated-cell-9-33"></a>    <span class="at">weight =</span> <span class="dv">100</span>,</span>
+<span id="annotated-cell-9-34"><a href="#annotated-cell-9-34"></a>    <span class="at">unit =</span> <span class="st">"kg"</span>,</span>
+<span id="annotated-cell-9-35"><a href="#annotated-cell-9-35"></a>    <span class="at">reps =</span> <span class="dv">1</span></span>
+<span id="annotated-cell-9-36"><a href="#annotated-cell-9-36"></a>  ),</span>
+<span id="annotated-cell-9-37"><a href="#annotated-cell-9-37"></a>  <span class="fu">example_turn_pair</span>(</span>
+<span id="annotated-cell-9-38"><a href="#annotated-cell-9-38"></a>    <span class="at">title =</span> <span class="st">"365 lb Deadlift PR @ 165 lbs"</span>,</span>
+<span id="annotated-cell-9-39"><a href="#annotated-cell-9-39"></a>    <span class="at">description =</span> <span class="st">"Christal hitting a new deadlift PR @ 365 lbs, beltless. And before anyone says anything about her form, her deadlift PRs have ..."</span>,</span>
+<span id="annotated-cell-9-40"><a href="#annotated-cell-9-40"></a>    <span class="at">weight =</span> <span class="dv">365</span>,</span>
+<span id="annotated-cell-9-41"><a href="#annotated-cell-9-41"></a>    <span class="at">unit =</span> <span class="st">"lb"</span>,</span>
+<span id="annotated-cell-9-42"><a href="#annotated-cell-9-42"></a>    <span class="at">reps =</span> <span class="dv">1</span></span>
+<span id="annotated-cell-9-43"><a href="#annotated-cell-9-43"></a>  )</span>
+<span id="annotated-cell-9-44"><a href="#annotated-cell-9-44"></a>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt class="fragment" data-target-cell="annotated-cell-9" data-target-annotation="3">3</dt>
+<dd class="fragment">
+<span data-code-cell="annotated-cell-9" data-code-lines="3" data-code-annotation="3">Hand-crafted examples</span>
+</dd>
+</dl>
+</div>
 </div>
 </div></div>
+<ul>
+<li class="fragment">New result: <strong>92%</strong> extraction accuracy on test.</li>
+</ul>
 <aside class="notes">
 <p>The score on the dev set was 98%, which is awesome, but highlights why we split.</p>
 <p>By the way, with current reasoning models ICL is sometimes detrimental because the LLM can over-condition on the examples at the expense of doing additional reasoning of its own. For this reason it’s always necessary to evaluate.</p>
@@ -795,12 +778,12 @@ Table&nbsp;1: Sample of the raw data from the YouTube API.
           overflow: hidden!important;
           display:block!important;
       }</style></aside>
-</section></section>
-<section id="first-look-at-the-data" class="title-slide slide level1 center">
-<h1>First look at the data</h1>
+</section>
+<section id="plot-of-deadlift-pr-weights-over-time" class="slide level2 smaller">
+<h2>Plot of deadlift PR weights over time</h2>
 
 <img data-src="index_files/figure-revealjs/fig-data-1.png" width="960" class="r-stretch quarto-figure-center" id="fig-data"><p class="caption">
-Figure&nbsp;1: Deadlift PRs reported by YouTube users over time. World record lifts are points overlaid in orange. The dashed horizontal lines are round-number Imperial weights (100-1000lbs).
+Figure&nbsp;1: Deadlift PRs reported by YouTube users over time don’t show any change. The red line is world record lifts; values above this should be viewed with suspicion. The dashed horizontal lines are round-number Imperial weights (100-1000lbs), where we expect to see some clumping.
 </p><aside class="notes">
 <ul>
 <li>Pleasingly normal distribution</li>
@@ -819,8 +802,7 @@ Figure&nbsp;1: Deadlift PRs reported by YouTube users over time. World record li
           overflow: hidden!important;
           display:block!important;
       }</style></aside>
-</section>
-
+</section></section>
 <section>
 <section id="model-2-image-classification" class="title-slide slide level1 center">
 <h1>Model 2: image classification</h1>
@@ -903,14 +885,17 @@ Figure&nbsp;1: Deadlift PRs reported by YouTube users over time. World record li
 <section id="example-usage" class="slide level2">
 <h2>Example usage</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a></a>prompt <span class="ot">&lt;-</span> <span class="fu">img_prompt</span>(df.weights.imgs[<span class="dv">1</span>, ])</span>
-<span id="cb4-2"><a></a>chat <span class="ot">&lt;-</span> <span class="fu">predict_gender_chat</span>()</span>
-<span id="cb4-3"><a></a>chat<span class="sc">$</span><span class="fu">chat_structured</span>(</span>
-<span id="cb4-4"><a></a>  prompt[[<span class="dv">1</span>]],</span>
-<span id="cb4-5"><a></a>  prompt[[<span class="dv">2</span>]],</span>
-<span id="cb4-6"><a></a>  <span class="at">type =</span> predict.gender.type</span>
-<span id="cb4-7"><a></a>)</span>
-<span id="cb4-8"><a></a><span class="co">#chat$get_tokens()</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a></a>prompt <span class="ot">&lt;-</span> <span class="fu">img_prompt</span>(df.weights.imgs[<span class="dv">1</span>, ])</span>
+<span id="cb2-2"><a></a></span>
+<span id="cb2-3"><a></a>chat <span class="ot">&lt;-</span> <span class="fu">predict_gender_chat</span>()</span>
+<span id="cb2-4"><a></a></span>
+<span id="cb2-5"><a></a>chat<span class="sc">$</span><span class="fu">chat_structured</span>(</span>
+<span id="cb2-6"><a></a>  prompt[[<span class="dv">1</span>]],</span>
+<span id="cb2-7"><a></a>  prompt[[<span class="dv">2</span>]],</span>
+<span id="cb2-8"><a></a>  <span class="at">type =</span> predict.gender.type</span>
+<span id="cb2-9"><a></a>)</span>
+<span id="cb2-10"><a></a></span>
+<span id="cb2-11"><a></a><span class="co"># { "gender": "M" }</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="evaluating-our-image-model" class="slide level2">
@@ -1072,6 +1057,7 @@ Figure&nbsp;3: Female lifters are still the minority, but have arguably improved
 </ul>
 <p>Blog post with all the code and data: <a href="https://cbowdon.github.io/posts/gymflation">https://cbowdon.github.io/posts/gymflation</a></p>
 <aside class="notes">
+<p>One of the fascinating things over the last three years has been how traditional machine learning techniques have evolved and become accessible to people who wouldn’t normally consider natural language processing and computer vision to be tools they can call on. Although I’m personally rather interested in online gym culture - which I hasten to add isn’t entirely bad, there is some positive information and motivation sharing - in this talk it’s more of a platform to let us explore how you can make good use of LLMs in a research project where previously you would have had to manually annotate large amounts of data, either to train a smaller neural network or to simply do the thing your self.</p>
 <p>Thank you to the remaining audience members, and thank you to Jeremy and Datacove for tirelessly organising these events!</p>
 <style type="text/css">
         span.MJX_Assistive_MathML {
@@ -1087,8 +1073,6 @@ Figure&nbsp;3: Female lifters are still the minority, but have arguably improved
 
 
 </section>
-
-
     </div>
   <div class="quarto-auto-generated-content" style="display: none;">
 <div class="footer footer-default">
