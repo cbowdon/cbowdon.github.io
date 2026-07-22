@@ -2,7 +2,7 @@
 title: Exploring Gymflation with AI
 subtitle: Is it real? Using YouTube data, and LLMs (Ellmer, R) to find out.
 date: "2026-07-05"
-tags: [r, ai, llm, gym, youtube]
+categories: [r, ai, llm, gym, youtube]
 engine: knitr
 code-fold: show
 execute: 
